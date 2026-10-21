@@ -143,11 +143,11 @@ function expToNext(level) { return Math.floor(20 * Math.pow(level, 1.6)); }
 // ---------------- EQUIPOS DE PROFESORES (repartidos por plantas) ----------------
 const TRAINERS = {
   efisica:{ id:'efisica', name:'Profe Atlas', subject:'Educación Física', room:'room_tatami', floor:0,
-    team:[['pelotroncho',4],['mochiloide',5]], reward:'Insignia Física', prize:300 },
+    team:[['mochiloide',4],['pelotroncho',5]], reward:'Insignia Física', prize:300 },
   mates: { id:'mates', name:'Profesora Álgebra', subject:'Matemáticas', room:'room_mates', floor:1,
-    team:[['gomitas',5],['tizorex',5]], reward:'Insignia de Lógica', prize:330 },
+    team:[['tizorex',4],['gomitas',5]], reward:'Insignia de Lógica', prize:330 },
   lengua:{ id:'lengua', name:'Profesor Cervantes', subject:'Lengua', room:'room_lengua', floor:1,
-    team:[['librillo',6],['plumavox',6]], reward:'Insignia de Letras', prize:350 },
+    team:[['plumavox',5],['librillo',6]], reward:'Insignia de Letras', prize:350 },
   ciencias:{ id:'ciencias', name:'Profesor Darwin', subject:'Ciencias Naturales', room:'room_ciencias', floor:2,
     team:[['hojalata',8],['hojarbol',9]], reward:'Insignia Natural', prize:400 },
   ingles:{ id:'ingles', name:'Mr. Shakespeare', subject:'Inglés', room:'room_ingles', floor:2,
