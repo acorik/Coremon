@@ -10,7 +10,7 @@ const SAVE_KEY = 'corazonistasvitoria_save_v1';
 
 let STATE = 'BOOT'; // BOOT | STORY | STARTER | OVERWORLD | DIALOGUE | BATTLE | WIN
 let game = {
-  room: 'pasillo',
+  room: 'planta_baja',
   pos: { x:7, y:6 },
   facing: 'down',
   team: [],
@@ -95,18 +95,11 @@ function tryMove(dir) {
   const tile = row[x];
   if (tile === undefined || !TILE_WALKABLE(tile)) return;
 
-  // puerta de liga bloqueada
   const door = map.doors.find(d => d.x === x && d.y === y);
-  if (door && door.locked) {
-    const need = door.requiredBadges - game.badges.length;
-    if (game.badges.length < door.requiredBadges) {
-      showDialog(`El despacho está cerrado. Te faltan ${need} insignia(s) para entrar a la Liga.`);
-      return;
-    }
-  }
+
   // npc bloquea paso
   const npc = map.npcs.find(n => n.x === x && n.y === y);
-  if (npc) { interactNpc(npc); return; }
+  if (npc) { interactNpc(npc, map); return; }
 
   // decoración sólida bloquea paso
   const deco = decorAt(map, x, y);
@@ -115,7 +108,8 @@ function tryMove(dir) {
   game.pos = {x,y};
   walkFrame = !walkFrame;
 
-  if (door && !door.locked) {
+  if (door) {
+    if (door.elevator) { openElevator(); return; }
     changeRoom(door.to, door.tx, door.ty);
     return;
   }
@@ -134,12 +128,49 @@ function changeRoom(roomId, tx, ty) {
   saveGame();
 }
 
-function interactNpc(npc) {
+// ---------------- ASCENSOR / PISOS ----------------
+const elevatorScreen = document.getElementById('elevator-screen');
+const elevatorList = document.getElementById('elevator-list');
+const HUB_BY_FLOOR = ['planta_baja','piso1','piso2','piso3','piso4','piso5'];
+
+function openElevator() {
+  elevatorList.innerHTML = '';
+  FLOORS.forEach(f => {
+    const unlocked = game.badges.length >= f.needBadges;
+    const btn = document.createElement('button');
+    btn.className = 'big-btn elevator-btn';
+    btn.disabled = !unlocked || f.id === (MAPS[game.room] && MAPS[game.room].floor);
+    btn.textContent = unlocked ? f.name : `${f.name} 🔒 (${f.needBadges} insignias)`;
+    if (unlocked) btn.addEventListener('click', () => selectFloor(f.id));
+    elevatorList.appendChild(btn);
+  });
+  STATE = 'MENU';
+  elevatorScreen.classList.remove('hidden');
+}
+
+function closeElevator() {
+  elevatorScreen.classList.add('hidden');
+  STATE = 'OVERWORLD';
+}
+
+function selectFloor(floorId) {
+  elevatorScreen.classList.add('hidden');
+  STATE = 'OVERWORLD';
+  const hubId = HUB_BY_FLOOR[floorId];
+  const hub = MAPS[hubId];
+  changeRoom(hubId, hub.spawn.x, hub.spawn.y);
+}
+
+function interactNpc(npc, map) {
   if (npc.id === 'enfermera') {
-    game.team.forEach(p => { p.hp = p.stats.hp; });
+    game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
     game.stickers = Math.min(10, game.stickers + 1);
     showDialog('Enfermera: ¡Tu equipo está como nuevo! Toma también un cromo de regalo.');
     saveGame();
+    return;
+  }
+  if (map && map.flavor && map.flavor.id === npc.id) {
+    showDialog(map.flavor.lines);
     return;
   }
   const trainer = TRAINERS[npc.id];
@@ -196,7 +227,9 @@ function drawTile(map, t, x, y) {
   const px = x*TILE, py = y*TILE;
   if (t === '#') { drawWallBrick(ctx, px, py, TILE); return; }
   if (t === ',') { drawGrassTile(ctx, px, py, TILE, (x+y)%2===0); return; }
+  if (t === 'z') { drawFloorWood(ctx, px, py, TILE); drawTechSparkle(ctx, px, py, TILE, (x+y)%2===0); return; }
   if (t === 'p') { drawPathTile(ctx, px, py, TILE); return; }
+  if (t === 'A') { drawElevatorTile(ctx, px, py, TILE); return; }
   if (t === 'D') {
     const door = map.doors.find(d => d.x===x && d.y===y);
     drawDoorTile(ctx, px, py, TILE, door ? TYPE_COLOR[subjectColorType(door)] : '#8d6e63');
@@ -223,7 +256,7 @@ function drawDoorLabels(map) {
     if (!d.short) continue;
     const px = d.x*TILE + TILE/2, py = d.y*TILE - 4;
     const w = ctx.measureText(d.short).width + 10;
-    ctx.fillStyle = d.locked && game.badges.length < (d.requiredBadges||0) ? 'rgba(90,20,110,0.85)' : 'rgba(20,20,20,0.75)';
+    ctx.fillStyle = d.elevator ? 'rgba(20,60,90,0.85)' : 'rgba(20,20,20,0.75)';
     ctx.fillRect(px - w/2, py - 13, w, 16);
     ctx.fillStyle = '#ffd54f';
     ctx.fillText(d.short, px, py - 1);
@@ -242,9 +275,11 @@ function drawHud() {
 // ---------------- HISTORIA / INICIO ----------------
 const introLines = [
   'Hoy es tu primer día en el Colegio Corazonistas Vitoria.',
-  'Aquí, cada asignatura es un gimnasio, y cada profesor entrena a sus propios Coremon.',
-  'Para llegar a la Liga Corazonistas y enfrentarte al Director, deberás conseguir las 6 insignias: Matemáticas, Lengua, Educación Física, Arte, Ciencias e Inglés.',
-  'Consejo del conserje: antes de retar a un profesor, pasa por el Patio a entrenar y capturar algún Coremon salvaje con tus cromos. ¡Un equipo de uno no basta contra un profesor!',
+  'El colegio tiene 6 plantas, y un viejo ascensor en la Planta Baja es la única forma de moverte entre ellas.',
+  'Cada asignatura es un gimnasio: en Primaria (1º y 2º) empezarás con Matemáticas, Lengua, Ciencias e Inglés; en la ESO (3º) te espera Arte, y en el Tatami de la Planta Baja, Educación Física.',
+  'El ascensor solo te dejará subir más alto según las insignias que vayas consiguiendo: Bachillerato (4º) y, al final, la 5ª planta, donde el Director dirige la Liga Corazonistas.',
+  'Para llegar a la Liga necesitarás las 6 insignias: Lógica, Letras, Física, Arte, Natural e Idioma.',
+  'Consejo del conserje: antes de retar a un profesor, entrena y captura algún Coremon salvaje en el Patio (o en las salas de apoyo de cada planta) con tus cromos. ¡Un equipo de uno no basta contra un profesor!',
   'Un viejo conserje te espera en la entrada con un regalo especial antes de empezar...'
 ];
 
@@ -291,6 +326,7 @@ window.addEventListener('load', () => {
   document.getElementById('btn-continue').disabled = !hasSave();
   document.getElementById('btn-new').addEventListener('click', startNewGame);
   document.getElementById('btn-continue').addEventListener('click', continueGame);
+  document.getElementById('btn-elevator-close').addEventListener('click', closeElevator);
   document.querySelectorAll('.starter-card').forEach(card => {
     card.addEventListener('click', () => pickStarter(card.dataset.species));
   });

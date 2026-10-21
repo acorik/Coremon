@@ -153,6 +153,8 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+#battle-menu { grid-template-columns: 1fr 1fr 1fr; }
+#battle-menu #btn-run { grid-column: span 1; }
 
 .move-btn, .action-btn {
   border: 2px solid #333;
@@ -175,3 +177,8 @@ button {
 
 /* ---------- Win screen ---------- */
 #win-screen { position: absolute; inset: 0; }
+
+/* ---------- Ascensor ---------- */
+.elevator-overlay { position: absolute; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: center; }
+.elevator-btn { text-align: center; }
+.elevator-btn:disabled { background: #999; }

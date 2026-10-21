@@ -1,5 +1,5 @@
 // ============================================================
-// COREMON - Sistema de combate por turnos
+// COREMON - Sistema de combate por turnos (con animaciones)
 // ============================================================
 
 let battle = null; // estado de la batalla activa
@@ -14,6 +14,9 @@ const moveMenu = document.getElementById('move-menu');
 const teamMenu = document.getElementById('team-menu');
 
 const STRUGGLE = { name:'Forcejeo', type:null, power:25, acc:1.0, pp:999 };
+const ATTACK_MS = 2000; // cada ataque (ida, impacto, vuelta) dura ~2s, como pide el diseño
+
+function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
 
 function startWildBattle(zone) {
   const pool = WILD_TABLE[zone] || WILD_TABLE.patio;
@@ -37,8 +40,12 @@ function openBattle(opts) {
     enemyTeam: opts.enemyTeam,
     enemyActive: 0,
     over: false,
+    busy: false,
+    playerDefending: false,
     flashPlayer: 0,
-    flashEnemy: 0
+    flashEnemy: 0,
+    lunge: null, // {side:'player'|'enemy', progress:0..1}
+    floatingTexts: []
   };
   battleScreen.classList.remove('hidden');
   logClear();
@@ -61,6 +68,13 @@ function log(msg) {
   battleLog.scrollTop = battleLog.scrollHeight;
 }
 
+function floatText(side, text, color) {
+  const w = battleCanvas.width, h = battleCanvas.height;
+  const x = side === 'enemy' ? w*0.74 : w*0.26;
+  const y = side === 'enemy' ? h*0.62 - 90 : h*0.88 - 110;
+  battle.floatingTexts.push({ text, x, y, life: 55, maxLife: 55, color: color || '#fff' });
+}
+
 // ---------------- RENDER DE SPRITES EN COMBATE ----------------
 function battleAnimLoop(ts) {
   if (!battle) return;
@@ -68,6 +82,8 @@ function battleAnimLoop(ts) {
   drawBattleScene();
   if (STATE === 'BATTLE') requestAnimationFrame(battleAnimLoop);
 }
+
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
 
 function drawBattleScene() {
   if (!battle) return;
@@ -85,16 +101,44 @@ function drawBattleScene() {
 
   const bob = Math.sin(battleAnimT / 220) * 3;
   const e = activeEnemy(), p = activePlayer();
+
+  // desplazamiento de embestida (lunge) hacia el rival durante el ataque
+  let lungeEnemyX = 0, lungePlayerX = 0;
+  if (battle.lunge) {
+    const amt = Math.sin(easeInOut(battle.lunge.progress) * Math.PI) * 26;
+    if (battle.lunge.side === 'enemy') lungeEnemyX = -amt;
+    if (battle.lunge.side === 'player') lungePlayerX = amt;
+  }
+
   if (e) {
     const shakeE = battle.flashEnemy > 0 ? (Math.random()*8-4) : 0;
-    drawCreature(bctx, e.species, w*0.74 - 34 + shakeE, h*0.62 - 68 + bob, 68, { bob: 0 });
+    drawCreature(bctx, e.species, w*0.74 - 34 + shakeE + lungeEnemyX, h*0.62 - 68 + bob, 68, { bob: 0 });
     if (battle.flashEnemy > 0) battle.flashEnemy--;
   }
   if (p) {
     const shakeP = battle.flashPlayer > 0 ? (Math.random()*8-4) : 0;
-    drawCreature(bctx, p.species, w*0.26 - 42 + shakeP, h*0.88 - 84 - bob, 84, { bob: 0, flip:true });
+    drawCreature(bctx, p.species, w*0.26 - 42 + shakeP + lungePlayerX, h*0.88 - 84 - bob, 84, { bob: 0, flip:true });
     if (battle.flashPlayer > 0) battle.flashPlayer--;
   }
+  if (battle.playerDefending) {
+    bctx.fillStyle = 'rgba(100,180,255,0.35)';
+    bctx.beginPath(); bctx.arc(w*0.26, h*0.88-45, 46, 0, Math.PI*2); bctx.fill();
+  }
+
+  // texto flotante (daño, fallos, bloqueos...)
+  battle.floatingTexts = battle.floatingTexts.filter(t => t.life > 0);
+  battle.floatingTexts.forEach(t => {
+    t.y -= 0.6; t.life--;
+    const alpha = Math.min(1, t.life / 20);
+    bctx.globalAlpha = alpha;
+    bctx.font = 'bold 16px monospace';
+    bctx.textAlign = 'center';
+    bctx.fillStyle = 'rgba(0,0,0,0.5)';
+    bctx.fillText(t.text, t.x+1, t.y+1);
+    bctx.fillStyle = t.color;
+    bctx.fillText(t.text, t.x, t.y);
+    bctx.globalAlpha = 1;
+  });
 }
 
 function renderBattle() {
@@ -132,6 +176,7 @@ function pipBar(pp, maxPp) {
 }
 
 function showMoveMenu() {
+  if (battle.busy) return;
   const p = activePlayer();
   moveMenu.innerHTML = '';
   const anyPp = p.moves.some(m => m.pp > 0);
@@ -171,6 +216,7 @@ function showMoveMenu() {
 }
 
 function showTeamMenu() {
+  if (battle.busy) return;
   teamMenu.innerHTML = '';
   battle.playerTeam.forEach((pk, i) => {
     const btn = document.createElement('button');
@@ -205,65 +251,135 @@ function pickEnemyMove(e) {
   return { slot, mv: MOVES[slot.id] };
 }
 
-function playerTurn(moveIdxOrStruggle) {
-  if (battle.over) return;
-  moveMenu.classList.add('hidden');
-  battleMenu.classList.add('hidden');
-  const p = activePlayer(), e = activeEnemy();
-  let slot = null, mv;
-  if (moveIdxOrStruggle === 'struggle') {
-    mv = STRUGGLE;
-  } else {
-    slot = p.moves[moveIdxOrStruggle];
-    mv = MOVES[slot.id];
-    slot.pp = Math.max(0, slot.pp - 1);
-  }
-  const playerFirst = p.stats.spd >= e.stats.spd;
+// ---------------- SECUENCIA DE ATAQUE ANIMADA (~2s) ----------------
+async function performAttack(side, attacker, mv, defender, defenderIsGuarding) {
+  const attackerName = SPECIES[attacker.species].name;
+  log(`${attackerName} usa ${mv.name}...`);
+  floatText(side, '¡' + mv.name + '!', '#ffffff');
 
-  const doPlayerMove = () => {
-    if (Math.random() > mv.acc) { log(`${SPECIES[p.species].name} usó ${mv.name}, ¡pero falló!`); return false; }
-    const {dmg, eff} = damageFormula(p, mv, e);
-    e.hp -= dmg;
-    battle.flashEnemy = 10;
-    log(`${SPECIES[p.species].name} usó ${mv.name}. ${effText(eff)}(-${dmg} HP)`);
+  battle.lunge = { side, progress: 0 };
+  const outSteps = 10;
+  for (let i=1;i<=outSteps;i++) {
+    battle.lunge.progress = i/outSteps;
+    await wait(ATTACK_MS*0.3/outSteps);
+  }
+
+  let result = 'hit';
+  let dmg = 0, eff = 1, blocked = false;
+
+  if (Math.random() > mv.acc) {
+    result = 'miss';
+    floatText(side === 'enemy' ? 'player' : 'enemy', '¡Fallo!', '#cfd8dc');
+    log(`${attackerName} usó ${mv.name}, ¡pero falló!`);
+  } else {
+    // bloqueo: una pequeña posibilidad de que el objetivo pare el golpe
+    const guardBonus = defenderIsGuarding ? 0.55 : 0;
+    blocked = Math.random() < (0.12 + guardBonus);
+    const calc = damageFormula(attacker, mv, defender);
+    dmg = calc.dmg; eff = calc.eff;
+    if (blocked) dmg = Math.max(1, Math.floor(dmg * (defenderIsGuarding ? 0.2 : 0.35)));
+    defender.hp -= dmg;
     if (mv === STRUGGLE) {
-      const recoil = Math.max(1, Math.floor(p.stats.hp * 0.1));
-      p.hp -= recoil;
-      log(`${SPECIES[p.species].name} se hace daño por el esfuerzo (-${recoil} HP).`);
+      const recoil = Math.max(1, Math.floor(attacker.stats.hp * 0.1));
+      attacker.hp -= recoil;
     }
+    const otherSide = side === 'enemy' ? 'player' : 'enemy';
+    if (otherSide === 'enemy') battle.flashEnemy = 10; else battle.flashPlayer = 10;
+    floatText(otherSide, '-' + dmg, blocked ? '#90caf9' : (eff > 1 ? '#ffca28' : '#ff5252'));
+    if (blocked) floatText(otherSide, '¡Bloqueado!', '#90caf9');
     renderBattle();
-    if (p.hp <= 0) { p.hp = 0; renderBattle(); onPlayerFainted(); return true; }
-    if (e.hp <= 0) { e.hp = 0; renderBattle(); onEnemyFainted(); return true; }
-    return false;
-  };
-  const doEnemyMove = () => {
-    const { slot: eslot, mv: emv } = pickEnemyMove(e);
-    if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
-    if (Math.random() > emv.acc) { log(`${SPECIES[e.species].name} usó ${emv.name}, ¡pero falló!`); return false; }
-    const {dmg, eff} = damageFormula(e, emv, p);
-    p.hp -= dmg;
-    battle.flashPlayer = 10;
-    log(`${SPECIES[e.species].name} usó ${emv.name}. ${effText(eff)}(-${dmg} HP)`);
-    renderBattle();
-    if (p.hp <= 0) { p.hp = 0; renderBattle(); onPlayerFainted(); return true; }
-    return false;
-  };
-
-  let ended = false;
-  if (playerFirst) {
-    ended = doPlayerMove();
-    if (!ended) ended = doEnemyMove();
-  } else {
-    ended = doEnemyMove();
-    if (!ended) ended = doPlayerMove();
+    log(`${attackerName} usó ${mv.name}. ${blocked ? '¡Bloqueado parcialmente! ' : ''}${effText(eff)}(-${dmg} HP)`);
   }
-  if (!battle.over) showMainMenu();
+
+  await wait(ATTACK_MS*0.2);
+  const backSteps = 8;
+  for (let i=backSteps-1;i>=0;i--) {
+    battle.lunge.progress = i/backSteps;
+    await wait(ATTACK_MS*0.3/backSteps);
+  }
+  battle.lunge = null;
+  await wait(ATTACK_MS*0.2);
+  return { result, dmg, eff, blocked };
 }
 
 function effText(eff) {
   if (eff > 1) return '¡Muy eficaz! ';
   if (eff < 1) return 'No muy eficaz... ';
   return '';
+}
+
+async function playerTurn(moveIdxOrStruggle) {
+  if (battle.over || battle.busy) return;
+  battle.busy = true;
+  moveMenu.classList.add('hidden');
+  battleMenu.classList.add('hidden');
+  const p = activePlayer(), e = activeEnemy();
+  let mv;
+  if (moveIdxOrStruggle === 'struggle') {
+    mv = STRUGGLE;
+  } else {
+    const slot = p.moves[moveIdxOrStruggle];
+    mv = MOVES[slot.id];
+    slot.pp = Math.max(0, slot.pp - 1);
+  }
+  battle.playerDefending = false;
+  await resolveRound({ playerAttacks: true, mv });
+}
+
+async function playerDefend() {
+  if (battle.over || battle.busy) return;
+  battle.busy = true;
+  battleMenu.classList.add('hidden');
+  battle.playerDefending = true;
+  log(`${SPECIES[activePlayer().species].name} se prepara para bloquear el golpe.`);
+  floatText('player', '¡Defensa!', '#90caf9');
+  await wait(500);
+  await resolveRound({ playerAttacks: false });
+}
+
+async function resolveRound({ playerAttacks, mv }) {
+  const p = activePlayer(), e = activeEnemy();
+  const playerFirst = playerAttacks && p.stats.spd >= e.stats.spd;
+
+  if (playerAttacks) {
+    if (playerFirst) {
+      const r1 = await performAttack('player', p, mv, e, false);
+      renderBattle();
+      if (checkFaints()) { battle.busy = false; return; }
+      const { slot: eslot, mv: emv } = pickEnemyMove(e);
+      if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
+      await performAttack('enemy', e, emv, p, battle.playerDefending);
+      renderBattle();
+      if (checkFaints()) { battle.busy = false; return; }
+    } else {
+      const { slot: eslot, mv: emv } = pickEnemyMove(e);
+      if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
+      await performAttack('enemy', e, emv, p, false);
+      renderBattle();
+      if (checkFaints()) { battle.busy = false; return; }
+      const r2 = await performAttack('player', p, mv, e, false);
+      renderBattle();
+      if (checkFaints()) { battle.busy = false; return; }
+    }
+  } else {
+    // el jugador se defiende: solo ataca el rival, con daño reducido
+    const { slot: eslot, mv: emv } = pickEnemyMove(e);
+    if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
+    await performAttack('enemy', e, emv, p, true);
+    renderBattle();
+    if (checkFaints()) { battle.busy = false; return; }
+  }
+
+  battle.playerDefending = false;
+  battle.busy = false;
+  if (!battle.over) showMainMenu();
+}
+
+function checkFaints() {
+  const p = activePlayer(), e = activeEnemy();
+  if (e.hp <= 0) { e.hp = 0; renderBattle(); onEnemyFainted(); return true; }
+  if (p.hp <= 0) { p.hp = 0; renderBattle(); onPlayerFainted(); return true; }
+  return false;
 }
 
 function onEnemyFainted() {
@@ -276,6 +392,8 @@ function onEnemyFainted() {
   battle.enemyActive = battle.enemyTeam.findIndex(p => p.hp > 0);
   log(`${battle.trainer ? battle.trainer.name + ' envía a ' : 'Aparece '}${SPECIES[activeEnemy().species].name}!`);
   renderBattle();
+  battle.busy = false;
+  showMainMenu();
 }
 
 function onPlayerFainted() {
@@ -287,6 +405,7 @@ function onPlayerFainted() {
   }
   battle.playerActive = battle.playerTeam.findIndex(p => p.hp > 0);
   renderBattle();
+  battle.busy = false;
   showTeamMenu();
 }
 
@@ -318,6 +437,7 @@ function grantExp(team) {
 
 function endBattleVictory() {
   battle.over = true;
+  battle.busy = false;
   grantExp(battle.playerTeam);
   if (battle.kind === 'trainer') {
     const t = battle.trainer;
@@ -337,17 +457,19 @@ function endBattleVictory() {
 
 function endBattleDefeat() {
   battle.over = true;
+  battle.busy = false;
   log('Todos tus Coremon se han debilitado... Vuelves a la enfermería.');
   game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
   setTimeout(() => {
     closeBattle();
-    game.room = 'pasillo';
-    game.pos = MAPS.pasillo.spawn;
+    game.room = 'planta_baja';
+    game.pos = MAPS.planta_baja.spawn;
     saveGame();
   }, 1800);
 }
 
 function tryCapture() {
+  if (battle.busy) return;
   if (battle.kind !== 'wild') { log('¡Solo puedes capturar Coremon salvajes!'); return; }
   if (game.stickers <= 0) { log('No te quedan cromos de captura.'); return; }
   game.stickers--;
@@ -368,6 +490,7 @@ function tryCapture() {
 }
 
 function tryRun() {
+  if (battle.busy) return;
   if (battle.kind === 'trainer') { log('¡No puedes huir de un combate de profesor!'); return; }
   log('Huyes del combate.');
   battle.over = true;
@@ -382,6 +505,7 @@ function closeBattle() {
 
 window.addEventListener('load', () => {
   document.getElementById('btn-fight').addEventListener('click', showMoveMenu);
+  document.getElementById('btn-defend').addEventListener('click', playerDefend);
   document.getElementById('btn-team').addEventListener('click', showTeamMenu);
   document.getElementById('btn-capture').addEventListener('click', tryCapture);
   document.getElementById('btn-run').addEventListener('click', tryRun);

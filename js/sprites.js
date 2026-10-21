@@ -37,29 +37,52 @@ function mirrorRows(halfRows) {
   return halfRows.map(r => r + r.split('').reverse().join(''));
 }
 
-// ---------------- CUERPO GENÉRICO DE CRIATURA ----------------
-// Cada fila es la MITAD IZQUIERDA (8px) de la criatura; el índice 7 toca
-// el eje central, así que debe quedar relleno ('A') para que al reflejar
+// ---------------- CUERPOS DE CRIATURA (una silueta por archetype) ----------------
+// Cada fila es la MITAD IZQUIERDA (8px); el índice 7 toca el eje central y
+// debe quedar relleno ('A') en las filas de torso para que al reflejar
 // (mirrorRows) el cuerpo quede unido en vez de partido en dos mitades.
-const CREATURE_BODY_HALF = [
-  '........',
-  '........',
-  '......BA',
-  '.....BAA',
-  '....BAAA',
-  '...BAAAA',
-  '..BAAAAA',
-  '..BAAAEk',
-  '..BAAAAA',
-  '..BAAAAA',
-  '...BAAAA',
-  '....BAAA',
-  '.....BAA',
-  '...BB...',
-  '...BB...',
-  '..BBB...'
-];
-const CREATURE_BODY = mirrorRows(CREATURE_BODY_HALF);
+function borderRow(r) {
+  if (r < 0) return '........';
+  let row = '';
+  for (let c = 0; c < 8; c++) row += c < r ? '.' : (c === r ? 'B' : 'A');
+  return row;
+}
+function feetRow(r) {
+  if (r < 0) return '........';
+  let row = '';
+  for (let c = 0; c < 8; c++) row += (c === r || c === r + 1) ? 'B' : '.';
+  return row;
+}
+
+// torsoRadii: 11 valores para las filas 2-12 (índice de borde 0-7, -1=vacío)
+// eyeRowIndex: qué fila del torso lleva el ojo (0-10)
+// legMode 'feet' (dos patas) o 'point' (una cola/pico, estilo borderRow)
+const ARCHETYPES = {
+  round:  { torsoRadii:[6,5,4,3,2,2,2,2,3,4,5], eyeRowIndex:5, legMode:'feet',  legRadii:[3,3,2] },
+  ball:   { torsoRadii:[5,3,2,1,1,1,1,1,2,3,5], eyeRowIndex:5, legMode:'feet',  legRadii:[3,3,2] },
+  block:  { torsoRadii:[3,2,2,2,2,2,2,2,2,2,3], eyeRowIndex:5, legMode:'feet',  legRadii:[2,2,1] },
+  quill:  { torsoRadii:[7,6,5,5,4,4,3,4,5,6,7], eyeRowIndex:5, legMode:'feet',  legRadii:[4,4,3] },
+  book:   { torsoRadii:[2,1,1,1,1,1,1,1,1,1,2], eyeRowIndex:5, legMode:'feet',  legRadii:[2,2,2] },
+  pack:   { torsoRadii:[5,4,4,3,3,2,2,1,1,1,2], eyeRowIndex:4, legMode:'feet',  legRadii:[1,1,1] },
+  drip:   { torsoRadii:[7,7,6,5,3,2,1,1,2,3,4], eyeRowIndex:6, legMode:'feet',  legRadii:[2,2,2] },
+  speech: { torsoRadii:[6,5,4,3,2,2,2,2,3,4,5], eyeRowIndex:5, legMode:'point', legRadii:[6,7,-1] },
+  leaf:   { torsoRadii:[7,6,4,3,2,2,2,2,3,4,5], eyeRowIndex:6, legMode:'feet',  legRadii:[3,3,2] }
+};
+
+function genHalfBody(arch) {
+  const rows = ['........', '........'];
+  arch.torsoRadii.forEach(r => rows.push(borderRow(r)));
+  const eyeIdx = 2 + arch.eyeRowIndex;
+  rows[eyeIdx] = rows[eyeIdx].slice(0, 6) + 'Ek';
+  arch.legRadii.forEach(r => rows.push(arch.legMode === 'point' ? borderRow(r) : feetRow(r)));
+  while (rows.length < 16) rows.push('........');
+  return rows.slice(0, 16);
+}
+
+const CREATURE_BODIES = {};
+Object.keys(ARCHETYPES).forEach(name => {
+  CREATURE_BODIES[name] = mirrorRows(genHalfBody(ARCHETYPES[name]));
+});
 
 // Acentos por tipo (se dibujan encima de las filas 0-1 del cuerpo)
 const TYPE_ACCENT_HALF = {
@@ -93,7 +116,7 @@ function drawCreature(ctx, speciesId, dx, dy, size, opts) {
   const offset = (s - size) / 2;
   const palette = creaturePalette(sp.type, stage);
   const accent = TYPE_ACCENT_HALF[sp.type] || ['........', '........'];
-  const rows = CREATURE_BODY.slice();
+  const rows = (CREATURE_BODIES[sp.archetype] || CREATURE_BODIES.round).slice();
   const mirroredAccent = mirrorRows(accent);
   rows[0] = mirroredAccent[0];
   rows[1] = mirroredAccent[1];
@@ -126,6 +149,19 @@ PLAYER_ROWS.up = PLAYER_ROWS.down;
 PLAYER_ROWS.left = PLAYER_ROWS.down;
 PLAYER_ROWS.right = PLAYER_ROWS.down;
 
+// Segundo fotograma de la animación de andar: piernas separadas en zancada
+// (una adelantada, otra atrás) para alternar con PLAYER_ROWS al caminar.
+const PLAYER_ROWS_WALK = {
+  down: PLAYER_ROWS.down.map((row, i) => {
+    if (i === 12 || i === 13) return '.PP.....PP......'.slice(0,16);
+    if (i === 14) return '.KK.....KK......'.slice(0,16);
+    return row;
+  })
+};
+PLAYER_ROWS_WALK.up = PLAYER_ROWS_WALK.down;
+PLAYER_ROWS_WALK.left = PLAYER_ROWS_WALK.down;
+PLAYER_ROWS_WALK.right = PLAYER_ROWS_WALK.down;
+
 const PLAYER_PALETTE = {
   B: '#3b2314', H: '#5a3824', S: '#f0b088', '1': '#c98a63',
   E: '#222222', C: '#2f6fb0', J: '#1e4d80', P: '#2b2b2b', K: '#111111'
@@ -133,7 +169,8 @@ const PLAYER_PALETTE = {
 
 function drawPlayer(ctx, dx, dy, size, facing, walkFrame) {
   const bob = walkFrame ? -2 : 0;
-  const rows = PLAYER_ROWS[facing || 'down'];
+  const set = walkFrame ? PLAYER_ROWS_WALK : PLAYER_ROWS;
+  const rows = set[facing || 'down'];
   drawPixels(ctx, rows, PLAYER_PALETTE, dx, dy + bob, size, facing === 'left');
 }
 
@@ -141,7 +178,8 @@ function drawPlayer(ctx, dx, dy, size, facing, walkFrame) {
 const NPC_PALETTES = {
   prof:     { body: '#8d6e63', shirt: '#37474f', skin: '#f0b088' },
   director: { body: '#4a148c', shirt: '#212121', skin: '#e0a988' },
-  nurse:    { body: '#ad1457', shirt: '#ffffff', skin: '#f0b088' }
+  nurse:    { body: '#ad1457', shirt: '#ffffff', skin: '#f0b088' },
+  flavor:   { body: '#455a64', shirt: '#78909c', skin: '#e0a988' }
 };
 
 const NPC_HALF = [
@@ -209,6 +247,22 @@ function drawDoorTile(ctx, x, y, size, accentColor) {
   ctx.fill();
 }
 
+function drawElevatorTile(ctx, x, y, size) {
+  ctx.fillStyle = '#90a4ae';
+  ctx.fillRect(x, y, size, size);
+  ctx.fillStyle = '#546e7a';
+  ctx.fillRect(x + size*0.1, y + size*0.08, size*0.8, size*0.84);
+  ctx.fillStyle = '#263238';
+  ctx.fillRect(x + size*0.18, y + size*0.16, size*0.64, size*0.5);
+  ctx.fillStyle = '#ffd54f';
+  ctx.beginPath();
+  ctx.moveTo(x + size*0.42, y + size*0.3); ctx.lineTo(x + size*0.58, y + size*0.3); ctx.lineTo(x + size*0.5, y + size*0.2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + size*0.42, y + size*0.42); ctx.lineTo(x + size*0.58, y + size*0.42); ctx.lineTo(x + size*0.5, y + size*0.52);
+  ctx.fill();
+}
+
 function drawLigaDoorTile(ctx, x, y, size, unlocked) {
   ctx.fillStyle = unlocked ? '#8e24aa' : '#4a148c';
   ctx.fillRect(x, y, size, size);
@@ -235,6 +289,17 @@ function drawPathTile(ctx, x, y, size) {
   ctx.fillRect(x, y, size, size);
   ctx.strokeStyle = 'rgba(120,80,40,0.25)';
   ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+}
+
+function drawTechSparkle(ctx, x, y, size, variant) {
+  ctx.fillStyle = variant ? '#4fc3f7' : '#29b6f6';
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(x + size*0.2, y + size*0.2, size*0.6, size*0.6);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#01579b';
+  ctx.beginPath();
+  ctx.arc(x + size*0.5, y + size*0.5, size*0.06, 0, Math.PI*2);
+  ctx.fill();
 }
 
 function drawPatioFloor(ctx, x, y, size) {
