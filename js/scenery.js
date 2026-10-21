@@ -158,10 +158,11 @@ function drawFloor(ctx, map, x, y, T, tx, ty) {
   }
 }
 
-function drawTallGrass(ctx, x, y, T, t, overlayOnly) {
-  if (!overlayOnly) box(ctx, x, y, T, T, '#4f9a3a');
+function drawTallGrass(ctx, x, y, T, t, overlayOnly, dark) {
+  // dark = hierba oscura de las zonas de nivel alto
+  if (!overlayOnly) box(ctx, x, y, T, T, dark ? '#2f6a2a' : '#4f9a3a');
   const sway = Math.sin(t / 500 + x * 0.1) * 1.5;
-  ctx.fillStyle = overlayOnly ? '#5fae45' : '#3d7f2b';
+  ctx.fillStyle = dark ? (overlayOnly ? '#3d7f2b' : '#1f4f1c') : (overlayOnly ? '#5fae45' : '#3d7f2b');
   const blades = [[4, 30], [10, 26], [16, 30], [22, 26], [28, 30]];
   for (const [bx, by] of blades) {
     ctx.beginPath();
@@ -171,7 +172,7 @@ function drawTallGrass(ctx, x, y, T, t, overlayOnly) {
     ctx.fill();
   }
   if (!overlayOnly) {
-    ctx.fillStyle = '#5fae45';
+    ctx.fillStyle = dark ? '#3a7a30' : '#5fae45';
     for (const [bx, by] of [[7, 16], [19, 14], [25, 18]]) {
       ctx.beginPath(); ctx.moveTo(x + bx - 3, y + by); ctx.lineTo(x + bx + sway, y + by - 10); ctx.lineTo(x + bx + 3, y + by); ctx.fill();
     }
@@ -919,6 +920,34 @@ const DECOR = {
   stageSteps: { draw(c, x, y, T, d) {
     const w = (d.w || 1) * T;
     for (let i = 0; i < 3; i++) box(c, x + 2, y + 2 + i * 9, w - 4, 9, ['#e8c48b', '#d9b073', '#c99c5d'][i], OUT);
+  }},
+  devButton: { tall: true, anim: true, draw(c, x, y, T, d, t) {
+    // pedestal con el gran botón rojo del modo desarrollador
+    box(c, x + 7, y + 8, T - 14, T - 8, '#455a64', OUT);
+    box(c, x + 5, y + 6, T - 10, 5, '#607d8b', OUT);
+    const glow = 0.4 + 0.3 * Math.sin(t / 250);
+    c.fillStyle = `rgba(255,82,82,${glow})`; c.beginPath(); c.arc(x + T / 2, y + 2, 13, 0, Math.PI * 2); c.fill();
+    circ(c, x + T / 2, y + 2, 8, '#e53935', OUT);
+    c.fillStyle = '#ffcdd2'; c.fillRect(x + T / 2 - 4, y - 3, 3, 2);
+  }},
+  terminal: { tall: true, anim: true, draw(c, x, y, T, d, t) {
+    box(c, x + 2, y + 10, T - 4, T - 10, '#263238', OUT);
+    box(c, x + 3, y - 10, T - 6, 20, '#37474f', OUT);
+    box(c, x + 5, y - 8, T - 10, 16, '#00140a');
+    c.fillStyle = '#00e676'; c.font = 'bold 6px monospace'; c.textAlign = 'left';
+    const lines = ['> dev', '> ok_', 'COREMON'];
+    for (let i = 0; i < 3; i++) c.fillText(lines[(i + Math.floor(t / 700)) % 3], x + 6, y - 2 + i * 5);
+  }},
+  servers: { tall: true, anim: true, draw(c, x, y, T, d, t) {
+    const w = (d.w || 1) * T;
+    for (let i = 0; i < (d.w || 1); i++) {
+      box(c, x + i * T + 2, y - 14, T - 4, T + 12, '#212121', OUT);
+      for (let k = 0; k < 5; k++) {
+        c.fillStyle = (Math.floor(t / 200 + k * 3 + i * 7) % 4) ? '#00e676' : '#ff5252';
+        c.fillRect(x + i * T + 7, y - 10 + k * 7, 3, 2);
+        c.fillStyle = '#424242'; c.fillRect(x + i * T + 12, y - 10 + k * 7, T - 18, 3);
+      }
+    }
   }},
   rug: { solid: false, draw(c, x, y, T, d) {
     const w = d.w * T, h = d.h * T;

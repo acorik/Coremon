@@ -235,6 +235,7 @@ function buildStaticLayer(map) {
     if (map.outdoor && facade.includes(y)) continue;
     if (t === '#') { const below = tileAt(map, x, y + 1); drawWall(g, map, px, py, TILE, below && below !== '#', x, y); continue; }
     if (t === ',') { drawTallGrass(g, px, py, TILE, 0, false); continue; }
+    if (t === 'h') { drawTallGrass(g, px, py, TILE, 0, false, true); continue; }
     if (t === 'g') { drawFloor(g, Object.assign({}, map, { floorStyle:'grass' }), px, py, TILE, x, y); continue; }
     if (t === 'z') { drawPapers(g, map, px, py, TILE, x, y); continue; }
     if (t === 'p') { drawRug(g, map, px, py, TILE, x, y); continue; }
@@ -263,7 +264,7 @@ function buildStaticLayer(map) {
   staticLayer = c;
 }
 
-function doorOpen(door) { return !door.requires || game.badges.includes(door.requires); }
+function doorOpen(door) { return !door.requires || game.badges.includes(door.requires) || !!game.flags.devUnlock; }
 function doorColor(door) {
   const tr = Object.values(TRAINERS).find(t => t.room === door.to);
   return tr ? tr.badgeColor : '#8d6e63';
@@ -384,6 +385,7 @@ function interact() {
     if (d.action === 'shop') { openShop(); return; }
     if (d.action === 'box') { openBox(); return; }
     if (d.action === 'altar') { altarScene(); return; }
+    if (d.action === 'dev') { devButtonScene(); return; }
     const txt = decorText(d);
     if (txt) { showDialog(txt); return; }
   }
@@ -449,6 +451,32 @@ function exclaim(a) {
 
 function healTeam() {
   game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
+}
+
+async function devButtonScene() {
+  if (game.flags.dev) { openDev(); return; }
+  STATE = 'CUTSCENE';
+  await say(['Hay un botón rojo enorme sobre un pedestal.', 'Un cartel pegado con celo dice: «NO PULSAR».', '...', 'Lo pulsas, claro.']);
+  cine = { type:'heal', t0: now }; shake = 1;
+  await wait(900);
+  cine = null; shake = 0;
+  game.flags.dev = true;
+  await say(['¡Todas las pantallas de la sala se encienden a la vez!', '«MODO DESARROLLADOR ACTIVADO». Ahora tienes el botón DEV en la pantalla de abajo.']);
+  STATE = 'OVERWORLD';
+  saveGame(); refreshTouch();
+  openDev();
+}
+
+async function secretPassage(sec) {
+  STATE = 'CUTSCENE';
+  await say(['Empujas el cuadro del Padre Andrés Coindre...', '¡CRRRK! ¡El cuadro se desliza y deja ver un pasadizo secreto!']);
+  shake = 1; await wait(400); shake = 0;
+  await transitionTo(sec.to, sec.tx, sec.ty, 'up');
+  STATE = 'OVERWORLD';
+  if (!game.flags.secretFound) {
+    game.flags.secretFound = true;
+    await say(['Una sala escondida detrás de la capilla. Huele a polvo... y a ordenador viejo.']);
+  }
 }
 
 async function altarScene() {
@@ -517,6 +545,11 @@ function updatePlayerInput() {
     showDialog('La puerta dorada está cerrada con llave. Quizá el Director tenga algo que ver...');
     return;
   }
+  if (map.secret && map.secret.x === nx && map.secret.y === ny && dir === 'up') {
+    player.facing = dir;
+    secretPassage(map.secret);
+    return;
+  }
   if (blocked(map, nx, ny, true)) { player.facing = dir; return; }
   startMove(player, dir, running() ? RUN_MS : WALK_MS, () => onPlayerArrive(door));
 }
@@ -530,9 +563,9 @@ function onPlayerArrive(door) {
     return;
   }
   const t = tileAt(map, player.x, player.y);
-  if (map.wildZone && TILE_ENCOUNTER(t) && game.team.some(p => p.hp > 0) && Math.random() < 0.11) {
+  if (map.wildZone && TILE_ENCOUNTER(t) && !game.flags.noEncounters && game.team.some(p => p.hp > 0) && Math.random() < 0.11) {
     STATE = 'CUTSCENE';
-    battleIntro().then(() => startWildBattle(map.wildZone));
+    battleIntro().then(() => startWildBattle(map.wildZone, t === 'h'));
   }
 }
 
@@ -605,7 +638,8 @@ function render() {
   // la hierba alta tapa los pies
   for (const a of [player, ...actors]) {
     const tx = Math.round(a.px / TILE), ty = Math.round(a.py / TILE);
-    if (tileAt(map, tx, ty) === ',') drawTallGrass(ctx, tx * TILE, ty * TILE + 10, TILE, now, true);
+    const gt = tileAt(map, tx, ty);
+    if (gt === ',' || gt === 'h') drawTallGrass(ctx, tx * TILE, ty * TILE + 10, TILE, now, true, gt === 'h');
   }
   drawDoorLabels(map);
   for (const a of actors) if (a.bubble) drawBubble(a);

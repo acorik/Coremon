@@ -127,8 +127,8 @@ MAPS.patio = {
     '#,,ccccccccccccc,,#',
     '#,,ccccccccccccc,,#',
     '#,,,...........,,,#',
-    '#,,,,.........,,,,#',
-    '#,,,,,,,,,,,,,,,,,#',
+    '#,,,,.........hhhh#',
+    '#,,,,,,,,,hhhhhhhh#',
     '###################'
   ]),
   doors: [
@@ -147,6 +147,7 @@ MAPS.patio = {
     { type:'hoop', x:2, y:5 }, { type:'hoop', x:16, y:5 },
     { type:'sign', x:11, y:1, text:['PATIO DE CORAZONISTAS. Pista de baloncesto y balonmano.', 'En estas canchas empezaron a botar el balón varios antiguos alumnos que acabaron en la NBA. Y en balonmano, ni te cuento.', 'Fútbol: ver portería del jardín (si la encuentras entre los hierbajos).'] },
     { type:'lamp', x:5, y:2 }, { type:'lamp', x:13, y:2 },
+    { type:'sign', x:13, y:9, text:['ZONA SALVAJE (hierba oscura).', 'Aquí los Coremon siempre son de más nivel que tu equipo... y dicen que a veces aparece alguno legendario.'] },
     { type:'bench', x:6, y:10, w:2 }, { type:'bench', x:11, y:10, w:2 },
     { type:'fountain', x:9, y:10 },
     { type:'tree', x:1, y:1 }, { type:'tree', x:17, y:1 }, { type:'tree', x:1, y:11 }, { type:'tree', x:17, y:11 }
@@ -172,7 +173,7 @@ MAPS.jardin = {
     '#,,,..wwwww..,,,#',
     '#,,,,..www..,,,,#',
     '#,,,,,.....,,,,,#',
-    '#,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,hhhhhh#',
     '#################'
   ]),
   doors: [ { x:0, y:5, to:'patio', tx:17, ty:6, exit:true, short:'PATIO' } ],
@@ -281,7 +282,7 @@ MAPS.capilla = {
   doors: [ { x:5, y:10, to:'planta_baja', tx:11, ty:1, exit:true } ],
   npcs: [],
   decor: [
-    { type:'portrait', x:1, y:0, text:['Retrato del Padre Andrés Coindre (Lyon, 1787 - Blois, 1826).', 'Fundador de los Hermanos del Sagrado Corazón en 1821.'] },
+    { type:'portrait', x:1, y:0, text:['Retrato del Padre Andrés Coindre (Lyon, 1787 - Blois, 1826).', 'Fundador de los Hermanos del Sagrado Corazón en 1821.', 'El marco parece un poco suelto... como si se pudiera empujar.'] },
     { type:'stained', x:2, y:0, seed:0 }, { type:'stained', x:5, y:0, seed:2 }, { type:'stained', x:8, y:0, seed:4 },
     { type:'altar', x:4, y:1, w:3, action:'altar' },
     { type:'candle', x:2, y:1 }, { type:'candle', x:8, y:1 },
@@ -289,7 +290,33 @@ MAPS.capilla = {
     { type:'pew', x:1, y:5, w:4 }, { type:'pew', x:6, y:5, w:4 },
     { type:'pew', x:1, y:7, w:4 }, { type:'pew', x:6, y:7, w:4 }
   ],
+  secret: { x:1, y:0, to:'sala_secreta', tx:5, ty:6 },
   spawn: { x:5, y:9 }
+};
+
+// ---------------- SALA SECRETA (easter egg detrás del cuadro) ----------------
+MAPS.sala_secreta = {
+  name: '???', floorStyle: 'dark', wallColor: '#3a3346', wainscot: '#1e1a26',
+  grid: grid([
+    '###########',
+    '#.........#',
+    '#.........#',
+    '#.........#',
+    '#.........#',
+    '#.........#',
+    '#.........#',
+    '#####D#####'
+  ]),
+  doors: [ { x:5, y:7, to:'capilla', tx:1, ty:1, exit:true } ],
+  npcs: [],
+  decor: [
+    { type:'poster', x:2, y:0, color:'#00e676', text:['Un cartel escrito a mano: «MODO DESARROLLADOR. No pulsar el botón rojo. En serio».'] },
+    { type:'portrait', x:5, y:0, text:['Retrato de un desarrollador anónimo, con ojeras de tres noches sin dormir.'] },
+    { type:'poster', x:8, y:0, color:'#ff5252' },
+    { type:'servers', x:1, y:1, w:2 }, { type:'terminal', x:8, y:1, action:'dev' },
+    { type:'devButton', x:5, y:3, action:'dev' }
+  ],
+  spawn: { x:5, y:6 }
 };
 
 MAPS.sala_conferencias = {
@@ -688,7 +715,7 @@ MAPS.sala_castigo = {
 // ---------------- UTILIDADES ----------------
 const TILE_WALKABLE = t => t !== '#' && t !== 'w';
 // 'g' = césped corto decorativo (se puede pisar, sin encuentros)
-const TILE_ENCOUNTER = t => t === ',' || t === 'z';
+const TILE_ENCOUNTER = t => t === ',' || t === 'z' || t === 'h';
 
 function decorAt(map, x, y) {
   return (map.decor || []).find(d => decorCovers(d, x, y) && !decorDef(d.type).wall);
@@ -708,6 +735,8 @@ function addTallWall(id) {
   // copias propias: algunas listas (pupitres, butacas) se comparten entre salas
   ['doors', 'npcs', 'decor', 'wanderers', 'items'].forEach(k => { m[k] = m[k].map(o => Object.assign({}, o, { y: o.y + 1 })); });
   m.spawn = { x: m.spawn.x, y: m.spawn.y + 1 };
+  if (m.secret) m.secret = Object.assign({}, m.secret, { y: m.secret.y + 1 });
+  Object.values(MAPS).forEach(other => { if (other.secret && other.secret.to === id) other.secret.ty += 1; });
   Object.values(MAPS).forEach(other => other.doors.forEach(d => { if (d.to === id) d.ty += 1; }));
   m.tallWall = true;
 }

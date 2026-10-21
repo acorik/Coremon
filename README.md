@@ -75,6 +75,11 @@ los pasillos y alumnos que te retan a combate.
 - **Equipo** y **Huir** (no se puede huir de un profesor).
 - La experiencia se reparte: el que lucha recibe toda y el resto del equipo la
   mitad.
+- El daño es constante: apenas varía entre un golpe y otro.
+- Los Coremon salvajes suben de nivel a la vez que tu equipo. La **hierba
+  oscura** (zona salvaje del patio y fondo del jardín) tiene Coremon de más
+  nivel, ya evolucionados, y el doble de probabilidad de **legendarios** (★).
+- Dicen que en la capilla el retrato del fundador esconde algo...
 
 ## Archivos
 

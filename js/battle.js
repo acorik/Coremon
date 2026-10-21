@@ -19,12 +19,43 @@ const POS = { enemy: { x: BW * 0.72, y: BH * 0.42, size: 120 }, player: { x: BW 
 function bwait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ---------------- ARRANQUE ----------------
-function startWildBattle(zone) {
+// Coremon legendarios que pueden aparecer en estado salvaje (muy raros)
+const WILD_LEGENDARIES = ['teoremorfo', 'bibliomante', 'atletisaurio', 'musarte', 'naturalux', 'lingualord'];
+
+function teamAvgLevel() {
+  const t = game.team.length ? game.team : [{ level: 5 }];
+  return t.reduce((a, p) => a + p.level, 0) / t.length;
+}
+
+// Si el nivel ya alcanza su evolución, aparece evolucionado
+function evolveForLevel(sp, lvl) {
+  while (SPECIES[sp].evolvesTo && SPECIES[sp].evolveLevel && lvl >= SPECIES[sp].evolveLevel) sp = SPECIES[sp].evolvesTo;
+  return sp;
+}
+
+// high = zona de hierba oscura (nivel por encima del tuyo y más legendarios)
+function wildEncounter(zone, high) {
   const pool = WILD_TABLE[zone] || WILD_TABLE.patio;
-  const speciesId = pool[Math.floor(Math.random() * pool.length)];
   const base = { patio:3, jardin:4, apoyo:7, biblioteca_eso:10, bachillerato:14 }[zone] || 3;
-  const lvl = base + Math.floor(Math.random() * 4);
-  openBattle({ kind:'wild', enemyTeam:[createPokemon(speciesId, lvl)] });
+  const avg = Math.round(teamAvgLevel());
+  const r = n => Math.floor(Math.random() * n);
+  let lvl = high ? Math.max(base + 4, avg + 2 + r(4)) : Math.max(base + r(4), avg - 3 + r(4));
+  lvl = Math.min(60, Math.max(2, lvl));
+  const legendChance = high ? 0.08 : 0.035;
+  if (Math.random() < legendChance) {
+    const rare = high && Math.random() < 0.15;
+    const sp = rare ? 'corazonix' : WILD_LEGENDARIES[r(WILD_LEGENDARIES.length)];
+    return { species: sp, level: Math.min(60, avg + 3 + r(3)), legendary: true };
+  }
+  const sp = pool[r(pool.length)];
+  return { species: evolveForLevel(sp, lvl), level: lvl };
+}
+
+function startWildBattle(zone, high) {
+  const w = wildEncounter(zone, high);
+  const mon = createPokemon(w.species, w.level);
+  if (w.legendary) mon.legendary = true;
+  openBattle({ kind:'wild', enemyTeam:[mon] });
 }
 
 function startTrainerBattle(trainer) {
@@ -67,7 +98,14 @@ async function introSequence() {
   });
   if (b.kind === 'wild') {
     b.show.enemyMon = true;
-    await say2(`¡Un ${SPECIES[activeEnemy().species].name} salvaje te corta el paso!`);
+    if (activeEnemy().legendary) {
+      b.flashScreen = 10; b.shake = 20;
+      spawnHitFx('enemy', '#ffd54f', 30);
+      await say2('¡¡Un Coremon LEGENDARIO!!', 1200);
+      await say2(`¡${SPECIES[activeEnemy().species].name} salvaje aparece envuelto en un brillo dorado!`);
+    } else {
+      await say2(`¡Un ${SPECIES[activeEnemy().species].name} salvaje te corta el paso!`);
+    }
   } else {
     await say2(`¡${b.trainer.name} quiere luchar!`);
     await tween(300, k => { b.off.enemyTrainer = 300 * k; });
@@ -307,7 +345,7 @@ function renderBattle() {
 
 function setHpPanel(who, pk) {
   const pct = Math.max(0, pk.hp / pk.stats.hp * 100);
-  document.getElementById(`${who}-poke-name`).textContent = SPECIES[pk.species].name;
+  document.getElementById(`${who}-poke-name`).textContent = (pk.legendary ? '★ ' : '') + SPECIES[pk.species].name;
   document.getElementById(`${who}-poke-lv`).textContent = 'Nv' + pk.level;
   const bar = document.getElementById(`${who}-hp-bar`);
   bar.style.width = pct + '%';
@@ -407,9 +445,9 @@ function damageFormula(attacker, move, defender) {
   if (!move.power) return { dmg: 0, eff: 1, crit: false };
   const eff = move.type ? typeEffectiveness(move.type, SPECIES[defender.species].type) : 1;
   const stab = move.type && move.type === SPECIES[attacker.species].type ? 1.2 : 1;
-  const crit = Math.random() < 0.0625;
+  const crit = Math.random() < 0.04;
   const base = ((attacker.level / 5 + 2) * move.power * (attacker.stats.atk / defender.stats.def)) / DAMAGE_DIV + 2;
-  const variance = 0.85 + Math.random() * 0.15;
+  const variance = 0.94 + Math.random() * 0.06; // daño casi constante
   return { dmg: Math.max(1, Math.floor(base * eff * stab * variance * (crit ? 1.5 : 1))), eff, crit };
 }
 
@@ -450,7 +488,7 @@ async function performAttack(side, attacker, mv, defender, guarding) {
   }
   const r = damageFormula(attacker, mv, defender);
   let dmg = r.dmg;
-  const blocked = Math.random() < (guarding ? 0.6 : 0.1);
+  const blocked = Math.random() < (guarding ? 0.6 : 0.05);
   if (guarding) dmg = Math.max(1, Math.floor(dmg * (blocked ? 0.15 : 0.4)));
   else if (blocked) dmg = Math.max(1, Math.floor(dmg * 0.35));
   defender.hp = Math.max(0, defender.hp - dmg);
@@ -607,7 +645,7 @@ async function throwCard(itemId) {
   b.show.enemyMon = false;
   await tween(250, k => { b.card.y = ty + k * 50; b.card.rot = 0; });
   const hpRatio = e.hp / e.stats.hp;
-  const chance = Math.min(0.97, (0.85 - hpRatio * 0.6 + 0.05) * it.rate * (e.level > 12 ? 0.8 : 1));
+  const chance = Math.min(0.97, (0.85 - hpRatio * 0.6 + 0.05) * it.rate * (e.level > 12 ? 0.8 : 1) * (e.legendary ? 0.45 : 1));
   const caught = Math.random() < chance;
   const shakes = caught ? 3 : Math.floor(Math.random() * 3);
   for (let i = 0; i < shakes; i++) {

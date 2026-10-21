@@ -52,6 +52,7 @@ function refreshTouch() {
   const map = MAPS[game.room];
   document.getElementById('loc-name').textContent = map ? map.name : '';
   document.getElementById('coins').textContent = game.coins;
+  document.getElementById('menu-dev').classList.toggle('hidden', !game.flags.dev);
   const bc = document.getElementById('badge-canvas');
   const g = bc.getContext('2d');
   g.clearRect(0, 0, bc.width, bc.height);
@@ -335,7 +336,7 @@ function openElevator() {
   openPanel('Ascensor', body => {
     body.appendChild(el('p', 'muted', `Insignias: ${n}/6. ¿A qué planta vamos?`));
     FLOORS.slice().reverse().forEach(f => {
-      const unlocked = n >= f.needBadges;
+      const unlocked = n >= f.needBadges || !!game.flags.devUnlock;
       const b = el('button', 'ds-btn floor-btn', (f.id === cur ? '▶ ' : '') + f.name + (unlocked ? '' : `  🔒 ${f.needBadges} insignias`));
       b.disabled = !unlocked || f.id === cur;
       b.onclick = () => {
@@ -398,6 +399,7 @@ function initTouch() {
   document.getElementById('menu-bag').onclick = () => { if (STATE === 'OVERWORLD') openBag(); };
   document.getElementById('menu-dex').onclick = () => { if (STATE === 'OVERWORLD') openDex(); };
   document.getElementById('menu-save').onclick = () => { if (STATE === 'OVERWORLD') { saveGame(); toast('Partida guardada.'); } };
+  document.getElementById('menu-dev').onclick = () => { if (STATE === 'OVERWORLD') openDev(); };
 
   document.querySelectorAll('[data-dir]').forEach(b => {
     const down = e => { e.preventDefault(); virtualDir.dir = b.dataset.dir; };
@@ -414,4 +416,73 @@ function initTouch() {
   b.addEventListener('pointerup', () => { keysDown['virtualb'] = false; });
   b.addEventListener('pointerleave', () => { keysDown['virtualb'] = false; });
   showTouch('title');
+}
+
+// ---------------- DEVTOOLS (easter egg de la sala secreta) ----------------
+// Desbloquean todo el juego salvo las insignias, que hay que ganarlas.
+function finalForm(sp) {
+  while (SPECIES[sp].evolvesTo) sp = SPECIES[sp].evolvesTo;
+  return sp;
+}
+function maxedMon(sp) { return createPokemon(finalForm(sp), 60); }
+
+const DEV_ACTIONS = {
+  all() {
+    DEV_ACTIONS.coremon(); DEV_ACTIONS.maxTeam(); DEV_ACTIONS.items(); DEV_ACTIONS.money(); DEV_ACTIONS.open(); DEV_ACTIONS.heal();
+    return 'Todo desbloqueado: Coremon, niveles, objetos, dinero, plantas y puertas. (Las insignias tendrás que ganarlas.)';
+  },
+  coremon() {
+    const owned = new Set([...game.team, ...game.box].map(p => p.species));
+    Object.keys(SPECIES).forEach(sp => {
+      game.seen[sp] = true; game.caught[sp] = true;
+      if (!owned.has(sp)) game.box.push(createPokemon(sp, 60));
+    });
+    return `Coredex completa. Todos los Coremon (nivel 60) están en las taquillas: ${game.box.length} en total.`;
+  },
+  maxTeam() {
+    game.team = game.team.map(p => Object.assign(maxedMon(p.species), p.legendary ? { legendary: true } : {}));
+    game.team.forEach(p => { game.seen[p.species] = true; game.caught[p.species] = true; });
+    return 'Tu equipo ha subido al nivel máximo (60) y a su última evolución.';
+  },
+  items() { Object.keys(ITEMS).forEach(id => { game.bag[id] = 99; }); return '99 unidades de cada objeto en la mochila.'; },
+  money() { game.coins += 999999; return '+999.999 monedas.'; },
+  open() { game.flags.devUnlock = true; buildStaticLayer(currentMap()); return 'Todas las plantas del ascensor y todas las puertas están abiertas.'; },
+  heal() { healTeam(); return 'Equipo curado al 100%.'; },
+  encounters() { game.flags.noEncounters = !game.flags.noEncounters; return game.flags.noEncounters ? 'Encuentros salvajes DESACTIVADOS.' : 'Encuentros salvajes ACTIVADOS.'; },
+  legendary() {
+    panelStack.onClose = null; closePanel();
+    STATE = 'CUTSCENE';
+    battleIntro().then(() => {
+      const mon = createPokemon('corazonix', Math.min(60, Math.round(teamAvgLevel()) + 2));
+      mon.legendary = true;
+      openBattle({ kind:'wild', enemyTeam:[mon] });
+    });
+    return null;
+  }
+};
+
+function openDev() {
+  const btn = (label, key, cls) => {
+    const b = el('button', 'ds-btn dev-btn' + (cls ? ' ' + cls : ''), label);
+    b.onclick = () => { const msg = DEV_ACTIONS[key](); if (msg) { saveGame(); refreshTouch(); toast(msg); openDev(); } };
+    return b;
+  };
+  openPanel('🛠 DEVTOOLS', body => {
+    body.appendChild(el('p', 'muted small', 'Modo desarrollador. Desbloquea todo el juego... menos las insignias.'));
+    body.appendChild(btn('⚡ DESBLOQUEAR TODO', 'all', 'big'));
+    const g = el('div', 'dev-grid');
+    [['📖 Todos los Coremon', 'coremon'], ['⬆️ Equipo a nivel 60', 'maxTeam'], ['🎒 99 de cada objeto', 'items'], ['💰 +999.999 monedas', 'money'],
+     ['🔓 Abrir plantas y puertas', 'open'], ['❤️ Curar equipo', 'heal'],
+     [game.flags.noEncounters ? '🌿 Activar encuentros' : '🚫 Quitar encuentros', 'encounters'], ['★ Combate legendario', 'legendary']
+    ].forEach(([l, k]) => g.appendChild(btn(l, k)));
+    body.appendChild(g);
+    body.appendChild(el('h4', null, 'Teletransporte'));
+    const tp = el('div', 'dev-grid');
+    Object.keys(MAPS).forEach(id => {
+      const b = el('button', 'ds-btn small', MAPS[id].name);
+      b.onclick = () => { panelStack.onClose = null; closePanel(); const m = MAPS[id]; transitionTo(id, m.spawn.x, m.spawn.y, 'down'); };
+      tp.appendChild(b);
+    });
+    body.appendChild(tp);
+  });
 }

@@ -228,3 +228,8 @@ button:disabled { cursor: not-allowed; }
   animation: pulse 1s infinite;
 }
 @keyframes pulse { 50% { filter: brightness(1.25); } }
+
+.dev-btn { background: linear-gradient(180deg, #263238, #000); color: #00e676; border-color: #00e676; font-family: monospace; }
+.dev-btn.big { font-size: 16px; padding: 12px; }
+.dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.dev-grid .ds-btn { font-size: 11px; }
