@@ -297,3 +297,6 @@ button:disabled { cursor: not-allowed; }
 #bottom-screen.tall .dpad .left, #bottom-screen.tall .dpad .right { top: 52px; }
 #bottom-screen.tall .round { width: 76px; height: 76px; font-size: 24px; }
 #bottom-screen.tall .pad { padding: 0 10px 10px; }
+
+.itch-link { color: #c62828; font-weight: bold; font-size: 13px; text-decoration: none; }
+.itch-link:hover { text-decoration: underline; }

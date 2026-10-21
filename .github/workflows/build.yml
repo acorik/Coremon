@@ -54,6 +54,12 @@ jobs:
           ./gradlew assembleRelease --no-daemon
           VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" ../js/game.js)
           mkdir -p ../dist && cp app/build/outputs/apk/release/app-release.apk "../dist/Coremon-${VERSION}.apk"
+          # Sin la clave oficial en los secretos, se publica el APK oficial ya firmado
+          # que está en android/release/ (si existe para esta versión).
+          if [ -z "${COREMON_KEYSTORE:-}" ] && [ -f "release/Coremon-${VERSION}.apk" ]; then
+            cp "release/Coremon-${VERSION}.apk" "../dist/Coremon-${VERSION}.apk"
+            echo "Usando el APK oficial firmado de android/release/"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: coremon-android
@@ -90,11 +96,14 @@ jobs:
     needs: [web, android, desktop]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          name: Coremon ${{ github.ref_name }}
+          body_path: launch/RELEASE_NOTES.md
           files: out/*
-          generate_release_notes: true
+          make_latest: true

@@ -904,7 +904,7 @@ const CREDITS = [
   '#Profesores', 'Alfonsín (¡feliz jubilación!) · Gema', 'Iñigo San Juan · Jun Arrieta', 'Mr. Shakespeare · Robertiño', 'El profe de Tecnología', 'El Director', '',
   '#Agradecimientos', 'Txema y su diario de 1971', 'El último futbolista del cole', 'La pared del patio (invicta)', '',
   '#Idea, diseño y desarrollo', 'acorik', '',
-  '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!', '', '© acorik'
+  '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!', '', '#Más juegos de acorik', 'acorik.itch.io/coremon', '', '© acorik'
 ];
 
 function battleIntro() {

@@ -35,11 +35,11 @@ Todo lo necesario para crear la página en <https://itch.io/game/new>. Copia y p
 | Archivo | Marcar como | Notas |
 |---|---|---|
 | `Coremon-1.0.0-web.zip` | ✅ **This file will be played in the browser** | Sale de `tools/build-web.sh` o del artifact `coremon-web` |
-| `Coremon-1.0.0.apk` | Android | |
+| `Coremon-1.0.0.apk` | Android | El oficial está en `android/release/` y en la release v1.0.0 de GitHub |
 | `Coremon-1.0.0-portable.exe` | Windows | Se juega sin instalar |
 | `Coremon-Setup-1.0.0.exe` | Windows | Instalador (solo desde GitHub Actions) |
 | `Coremon-1.0.0.AppImage` | Linux | |
-| `Coremon-1.0.0-mac.dmg` | macOS | Solo desde GitHub Actions; no está firmado (clic derecho → Abrir) |
+| `Coremon-1.0.0-mac-arm64.dmg` / `-mac-x64.dmg` | macOS | Apple Silicon / Intel; no está firmado (clic derecho → Abrir) |
 
 ### Opciones de la versión del navegador (Embed options)
 

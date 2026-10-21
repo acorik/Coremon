@@ -5,10 +5,23 @@
 <p align="center"><b>Un juego de acorik</b> · versión 1.0.0</p>
 
 <p align="center">
-  <a href="https://acorik.github.io/Coremon/"><b>▶ Jugar en el navegador</b></a> ·
-  <a href="https://acorik.itch.io/coremon">itch.io</a> ·
-  <a href="https://github.com/acorik/Coremon/releases/latest">Descargas (Android · Windows · Linux · macOS)</a>
+  <a href="https://acorik.itch.io/coremon"><b>🎮 Página oficial en itch.io: acorik.itch.io/coremon</b></a><br>
+  <a href="https://acorik.github.io/Coremon/">▶ Jugar en el navegador</a> ·
+  <a href="https://github.com/acorik/Coremon/releases/latest">Todas las descargas</a>
 </p>
+
+## Descargar
+
+| Plataforma | Descarga directa |
+|---|---|
+| 🤖 **Android** | [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) |
+| 🪟 **Windows** (instalador) | [Coremon-Setup-1.0.0.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-Setup-1.0.0.exe) |
+| 🪟 **Windows** (portable, sin instalar) | [Coremon-1.0.0-portable.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-portable.exe) |
+| 🐧 **Linux** | [Coremon-1.0.0.AppImage](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.AppImage) |
+| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-1.0.0-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-arm64.dmg) |
+| 🍎 **macOS** (Intel) | [Coremon-1.0.0-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-x64.dmg) |
+| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-1.0.0-web.zip](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-web.zip) |
+| 🎮 **itch.io** | [acorik.itch.io/coremon](https://acorik.itch.io/coremon) |
 
 Un RPG de captura de criaturas con aspecto de Nintendo DS (dos pantallas)
 ambientado en un colegio de verdad: el Colegio Sagrado Corazón – Corazonistas
@@ -24,12 +37,12 @@ jefe final lleva esperando desde 1821.
 
 ## Jugar
 
-**En el navegador (PC o móvil):** <https://acorik.github.io/Coremon/> o en
-itch.io. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
+**En el navegador (PC o móvil):** en [acorik.itch.io/coremon](https://acorik.itch.io/coremon)
+o en <https://acorik.github.io/Coremon/>. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
 funciona sin conexión.
 
-**Android:** descarga `Coremon-x.y.z.apk` de las
-[Releases](https://github.com/acorik/Coremon/releases/latest) y ábrelo (el móvil
+**Android:** descarga [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) (o desde
+[itch.io](https://acorik.itch.io/coremon)) y ábrelo (el móvil
 pedirá permiso para "instalar apps de origen desconocido"). La app no pide
 ningún permiso, no tiene anuncios y funciona sin internet. Se adapta al móvil en
 vertical (consola a pantalla completa) y en horizontal (pantallas de lado), y el
@@ -41,7 +54,7 @@ botón "atrás" cierra menús (en el mapa, dos veces para salir).
 |---|---|---|
 | Windows | `Coremon-Setup-x.y.z.exe` o `Coremon-x.y.z-portable.exe` | El portable no necesita instalación |
 | Linux | `Coremon-x.y.z.AppImage` | `chmod +x` y doble clic |
-| macOS | `Coremon-x.y.z-mac.dmg` | No está firmado: clic derecho → Abrir |
+| macOS | `Coremon-x.y.z-mac-arm64.dmg` (Apple Silicon) o `-mac-x64.dmg` (Intel) | No está firmado: clic derecho → Abrir |
 
 F11 activa la pantalla completa.
 
@@ -170,9 +183,8 @@ instalables solo lo empaquetan:
   → Source: **GitHub Actions**.
 - Firma del APK: guarda la clave en los secretos del repositorio
   `COREMON_KEYSTORE_BASE64` (`base64 -w0 coremon-release.jks`) y
-  `COREMON_KEYSTORE_PASSWORD`. Sin ellos, el APK se firma con una clave de
-  depuración. Instala bien, pero no se puede actualizar por encima de la
-  versión oficial.
+  `COREMON_KEYSTORE_PASSWORD`. Sin ellos, la release usa el APK oficial ya
+  firmado que hay en `android/release/` para esa versión.
 
 Para sacar una versión nueva, sube `GAME_VERSION` en `js/game.js`, `version`
 en `desktop/package.json`, y `versionName` y `versionCode` en
