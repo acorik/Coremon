@@ -92,6 +92,7 @@ function currentMap() { return MAPS[game.room]; }
 
 function enterRoom(roomId, x, y, facing) {
   game.room = roomId;
+  if (roomId !== 'sala_profes') profRoom = null;
   const map = MAPS[roomId];
   placeActor(player, x, y);
   if (facing) player.facing = facing;
@@ -116,6 +117,84 @@ async function transitionTo(roomId, x, y, facing) {
   saveGame();
   await fadeTo(0, 180);
   STATE = prev === 'CUTSCENE' ? 'CUTSCENE' : 'OVERWORLD';
+  if (STATE === 'OVERWORLD') onRoomEnter(roomId);
+}
+
+// ---------------- SALA DE PROFESORES Y CASTIGO ----------------
+let profRoom = null;
+const CASTIGO_MS = 45000;
+const JEFA_LOOK = { hair:'long', hairColor:'#8d5524', shirt:'#37474f', pants:'#263238', skirt:true, glasses:true };
+
+function castigoLeft() { return Math.max(0, (game.castigoUntil || 0) - Date.now()); }
+
+async function onRoomEnter(roomId) {
+  if (roomId !== 'sala_profes') return;
+  const map = currentMap();
+  if (Math.random() < 0.35) {
+    // hay profes dentro: te echan
+    STATE = 'CUTSCENE';
+    const gema = { id:'gema_p', kind:'talk', look: TRAINERS.mates.look, facing:'down', lines:[] };
+    const jun = { id:'jun_p', kind:'talk', look: TRAINERS.ciencias.look, facing:'down', lines:[] };
+    placeActor(gema, 3, 7); placeActor(jun, 10, 7);
+    actors.push(gema, jun);
+    faceTowards(gema, player); faceTowards(jun, player);
+    await exclaim(gema);
+    await say(['Gema: ¡Eh, eh! ¿Dónde vas? Aquí no pueden entrar alumnos.',
+      'Jun Arrieta: Venga, venga, para fuera. Y de paso riega las plantas del pasillo, que están mustias.',
+      'Gema: ¡Y a clase, que ese boli tiene que echar humo!']);
+    await transitionTo('piso1', 12, 2, 'down');
+    STATE = 'OVERWORLD';
+    return;
+  }
+  profRoom = { patrolAt: now + 9000 + Math.random() * 6000, warned: false };
+  banner = { text: 'Sala de Profesores... está vacía', t0: now };
+}
+
+async function caughtInProfRoom() {
+  STATE = 'CUTSCENE';
+  profRoom = null;
+  const map = currentMap();
+  const door = map.doors[0];
+  const jefa = { id:'jefa_p', kind:'talk', look: JEFA_LOOK, facing:'up', lines:[] };
+  placeActor(jefa, door.x, door.y);
+  actors.push(jefa);
+  if (!(player.x === door.x && player.y === door.y - 1)) await walkActor(jefa, ['up']);
+  faceTowards(jefa, player);
+  await exclaim(jefa);
+  faceTowards(player, jefa);
+  await say(['Jefa de Estudios: ¡¿SE PUEDE SABER QUÉ HACES EN LA SALA DE PROFESORES?!',
+    'Jefa de Estudios: Nada de excusas. Ahora mismo te vas al quinto piso, a la Sala de Castigo.']);
+  await fadeTo(1, 400);
+  game.castigoUntil = Date.now() + CASTIGO_MS;
+  const c = MAPS.sala_castigo;
+  enterRoom('sala_castigo', c.spawn.x, c.spawn.y, 'up');
+  saveGame();
+  await fadeTo(0, 400);
+  await say(['Jefa de Estudios: Te quedas aquí 45 segundos pensando en lo que has hecho.',
+    'Mira el contador de la pantalla de abajo. Cuando llegue a cero, podrás salir.']);
+  STATE = 'OVERWORLD';
+  refreshTouch();
+}
+
+async function endCastigo() {
+  STATE = 'CUTSCENE';
+  game.castigoUntil = 0;
+  refreshTouch();
+  await say(['Jefa de Estudios: Se acabó el castigo. Y que no te vuelva a pillar en la sala de profesores, ¿estamos?',
+    'La Jefa de Estudios te acompaña de vuelta a la 1ª planta.']);
+  await transitionTo('piso1', 12, 2, 'down');
+  STATE = 'OVERWORLD';
+}
+
+function updateProfRoom() {
+  if (game.room === 'sala_profes' && profRoom) {
+    if (!profRoom.warned && now > profRoom.patrolAt - 3000) {
+      profRoom.warned = true;
+      banner = { text: '¡Se oyen pasos en el pasillo!', t0: now };
+    }
+    if (now >= profRoom.patrolAt) caughtInProfRoom();
+  }
+  if (game.castigoUntil && castigoLeft() === 0 && game.room === 'sala_castigo') endCastigo();
 }
 
 function fadeTo(target, ms) {
@@ -130,6 +209,18 @@ function fadeTo(target, ms) {
   });
 }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let lastTimerText = '';
+function updateCastigoTimer() {
+  const el = document.getElementById('castigo-timer');
+  if (!el) return;
+  const left = castigoLeft();
+  const txt = left > 0 ? `⏰ CASTIGO: 0:${String(Math.ceil(left / 1000)).padStart(2, '0')}` : '';
+  if (txt === lastTimerText) return;
+  lastTimerText = txt;
+  el.textContent = txt;
+  el.classList.toggle('hidden', !txt);
+}
 
 function tileAt(map, x, y) { return map.grid[y] && map.grid[y][x]; }
 
@@ -293,12 +384,16 @@ function interact() {
     if (d.action === 'shop') { openShop(); return; }
     if (d.action === 'box') { openBox(); return; }
     if (d.action === 'altar') { altarScene(); return; }
-    const txt = d.text || d.textLines;
+    const txt = decorText(d);
     if (txt) { showDialog(txt); return; }
   }
   // carteles de pared en la fila superior
-  const up = map.decor.find(dd => decorDef(dd.type).wall && decorCovers(dd, f.x, f.y) && (dd.text || dd.textLines));
-  if (up) showDialog(up.text || up.textLines);
+  const up = map.decor.find(dd => decorDef(dd.type).wall && decorCovers(dd, f.x, f.y) && decorText(dd));
+  if (up) showDialog(decorText(up));
+}
+
+function decorText(d) {
+  return d.textLines || (Array.isArray(d.text) ? d.text : null);
 }
 
 function pickItem(it) {
@@ -326,7 +421,7 @@ async function talkTo(a) {
   }
   if (a.kind === 'trainer') {
     const tr = TRAINERS[a.id];
-    if (game.badges.includes(tr.id)) { await say(`${tr.name}: ${tr.win}`); return; }
+    if (game.badges.includes(tr.id)) { await say([].concat(tr.win).map(l => `${tr.name}: ${l}`)); return; }
     if (!game.team.some(p => p.hp > 0)) { await say('Tus Coremon están agotados. Ve a la enfermería primero.'); return; }
     STATE = 'CUTSCENE';
     await exclaim(a);
@@ -391,7 +486,9 @@ function update(dt) {
   if (STATE === 'OVERWORLD') {
     updatePlayerInput();
     updateWanderers();
+    updateProfRoom();
   }
+  updateCastigoTimer();
 }
 
 function updatePlayerInput() {
@@ -410,6 +507,11 @@ function updatePlayerInput() {
   const nx = player.x + dx, ny = player.y + dy;
   const door = map.doors.find(d => d.x === nx && d.y === ny);
   if (door && door.elevator) { player.facing = dir; openElevator(); return; }
+  if (door && door.to && game.room === 'sala_castigo' && castigoLeft() > 0) {
+    player.facing = dir;
+    showDialog(`La puerta está cerrada por fuera. Te quedan ${Math.ceil(castigoLeft() / 1000)} segundos de castigo.`);
+    return;
+  }
   if (door && door.locked && !doorOpen(door)) {
     player.facing = dir;
     showDialog('La puerta dorada está cerrada con llave. Quizá el Director tenga algo que ver...');
@@ -507,6 +609,7 @@ function render() {
   }
   drawDoorLabels(map);
   for (const a of actors) if (a.bubble) drawBubble(a);
+  for (const a of actors) if (a.sleepy && !a.bubble && !game.badges.includes(a.id)) drawZzz(a);
   ctx.restore();
 
   drawBanner();
@@ -526,6 +629,19 @@ function drawBubble(a) {
   box(ctx, -8, -12, 16, 18, '#fafafa', OUT);
   ctx.fillStyle = '#e53935'; ctx.fillRect(-2, -8, 4, 8); ctx.fillRect(-2, 2, 4, 3);
   ctx.restore();
+}
+
+function drawZzz(a) {
+  const t = (now / 900) % 3;
+  ctx.font = 'bold 10px monospace'; ctx.textAlign = 'left';
+  for (let i = 0; i < 3; i++) {
+    const k = (t + i) % 3;
+    ctx.globalAlpha = Math.max(0, 1 - k / 3);
+    ctx.fillStyle = '#e3f2fd'; ctx.strokeStyle = OUT; ctx.lineWidth = 3;
+    const x = a.px + TILE * 0.7 + k * 5, y = a.py - 4 - k * 8;
+    ctx.strokeText('z', x, y); ctx.fillText('z', x, y);
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawDoorLabels(map) {
@@ -648,7 +764,7 @@ const CREDITS = [
   'Has demostrado saber... y tener corazón.', '',
   '#Inspirado en la historia real', 'Padre Andrés Coindre (1787-1826)', 'Fundó en Lyon, en 1821,', 'los Hermanos del Sagrado Corazón', 'para educar a niños sin hogar.', '',
   'Doscientos años después,', 'el colegio de Vitoria-Gasteiz', 'es la casa corazonista', 'con más alumnos de España.', '',
-  '#Profesores', 'Profe Atlas · Profesora Álgebra', 'Profesor Cervantes · Profesor Darwin', 'Mr. Shakespeare · Profesora Frida', 'El Director', '',
+  '#Profesores', 'Alfonsín (¡feliz jubilación!) · Gema', 'Iñigo San Juan · Jun Arrieta', 'Mr. Shakespeare · Robertiño', 'El Director', '',
   '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!'
 ];
 
@@ -768,6 +884,7 @@ function continueGame() {
   const m = currentMap();
   if (blocked(m, player.x, player.y, true) || '#DLA'.includes(tileAt(m, player.x, player.y) || '#')) placeActor(player, m.spawn.x, m.spawn.y);
   STATE = 'OVERWORLD';
+  if (game.room === 'sala_profes') onRoomEnter('sala_profes');
   if (!game.team.length) { STATE = 'CUTSCENE'; chooseStarter().then(sp => { game.team = [createPokemon(sp, 5)]; STATE = 'OVERWORLD'; saveGame(); refreshTouch(); }); }
 }
 
@@ -798,7 +915,7 @@ async function afterBattle(info) {
     if (t.student) {
       await say(`${t.name}: ${t.win}`);
     } else {
-      await say(`${t.name}: ${t.win}`);
+      await say([].concat(t.win).map(l => `${t.name}: ${l}`));
       if (t.id === 'coindre') { await endingScene(); return; }
       if (info.newBadge) {
         await cinematic({ type:'badge', color: t.badgeColor, title: t.reward }, 2800);

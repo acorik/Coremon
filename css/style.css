@@ -221,3 +221,10 @@ button:disabled { cursor: not-allowed; }
   .dpad .up, .dpad .down { left: 32px; } .dpad .left, .dpad .right { top: 32px; }
   .round { width: 46px; height: 46px; }
 }
+
+#castigo-timer {
+  background: linear-gradient(180deg, #ff5252, #b71c1c); color: #fff; font-weight: bold; text-align: center;
+  border: 3px solid #3a3f5c; border-radius: 10px; padding: 6px; font-size: 18px; letter-spacing: 1px;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse { 50% { filter: brightness(1.25); } }

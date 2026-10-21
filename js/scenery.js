@@ -36,6 +36,14 @@ function drawFloor(ctx, map, x, y, T, tx, ty) {
   const style = map.floorStyle || 'wood';
   const fc = map.floorColor;
   switch (style) {
+    case 'sportsBlue': {
+      // suelo deportivo azul del gimnasio
+      box(ctx, x, y, T, T, '#2f63a8');
+      ctx.fillStyle = '#3a70b8'; ctx.fillRect(x, y, T, T / 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 3, y + 5, T * 0.5, 2);
+      if (ty === map.lineRow) { ctx.fillStyle = '#f5f5f5'; ctx.fillRect(x, y + T / 2 - 1, T, 3); }
+      break;
+    }
     case 'darkgranite': {
       // granito negro pulido (vestíbulo, salón de actos)
       box(ctx, x, y, T, T, '#1f1d24');
@@ -682,8 +690,69 @@ const DECOR = {
     c.fillStyle = '#e57373'; c.fillRect(-6, 13, 3, 22);
     c.restore();
   }},
-  mats: { draw(c, x, y, T) {
-    for (let i = 0; i < 3; i++) box(c, x + 2, y + 18 - i * 6, T - 4, 7, ['#1565c0', '#c62828', '#2e7d32'][i], OUT);
+  mats: { draw(c, x, y, T, d) {
+    const cols = d.blue ? ['#0d47a1', '#1565c0', '#1e88e5'] : ['#1565c0', '#c62828', '#2e7d32'];
+    for (let i = 0; i < 3; i++) box(c, x + 2, y + 18 - i * 6, T - 4, 7, cols[i], OUT);
+  }},
+  climbWall: { wall: true, solid: false, draw(c, x, y, T, d) {
+    // rocódromo: ocupa las dos filas de pared
+    const w = (d.w || 4) * T, top = y - T, h = 2 * T;
+    box(c, x + 1, top + 4, w - 2, h - 6, '#cfc6b5', OUT);
+    c.fillStyle = '#bdb3a0';
+    for (let i = 0; i < d.w * 3; i++) c.fillRect(x + prand(i, 1, 9) * (w - 12) + 4, top + 8 + prand(i, 2, 9) * (h - 20), 10, 6);
+    const cols = ['#e53935', '#fdd835', '#43a047', '#1e88e5', '#8e24aa', '#ff7043', '#00acc1'];
+    for (let i = 0; i < d.w * 7; i++) {
+      c.fillStyle = cols[i % cols.length];
+      const hx = x + 6 + prand(i, 3, 5) * (w - 14), hy = top + 9 + prand(i, 4, 5) * (h - 22);
+      c.beginPath(); c.ellipse(hx, hy, 3 + (i % 3), 2 + (i % 2), i, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = OUT; c.lineWidth = 1; c.stroke();
+    }
+    c.strokeStyle = '#f5f5f5'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(x + w * 0.3, top + 4); c.lineTo(x + w * 0.3, y + T - 4); c.stroke();
+    c.beginPath(); c.moveTo(x + w * 0.7, top + 4); c.lineTo(x + w * 0.7, y + T - 4); c.stroke();
+  }},
+  tatamiMat: { solid: false, draw(c, x, y, T, d) {
+    const w = (d.w || 1) * T, h = (d.h || 1) * T;
+    for (let i = 0; i < (d.w || 1); i++) for (let j = 0; j < (d.h || 1); j++) {
+      box(c, x + i * T + 1, y + j * T + 1, T - 2, T - 2, (i + j) % 2 ? '#1565c0' : '#1976d2', '#0d3c7a');
+      c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(x + i * T + 4, y + j * T + 4, T - 8, 3);
+    }
+  }},
+  handballGoal: { tall: true, draw(c, x, y, T, d) {
+    const h = (d.h || 2) * T, flip = d.facing === 'left';
+    const px = flip ? x + T - 8 : x + 2;
+    c.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let i = 0; i < h; i += 5) c.fillRect(flip ? x + 6 : x + 8, y + i, T - 14, 1);
+    for (let i = 0; i < T - 12; i += 5) c.fillRect((flip ? x + 6 : x + 8) + i, y, 1, h);
+    for (let i = 0; i < h; i += 8) { c.fillStyle = Math.floor(i / 8) % 2 ? '#fafafa' : '#e53935'; c.fillRect(px, y + i, 6, 8); }
+    c.strokeStyle = OUT; c.lineWidth = 1; c.strokeRect(px, y, 6, h);
+  }},
+  footballGoal: { draw(c, x, y, T, d) {
+    // portería de fútbol medio abandonada: oxidada, red rota y llena de hierbajos
+    const w = (d.w || 3) * T;
+    c.fillStyle = 'rgba(255,255,255,0.25)';
+    for (let i = 4; i < w - 4; i += 6) c.fillRect(x + i, y + 2, 1, T - 6);
+    c.fillStyle = '#b0a080'; c.fillRect(x + 2, y, w - 4, 4); c.fillRect(x + 2, y, 4, T); c.fillRect(x + w - 6, y, 4, T);
+    c.fillStyle = '#8d6e4a'; c.fillRect(x + 10, y + 1, 6, 2); c.fillRect(x + w - 30, y + 1, 8, 2);
+    c.fillStyle = '#3d7f2b';
+    for (let i = 0; i < 9; i++) { const gx = x + 4 + prand(i, 7, 2) * (w - 8); c.beginPath(); c.moveTo(gx - 3, y + T); c.lineTo(gx, y + T - 10 - (i % 3) * 3); c.lineTo(gx + 3, y + T); c.fill(); }
+  }},
+  weeds: { solid: false, draw(c, x, y, T) {
+    c.fillStyle = '#4f8f36';
+    for (let i = 0; i < 4; i++) { const gx = x + 6 + i * 6; c.beginPath(); c.moveTo(gx - 2, y + 26); c.lineTo(gx, y + 14 + (i % 2) * 4); c.lineTo(gx + 2, y + 26); c.fill(); }
+  }},
+  draftTable: { draw(c, x, y, T) {
+    // tablero inclinado de dibujo técnico con regla en T
+    c.fillStyle = '#6d4c41'; c.fillRect(x + 8, y + 18, 3, 10); c.fillRect(x + T - 11, y + 18, 3, 10);
+    box(c, x + 3, y + 2, T - 6, 18, '#f5f2e8', OUT);
+    c.fillStyle = '#1565c0'; c.fillRect(x + 5, y + 10, T - 10, 2); c.fillRect(x + 5, y + 4, 2, 14);
+    c.strokeStyle = '#9e9e9e'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 10, y + 16); c.lineTo(x + 22, y + 6); c.stroke();
+  }},
+  copier: { tall: true, anim: true, draw(c, x, y, T, d, t) {
+    box(c, x + 3, y - 4, T - 6, T + 2, '#cfd8dc', OUT);
+    box(c, x + 6, y - 8, T - 12, 6, '#90a4ae', OUT);
+    c.fillStyle = Math.floor(t / 500) % 2 ? '#76ff03' : '#33691e'; c.fillRect(x + T - 11, y, 3, 3);
+    box(c, x + 8, y + 12, T - 16, 4, '#fafafa');
   }},
   hoop: { tall: true, draw(c, x, y, T, d) {
     c.fillStyle = '#9e9e9e'; c.fillRect(x + 14, y - 10, 4, T + 8);

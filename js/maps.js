@@ -27,7 +27,7 @@ MAPS.planta_baja = {
     '########D####D###'
   ]),
   doors: [
-    { x:2, y:0, to:'room_tatami', tx:6, ty:7, short:'TATAMI' },
+    { x:2, y:0, to:'room_tatami', tx:6, ty:7, short:'GIMNASIO' },
     { x:5, y:0, to:'salon_actos', tx:7, ty:9, short:'SALÓN' },
     { x:8, y:0, elevator:true, short:'ASCENSOR' },
     { x:11, y:0, to:'capilla', tx:5, ty:9, short:'CAPILLA' },
@@ -138,19 +138,22 @@ MAPS.patio = {
   ],
   npcs: [
     { id:'basket1', kind:'student', x:6, y:5, look:{ hair:'cap', cap:'#c62828', hairColor:'#3b2416', shirt:'#c62828', pants:'#fafafa' }, facing:'right' },
-    { id:'basket2', kind:'student', x:12, y:4, look:{ hair:'long', hairColor:'#d4a017', shirt:'#1565c0', pants:'#fafafa', skirt:false }, facing:'left' }
+    { id:'basket2', kind:'student', x:12, y:4, look:{ hair:'long', hairColor:'#d4a017', shirt:'#1565c0', pants:'#fafafa', skirt:false }, facing:'left' },
+    { id:'portera', kind:'student', x:14, y:6, look:{ hair:'bun', hairColor:'#1a1a1a', shirt:'#fdd835', pants:'#1565c0' }, facing:'left' }
   ],
   decor: [
     { type:'courtLines', x:3, y:3, w:13, h:6, solid:false },
-    { type:'hoop', x:3, y:6 }, { type:'hoop', x:15, y:6 },
-    { type:'sign', x:11, y:1, text:['PATIO DE CORAZONISTAS.', 'En estas canchas empezaron a botar el balón varios antiguos alumnos que acabaron jugando en la NBA.', 'Cuidado con la hierba alta: ¡está llena de Coremon salvajes!'] },
+    { type:'handballGoal', x:3, y:5, h:2, facing:'right' }, { type:'handballGoal', x:15, y:5, h:2, facing:'left' },
+    { type:'hoop', x:2, y:5 }, { type:'hoop', x:16, y:5 },
+    { type:'sign', x:11, y:1, text:['PATIO DE CORAZONISTAS. Pista de baloncesto y balonmano.', 'En estas canchas empezaron a botar el balón varios antiguos alumnos que acabaron en la NBA. Y en balonmano, ni te cuento.', 'Fútbol: ver portería del jardín (si la encuentras entre los hierbajos).'] },
     { type:'lamp', x:5, y:2 }, { type:'lamp', x:13, y:2 },
     { type:'bench', x:6, y:10, w:2 }, { type:'bench', x:11, y:10, w:2 },
     { type:'fountain', x:9, y:10 },
     { type:'tree', x:1, y:1 }, { type:'tree', x:17, y:1 }, { type:'tree', x:1, y:11 }, { type:'tree', x:17, y:11 }
   ],
   wanderers: [
-    { seed: 5, x:8, y:9, lines:['¡Recreo! Los mejores 30 minutos del día.'] }
+    { seed: 5, x:8, y:9, lines:['¡Recreo! Los mejores 30 minutos del día.', 'Aquí si no juegas a baloncesto o a balonmano, eres un bicho raro.'] },
+    { seed: 19, x:10, y:2, lines:['¿Fútbol? ¿Aquí? La portería del jardín tiene más hierbajos que red.', 'El equipo de fútbol tiene un solo jugador. Dicen que entrena contra la pared.'] }
   ],
   items: [ { id:'patio_cromo', x:2, y:10, item:'cromo', qty:2 }, { id:'patio_bocata', x:16, y:2, item:'bocadillo', qty:1 } ],
   wildZone: 'patio',
@@ -174,7 +177,8 @@ MAPS.jardin = {
   ]),
   doors: [ { x:0, y:5, to:'patio', tx:17, ty:6, exit:true, short:'PATIO' } ],
   npcs: [
-    { id:'jardinero', kind:'talk', x:8, y:8, look:{ hair:'cap', cap:'#558b2f', hairColor:'#757575', shirt:'#558b2f', pants:'#4e342e', beard:true, beardColor:'#9e9e9e' }, facing:'down',
+    { id:'futbolista', kind:'student', x:8, y:8, look:{ hair:'short', hairColor:'#6d3b1f', shirt:'#2e7d32', pants:'#fafafa' }, facing:'down' },
+    { id:'jardinero', kind:'talk', x:11, y:7, look:{ hair:'cap', cap:'#558b2f', hairColor:'#757575', shirt:'#558b2f', pants:'#4e342e', beard:true, beardColor:'#9e9e9e' }, facing:'down',
       lines:['Soy el Hermano jardinero. Cuido este jardín desde hace cuarenta años.',
              'Cuando el Padre Coindre murió en 1826, el Hermano Polycarpe tomó las riendas. Cuando él murió, ya había más de 400 hermanos en 70 escuelas.',
              'De una semilla pequeña sale un árbol grande. Como este colegio.'] }
@@ -183,8 +187,11 @@ MAPS.jardin = {
     { type:'tree', x:1, y:1, fruit:true }, { type:'tree', x:15, y:1 }, { type:'tree', x:1, y:9 }, { type:'tree', x:15, y:9, fruit:true },
     { type:'flowers', x:7, y:1, solid:false, color:'#ef5350' }, { type:'flowers', x:9, y:1, solid:false, color:'#ba68c8' },
     { type:'flowers', x:6, y:8, solid:false, color:'#ffd54f' }, { type:'flowers', x:10, y:8, solid:false, color:'#ef5350' },
-    { type:'lamp', x:4, y:3 }, { type:'bench', x:12, y:3, w:1 }
+    { type:'lamp', x:4, y:3 }, { type:'bench', x:12, y:3, w:1 },
+    { type:'footballGoal', x:6, y:9, w:3, solid:true, text:['Una portería de fútbol oxidada, con la red rota y llena de hierbajos.', 'Un cartel medio borrado dice: «EQUIPO DE FÚTBOL. SE BUSCAN JUGADORES». Fecha del cartel: hace muchos años.'] },
+    { type:'weeds', x:5, y:9 }, { type:'weeds', x:9, y:9 }, { type:'weeds', x:7, y:8 }
   ],
+  wanderers: [],
   items: [ { id:'jardin_caramelo', x:12, y:5, item:'caramelo', qty:1 }, { id:'jardin_tirita', x:15, y:7, item:'tirita', qty:1 } ],
   wildZone: 'jardin',
   spawn: { x:1, y:5 }
@@ -192,7 +199,7 @@ MAPS.jardin = {
 
 // ---------------- SALAS DE LA PLANTA BAJA ----------------
 MAPS.room_tatami = {
-  name: 'Tatami - Educación Física', floorStyle: 'tatami', wallColor: '#d7ccc8', wainscot: '#795548',
+  name: 'Gimnasio - Educación Física', floorStyle: 'sportsBlue', wallStyle: 'brick', lineRow: 6,
   grid: grid([
     '#############',
     '#...........#',
@@ -206,13 +213,15 @@ MAPS.room_tatami = {
   ]),
   doors: [ { x:6, y:8, to:'planta_baja', tx:2, ty:1, exit:true } ],
   npcs: [
-    { id:'efisica', kind:'trainer', x:6, y:2, look:TRAINERS.efisica.look, facing:'down' },
-    { id:'judoka', kind:'student', x:3, y:5, look:{ hair:'short', hairColor:'#1a1a1a', shirt:'#fafafa', pants:'#fafafa', tie:'#212121' }, facing:'right' }
+    { id:'efisica', kind:'trainer', x:8, y:3, look:TRAINERS.efisica.look, facing:'down' },
+    { id:'balonmano', kind:'student', x:9, y:6, look:{ hair:'short', hairColor:'#3b2416', shirt:'#fdd835', pants:'#1565c0' }, facing:'left' }
   ],
   decor: [
-    { type:'wallbars', x:1, y:0, w:4 }, { type:'clock', x:6, y:0 }, { type:'wallbars', x:8, y:0, w:4 },
-    { type:'punchbag', x:2, y:2 }, { type:'punchbag', x:10, y:2 },
-    { type:'mats', x:1, y:7 }, { type:'mats', x:11, y:7 }
+    { type:'climbWall', x:1, y:0, w:5, text:['Rocódromo del gimnasio. Las presas de colores marcan las vías: la roja es la más difícil.', 'Un cartel dice: «Prohibido escalar sin colchoneta debajo. Firmado: Alfonsín».'] },
+    { type:'tatamiMat', x:1, y:1, w:5, h:2 },
+    { type:'clock', x:7, y:0 }, { type:'wallbars', x:8, y:0, w:4 },
+    { type:'handballGoal', x:11, y:4, h:2, facing:'left' },
+    { type:'mats', x:1, y:7, blue:true }, { type:'mats', x:2, y:7, blue:true }
   ],
   spawn: { x:6, y:7 }
 };
@@ -343,20 +352,21 @@ const DOOR_YELLOW = '#f2c12e', DOOR_BLUE = '#3a78d6';
 
 MAPS.piso1 = hub(1, {
   name: '1ª planta - Primaria', doorColor: DOOR_YELLOW, bottom: 'coatrack',
-  top: '###D#####A#####D###',
+  top: '###D#####A##D##D###',
   doors: [
     { x:3, y:0, to:'room_mates', tx:6, ty:8, short:'MATES' },
+    { x:12, y:0, to:'sala_profes', tx:7, ty:7, short:'PROFES' },
     { x:15, y:0, to:'room_lengua', tx:6, ty:8, short:'LENGUA' }
   ],
   decor: [
     { type:'mural', x:1, y:0, w:2, seed:0, bg:'#f5e6c8' }, { type:'drawing', x:5, y:0, seed:1 }, { type:'whiteboard', x:6, y:0, w:2 },
-    { type:'mural', x:11, y:0, w:2, seed:1 }, { type:'drawing', x:13, y:0, seed:3 }, { type:'drawing', x:14, y:0, seed:4 }, { type:'mural', x:16, y:0, w:2, seed:2 },
+    { type:'mural', x:10, y:0, w:2, seed:1 }, { type:'drawing', x:13, y:0, seed:3 }, { type:'drawing', x:14, y:0, seed:4 }, { type:'mural', x:16, y:0, w:2, seed:2 },
     { type:'watercooler', x:17, y:5 }
   ],
   npcs: [ { id:'empollon', kind:'student', x:16, y:3, look:{ hair:'short', hairColor:'#8d5524', shirt:'#1f3b73', pants:'#33334a', glasses:true, tie:'#b71c1c' }, facing:'left' } ],
   wanderers: [
-    { seed: 3, x:5, y:5, lines:['¡La profe de Mates pone exámenes sorpresa! Ve preparado.'] },
-    { seed: 44, x:12, y:6, lines:['El profe Cervantes se sabe el Quijote de memoria. Entero.'] }
+    { seed: 3, x:5, y:5, lines:['La profe Gema siempre dice que el boli tiene que echar humo. ¡Y lo dice en serio!'] },
+    { seed: 44, x:12, y:6, lines:['Ayer Iñigo vino a clase con dos zapatos distintos. Y se durmió leyendo en voz alta.', 'Dicen que en la sala de profesores hay caramelos raros... pero como te pillen, te mandan al castigo del quinto piso.'] }
   ],
   items: [ { id:'p1_bocata', x:1, y:6, item:'bocadillo', qty:1 } ]
 });
@@ -375,7 +385,7 @@ MAPS.piso2 = hub(2, {
     { type:'aquarium', x:17, y:5 }
   ],
   wanderers: [
-    { seed: 8, x:4, y:5, lines:['En el laboratorio hay un esqueleto que se llama Paco.'] },
+    { seed: 8, x:4, y:5, lines:['En el laboratorio hay un esqueleto que se llama Paco.', 'Jun Arrieta habla con las plantas. Y las plantas crecen más. Ciencia.'] },
     { seed: 91, x:14, y:5, lines:['Mr. Shakespeare solo habla en inglés. ¡Hasta en el comedor!'] }
   ],
   items: [ { id:'p2_cromo', x:17, y:3, item:'cromo', qty:2 } ]
@@ -394,7 +404,7 @@ MAPS.piso3 = hub(3, {
     { type:'bust', x:17, y:5 }
   ],
   wanderers: [
-    { seed: 15, x:6, y:5, lines:['La profe Frida se enfada si pisas sus cuadros. Ojo con la pintura del suelo.'] },
+    { seed: 15, x:6, y:5, lines:['Robertiño te suspende si tuerces una línea. Una. Línea.', 'Y no se te ocurra entrar sin llamar a su aula, que entra corriente.'] },
     { seed: 63, x:13, y:6, lines:['En la biblioteca hay Coremon salvajes entre los apuntes. ¡En serio!'] }
   ]
 });
@@ -413,7 +423,7 @@ MAPS.piso4 = hub(4, {
 });
 
 MAPS.piso5 = hub(5, {
-  name: '5ª planta - Sala de Profesores', floorStyle: 'carpet', floorColor: '#4a3b5c', wallStyle: 'wood', rugStyle: 'none', rugColor: '#7b1fa2', doorStyle: 'wood', lockerColor:'#6d4c41',
+  name: '5ª planta - Dirección', floorStyle: 'carpet', floorColor: '#4a3b5c', wallStyle: 'wood', rugStyle: 'none', rugColor: '#7b1fa2', doorStyle: 'wood', lockerColor:'#6d4c41',
   top: '###D###L#A#####D###',
   doors: [
     { x:3, y:0, to:'room_liga', tx:6, ty:8, short:'DIRECTOR' },
@@ -426,12 +436,48 @@ MAPS.piso5 = hub(5, {
   ],
   npcs: [
     { id:'jefa', kind:'talk', x:12, y:3, look:{ hair:'long', hairColor:'#8d5524', shirt:'#37474f', pants:'#263238', skirt:true, glasses:true }, facing:'down',
-      lines:['Soy la Jefa de Estudios. Has llegado lejos, alumno.', 'El despacho del Director está a la izquierda. Detrás de la puerta dorada... bueno, eso ya lo descubrirás.'] },
+      lines:['Soy la Jefa de Estudios. Has llegado lejos, alumno.', 'El despacho del Director está a la izquierda. Detrás de la puerta dorada... bueno, eso ya lo descubrirás.', 'Y ni se te ocurra volver a colarte en la sala de profesores de la 1ª planta. Te tengo fichado.'] },
     { id:'religion', kind:'talk', x:6, y:5, look:{ hair:'bald', hairColor:'#bdbdbd', shirt:'#5d4037', pants:'#3e2723', glasses:true }, facing:'down',
       lines:['Profesor de Religión. ¿Sabías que en 1818 el Padre Coindre creó el «Pío Socorro» en Lyon, con familias y benefactores, para acoger a niños abandonados?',
              'Tres años después, en 1821, nacieron los Hermanos del Sagrado Corazón. Hoy son casi mil hermanos en 36 países.'] }
   ]
 });
+
+// ---------------- SALA DE PROFESORES (1ª planta) ----------------
+// Si hay profes dentro, te echan. Si está vacía puedes colarte a por lo que
+// hay en las mesas... pero si te pillan, castigo en el 5º piso.
+MAPS.sala_profes = {
+  name: 'Sala de Profesores', floorStyle: 'carpet', floorColor: '#5d4a3a', wallStyle: 'wood',
+  grid: grid([
+    '###############',
+    '#.............#',
+    '#.............#',
+    '#.............#',
+    '#.............#',
+    '#.............#',
+    '#.............#',
+    '#.............#',
+    '#######D#######'
+  ]),
+  doors: [ { x:7, y:8, to:'piso1', tx:12, ty:1, exit:true } ],
+  npcs: [],
+  decor: [
+    { type:'whiteboard', x:3, y:0, w:3, textLines:['Tablón: «Horarios. Guardias de patio. Reunión de evaluación el jueves. Se ruega no comerse los bocadillos ajenos».'] },
+    { type:'clock', x:7, y:0 }, { type:'notice', x:9, y:0, w:2 }, { type:'portrait', x:12, y:0, text:['Foto de grupo del claustro. Alfonsín sale en el centro con un silbato.'] },
+    { type:'coffee', x:1, y:1 }, { type:'copier', x:2, y:1 },
+    { type:'lockers', x:10, y:1, w:3, color:'#6d4c41' },
+    { type:'confTable', x:4, y:3, w:7, h:2 },
+    { type:'chair', x:5, y:2 }, { type:'chair', x:7, y:2 }, { type:'chair', x:9, y:2 },
+    { type:'chair', x:5, y:5 }, { type:'chair', x:7, y:5 }, { type:'chair', x:9, y:5 },
+    { type:'sofa', x:1, y:6, w:2, color:'#455a64' }, { type:'plant', x:13, y:7 }, { type:'bookshelf', x:13, y:1 }
+  ],
+  items: [
+    { id:'profes_caramelo', x:12, y:4, item:'caramelo', qty:1 },
+    { id:'profes_oro', x:1, y:3, item:'cromoOro', qty:2 },
+    { id:'profes_menu', x:13, y:6, item:'menu', qty:2 }
+  ],
+  spawn: { x:7, y:7 }
+};
 
 // ---------------- AULAS CON PROFESOR ----------------
 function classroom(trainerId, hubId, doorX, opts) {
@@ -450,7 +496,7 @@ function classroom(trainerId, hubId, doorX, opts) {
       '######D######'
     ]),
     doors: [ { x:6, y:9, to:hubId, tx:doorX, ty:1, exit:true } ],
-    npcs: [ { id: trainerId, kind:'trainer', x:6, y:2, look: TRAINERS[trainerId].look, facing:'down' } ],
+    npcs: [ { id: trainerId, kind:'trainer', x:6, y:2, look: TRAINERS[trainerId].look, facing:'down', sleepy: TRAINERS[trainerId].sleepy } ],
     spawn: { x:6, y:8 }
   }, opts, {
     decor: [ { type:'teacherDesk', x:5, y:3, w:3, talkThrough:true }, ...(opts.decor || []) ]
@@ -461,19 +507,20 @@ for (const y of [5, 7]) for (const x of [2, 4, 8, 10]) DESKS.push({ type:'desk',
 
 MAPS.room_mates = classroom('mates', 'piso1', 3, {
   wallColor: '#e3f2fd', wainscot: '#1565c0',
-  decor: [ { type:'chalkboard', x:3, y:0, w:7, text:'x² + 2x + 1 = (x+1)²', text2:'π ≈ 3,14159...' }, { type:'clock', x:11, y:0 },
+  decor: [ { type:'chalkboard', x:3, y:0, w:7, text:'¡Ese boli tiene que echar humo!', text2:'x² + 2x + 1 = (x+1)²', textLines:['En la pizarra pone: «¡Ese boli tiene que echar humo!». Debajo, con letra más pequeña: «Aquí no hay exámenes sorpresa :)».'] }, { type:'clock', x:11, y:0 },
     { type:'bookshelf', x:1, y:1 }, { type:'globe', x:11, y:1 }, ...DESKS ]
 });
 MAPS.room_lengua = classroom('lengua', 'piso1', 15, {
   wallColor: '#fbe9e7', wainscot: '#6d4c41', floorColor: '#b07d4f',
-  decor: [ { type:'chalkboard', x:3, y:0, w:7, text:'Sujeto + Verbo + Predicado', text2:'«En un lugar de la Mancha...»' },
+  decor: [ { type:'chalkboard', x:3, y:0, w:7, text:'HORA DE LECTURA', text2:'(¿Dónde he dejado el libro?)', textLines:['En la pizarra pone «HORA DE LECTURA». Debajo, con otra letra: «¿Alguien ha visto mi libro? Y mis gafas. Y mis llaves».'] },
     { type:'poster', x:1, y:0, color:'#ffe0b2' }, { type:'poster', x:11, y:0, color:'#d7ccc8' },
     { type:'bookshelf', x:1, y:1 }, { type:'bookshelf', x:11, y:1, seed:3 }, { type:'bookshelf', x:1, y:3, seed:5 }, ...DESKS ]
 });
 MAPS.room_ciencias = classroom('ciencias', 'piso2', 3, {
   floorStyle: 'lab', wallColor: '#e0f2f1', wainscot: '#00695c',
-  decor: [ { type:'chalkboard', x:3, y:0, w:7, white:true, text:'H₂O · CO₂ · fotosíntesis', text2:'La célula es la unidad de vida' },
-    { type:'skeleton', x:1, y:1 }, { type:'aquarium', x:11, y:1 }, { type:'plant', x:1, y:8 },
+  decor: [ { type:'chalkboard', x:3, y:0, w:7, white:true, text:'Hoy: cuidamos el huerto', text2:'No hay examen. Regad los geranios', textLines:['En la pizarra: «Hoy cuidamos el huerto. No hay examen. Por favor, regad los geranios».'] },
+    { type:'skeleton', x:1, y:1 }, { type:'aquarium', x:11, y:1 }, { type:'plant', x:1, y:8 }, { type:'plant', x:11, y:8 },
+    { type:'plant', x:1, y:3 }, { type:'plant', x:11, y:3 }, { type:'plant', x:1, y:5 }, { type:'plant', x:11, y:5 }, { type:'flowers', x:6, y:7, solid:false, color:'#ef5350' },
     { type:'labBench', x:2, y:5, w:2 }, { type:'labBench', x:8, y:5, w:2 }, { type:'labBench', x:2, y:7, w:2 }, { type:'labBench', x:8, y:7, w:2 } ]
 });
 MAPS.room_ingles = classroom('ingles', 'piso2', 6, {
@@ -483,12 +530,11 @@ MAPS.room_ingles = classroom('ingles', 'piso2', 6, {
 });
 MAPS.room_arte = classroom('arte', 'piso3', 3, {
   wallColor: '#fff8e1', wainscot: '#c2185b', floorColor: '#d7b98e',
-  decor: [ { type:'chalkboard', x:3, y:0, w:7, white:true, text:'Hoy: perspectiva cónica', text2:'Traed témperas mañana' },
-    { type:'poster', x:1, y:0, color:'#ffcdd2' }, { type:'poster', x:11, y:0, color:'#b3e5fc' },
+  decor: [ { type:'chalkboard', x:3, y:0, w:7, white:true, text:'DIBUJO TÉCNICO', text2:'Escuadra, cartabón y compás', textLines:['En la pizarra: «DIBUJO TÉCNICO. Escuadra, cartabón y compás. PROHIBIDO TORCER LÍNEAS».'] },
+    { type:'poster', x:1, y:0, color:'#ffcdd2' }, { type:'poster', x:11, y:0, color:'#b3e5fc', text:['Un cartel: «Las líneas se trazan con regla. Las excusas, también no.» — Robertiño'] },
     { type:'bust', x:1, y:1 }, { type:'easel', x:11, y:1, seed:1 },
-    { type:'easel', x:2, y:5, seed:0 }, { type:'easel', x:4, y:5, seed:2 }, { type:'easel', x:8, y:5, seed:3 }, { type:'easel', x:10, y:5, seed:1 },
-    { type:'splat', x:3, y:7, color:'#e91e63' }, { type:'splat', x:9, y:7, color:'#2196f3' }, { type:'splat', x:6, y:6, color:'#ffeb3b' },
-    { type:'splat', x:1, y:6, color:'#4caf50' } ]
+    { type:'draftTable', x:2, y:5 }, { type:'draftTable', x:4, y:5 }, { type:'draftTable', x:8, y:5 }, { type:'draftTable', x:10, y:5 },
+    { type:'draftTable', x:2, y:7 }, { type:'draftTable', x:4, y:7 }, { type:'draftTable', x:8, y:7 }, { type:'draftTable', x:10, y:7 } ]
 });
 
 MAPS.room_liga = {
@@ -633,7 +679,7 @@ MAPS.sala_castigo = {
   doors: [ { x:4, y:7, to:'piso5', tx:15, ty:1, exit:true } ],
   npcs: [ { id:'castigado', kind:'student', x:4, y:2, look:{ hair:'spiky', hairColor:'#a0522d', shirt:'#1f3b73', pants:'#33334a', tie:'#b71c1c' }, facing:'down' } ],
   decor: [
-    { type:'chalkboard', x:1, y:0, w:3, text:'NO COPIARÉ', text2:'NO COPIARÉ' }, { type:'clock', x:5, y:0 },
+    { type:'chalkboard', x:1, y:0, w:3, text:'NO ENTRARÉ EN', text2:'LA SALA DE PROFES' }, { type:'clock', x:5, y:0 },
     { type:'desk', x:4, y:3, talkThrough:true }, { type:'chair', x:1, y:5 }, { type:'chair', x:7, y:5 }
   ],
   spawn: { x:4, y:6 }

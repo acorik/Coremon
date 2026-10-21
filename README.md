@@ -46,7 +46,7 @@ Los espacios están recreados a partir de fotos reales del colegio.
   beige, paredes de travertino y puertas de madera clara (secretaría,
   enfermería, máquinas expendedoras, taquillas, vitrina de trofeos). Puerta
   de cristal a la entrada principal y puertas dobles con la escalera que sube
-  al Patio. Tatami (Ed. Física), Salón de Actos (butacas de madera con
+  al Patio. Gimnasio (suelo azul, rocódromo y colchonetas azules), Salón de Actos (butacas de madera con
   cojines de colores, escenario con cortinas rojas y pantalla), Capilla y
   Sala de Conferencias. Del Patio (cancha de baloncesto) se pasa al Jardín.
 - **Pasillos de las plantas:** ladrillo naranja con mampara de cristal,

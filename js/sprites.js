@@ -298,6 +298,23 @@ function personRows(look, facing, frame) {
     if (dir === 'up') { rows[4] = '...HSSSSSSSSH...'; rows[5] = '...HHSSSSSSHH...'; }
   } else if (hs === 'spiky') {
     rows[0] = dir === 'right' ? '....H.H.H.......' : '....H.HH.H.H....';
+  } else if (hs === 'curly') {
+    // pelo rizado con volumen
+    rows[0] = dir === 'right' ? '...H.HH.H.......' : '....H.HH.HH.H...';
+    rows[1] = dir === 'right' ? '..HHHHHHHHH.....' : '..HHHHHHHHHHHH..';
+    rows[2] = dir === 'right' ? '..HHHHHHHHHH....' : '..HHHHHHHHHHHH..';
+    if (dir === 'down') for (let y = 3; y <= 8; y++) { setPx(rows, y, 2, 'H'); setPx(rows, y, 3, 'H'); setPx(rows, y, 12, 'H'); setPx(rows, y, 13, 'H'); }
+    if (dir === 'up') for (let y = 3; y <= 9; y++) rows[y] = rows[y].replace(/^(\.\.)\./, '$1H').replace(/\.(\.\.)$/, 'H$1');
+    if (dir === 'right') for (let y = 3; y <= 8; y++) { setPx(rows, y, 2, 'H'); setPx(rows, y, 3, 'H'); }
+  } else if (hs === 'crest') {
+    // laterales rapados y una cresta pequeña en el centro
+    rows[0] = dir === 'right' ? '......HH........' : '.......HH.......';
+    rows[1] = dir === 'right' ? '.....HHHH.......' : '......HHHH......';
+    rows[2] = dir === 'right' ? '...ssHHHHss.....' : '...ssssHHssss...';
+    rows[3] = dir === 'right' ? '...sssssssss....' : '...ssssssssss...';
+    if (dir === 'up') { rows[4] = '...ssssHHssss...'; rows[5] = '...ssssssssss...'; rows[6] = '...ssssssssss...'; }
+    else if (dir === 'down') { rows[4] = rows[4].replace(/H/g, 's'); }
+    else { rows[4] = rows[4].replace(/H/g, 's'); rows[5] = rows[5].replace(/H/g, 's'); rows[6] = rows[6].replace(/H/g, 's'); }
   } else if (hs === 'bun') {
     rows[0] = dir === 'right' ? '..HHHHH.........' : '.....HHHHHH.....';
   } else if (hs === 'cap') {
@@ -318,6 +335,32 @@ function personRows(look, facing, frame) {
     if (dir !== 'right') { rows[12] = '....PPPPPPPP....'; rows[13] = rows[13].replace(/P/g, 'S'); }
     else { rows[12] = '....PPPPPPP.....'; rows[13] = rows[13].replace(/P/g, 'S'); }
   }
+  if (look.longFace && dir !== 'up') {
+    // barbilla alargada: añade una fila de cara y quita la fila vacía del final
+    const chin = dir === 'right' ? '.....SSSSS......' : '.....SSSSSS.....';
+    rows.splice(8, 0, chin);
+    rows.splice(15, 1);
+  }
+  if (look.doubleChin && dir !== 'up') {
+    rows[8] = dir === 'right' ? '....sSSSSSs.....' : '....sSSSSSSs....';
+  }
+  if (look.chubby) {
+    for (let y = 8; y <= 12; y++) {
+      const r = rows[y];
+      const a = r.search(/[^.]/), b = r.length - 1 - r.split('').reverse().join('').search(/[^.]/);
+      if (a > 0) rows[y] = r.slice(0, a - 1) + r[a] + r.slice(a);
+      const r2 = rows[y];
+      const b2 = r2.length - 1 - r2.split('').reverse().join('').search(/[^.]/);
+      if (b2 < r2.length - 1) rows[y] = r2.slice(0, b2 + 1) + r2[b2] + r2.slice(b2 + 2);
+    }
+  }
+  if (look.labcoat && dir === 'down') {
+    // bata abierta: se ve la camisa por el centro
+    rows[11] = rows[11].replace(/CC(?=CCC\.*$)/, 'TT');
+  }
+  if (look.hoodie && dir !== 'up') {
+    rows[8] = rows[8].replace(/W/g, 'c');
+  }
   if (look.robe) {
     // sotana larga hasta los pies
     for (let y = 11; y <= 13; y++) rows[y] = dir === 'right' ? '.....CCCCCC.....' : '....CCCCCCCC....';
@@ -331,14 +374,16 @@ function personPalette(look) {
   return {
     H: look.hairColor || '#4a2f1d', S: look.skin || '#f2c49b', E: '#1b1b2a', m: '#b5634b',
     C: look.shirt || '#2c3e7a', W: look.collar || '#f5f5f5', T: look.tie || '#c0392b', Q: look.cap || '#c62828',
-    P: look.pants || '#2b2b38', K: look.shoes || '#1a1a1a', G: '#20202a',
+    P: look.pants || '#2b2b38', K: look.shoes || '#1a1a1a', G: look.glassesColor || '#20202a',
+    s: hexShade(look.skin || '#f2c49b', -14), c: hexShade(look.shirt || '#2c3e7a', -25),
     B: look.beardColor || hexShade(look.hairColor || '#4a2f1d', -10), O: '#141420'
   };
 }
 
 function lookKey(look) {
   return [look.hair, look.hairColor, look.skin, look.shirt, look.pants, look.glasses ? 1 : 0,
-    look.beard ? 1 : 0, look.skirt ? 1 : 0, look.robe ? 1 : 0, look.tie || '', look.collar || '', look.cap || ''].join('|');
+    look.beard ? 1 : 0, look.skirt ? 1 : 0, look.robe ? 1 : 0, look.tie || '', look.collar || '', look.cap || '',
+    look.longFace ? 1 : 0, look.chubby ? 1 : 0, look.doubleChin ? 1 : 0, look.labcoat ? 1 : 0, look.hoodie ? 1 : 0, look.glassesColor || ''].join('|');
 }
 
 function drawPerson(ctx, look, cx, footY, size, facing, frame) {

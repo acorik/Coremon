@@ -171,36 +171,41 @@ const SHOP_STOCK = ['bocadillo', 'menu', 'zumo', 'tirita', 'cromo', 'cromoOro'];
 // ---------------- PROFESORES (repartidos por plantas) ----------------
 // look: aspecto del sprite (ver sprites.js drawPerson). Cada profe es distinto.
 const TRAINERS = {
-  efisica:{ id:'efisica', name:'Profe Atlas', subject:'Educación Física', room:'room_tatami', floor:0,
-    look:{ hair:'spiky', hairColor:'#1a1a1a', skin:'#c68642', shirt:'#d32f2f', pants:'#1565c0' },
+  efisica:{ id:'efisica', name:'Alfonsín', subject:'Educación Física', room:'room_tatami', floor:0,
+    look:{ hair:'short', hairColor:'#9e9e9e', skin:'#d9a066', shirt:'#d32f2f', pants:'#1565c0', tie:'#fafafa' },
     team:[['mochiloide',4],['pelotroncho',5]], reward:'Insignia Física', badgeColor:'#e05f4f', prize:300,
-    intro:['¡Vamos, vamos! ¡Diez vueltas al tatami antes de hablar conmigo!', 'Bah, ya veo que tienes energía. ¡A ver si tu Coremon aguanta mi ritmo!'],
-    win:'¡Uf! Buen calentamiento. Tienes madera de deportista, como los Coras que llegaron a la NBA.' },
-  mates: { id:'mates', name:'Profesora Álgebra', subject:'Matemáticas', room:'room_mates', floor:1,
-    look:{ hair:'bun', hairColor:'#5d4037', shirt:'#1565c0', pants:'#263238', skirt:true, glasses:true },
+    intro:['¡Vamos, vamos! ¡Diez vueltas al tatami antes de hablar conmigo!', 'Bah, ya veo que tienes energía. ¡A ver si tu Coremon aguanta mi ritmo!',
+      'Y no te confíes: que me jubile este año no significa que me haya ablandado.'],
+    win:['¡Uf! Buen calentamiento. Tienes madera de deportista... de balonmano, claro. Que de fútbol aquí ya no queda nadie.',
+      'Me voy a jubilar tranquilo sabiendo que el gimnasio queda en buenas manos.'] },
+  mates: { id:'mates', name:'Gema', subject:'Matemáticas', room:'room_mates', floor:1,
+    look:{ hair:'curly', hairColor:'#141414', skin:'#f6d8c4', shirt:'#fafafa', labcoat:true, tie:'#5c6bc0', pants:'#37474f' },
     team:[['tizorex',4],['gomitas',5]], reward:'Insignia de Lógica', badgeColor:'#4f6df5', prize:330,
-    intro:['Silencio. Saca una hoja.', 'Examen sorpresa: si tu equipo resuelve este problema, apruebas. Si no... recuperación.'],
-    win:'Correcto. Demostración impecable. Q.E.D.' },
-  lengua:{ id:'lengua', name:'Profesor Cervantes', subject:'Lengua', room:'room_lengua', floor:1,
-    look:{ hair:'short', hairColor:'#9e9e9e', shirt:'#6d4c41', pants:'#3e2723', beard:true, beardColor:'#bdbdbd', glasses:true },
+    intro:['¡Hola! Venga, saca el cuaderno, que hoy ese boli tiene que echar humo.', 'Tranquilo, aquí no hay exámenes sorpresa: solo un combate para ver todo lo que has aprendido. ¡Tú puedes!'],
+    win:['¡Así se hace! Ese boli ha echado humo de verdad.', '¿Ves? Si te esfuerzas, todo sale. ¡Sigue así!'] },
+  lengua:{ id:'lengua', name:'Iñigo San Juan', subject:'Lengua', room:'room_lengua', floor:1,
+    look:{ hair:'crest', hairColor:'#f2f2f2', skin:'#f0c8a0', shirt:'#1b1b1f', hoodie:true, pants:'#2b2b38', longFace:true },
+    sleepy:true,
     team:[['plumavox',5],['librillo',6]], reward:'Insignia de Letras', badgeColor:'#b05fe0', prize:350,
-    intro:['«En un lugar de Corazonistas, de cuyo nombre sí quiero acordarme...»', 'Veamos si tu equipo sabe escribir su propia historia.'],
-    win:'Ni una falta de ortografía. Tienes mi aprobado, y mi respeto.' },
-  ciencias:{ id:'ciencias', name:'Profesor Darwin', subject:'Ciencias Naturales', room:'room_ciencias', floor:2,
-    look:{ hair:'bald', hairColor:'#e0e0e0', shirt:'#f5f5f5', pants:'#455a64', beard:true, beardColor:'#eeeeee', collar:'#4caf50' },
-    team:[['hojalata',8],['hojarbol',9]], reward:'Insignia Natural', badgeColor:'#4fb259', prize:400,
-    intro:['Ah, un nuevo espécimen. Fascinante.', 'Solo sobreviven los equipos que mejor se adaptan. ¿Será el tuyo?'],
-    win:'Selección natural... a tu favor. Toma nota en tu cuaderno de campo.' },
+    intro:['Zzz... ¿Eh? ¡Ah! Hola, muchachines... ¿Hora de lectura?', 'Esperad, que no encuentro el libro... Juraría que lo tenía en la mano hace un momento.',
+      '¿Cómo? ¿Que hoy tocaba combate? Vaya, se me había olvidado... Bueno, ¡vamos allá! ...Creo.'],
+    win:['Zzz... ¿Eh? ¿Ya ha acabado? ¿He perdido? Vaya, me había quedado medio dormido.', 'Toma tu insignia. Estaba... en algún bolsillo... ¡Aquí! No, esto son las llaves de casa. ¡Ahora sí!'] },
+  ciencias:{ id:'ciencias', name:'Jun Arrieta', subject:'Ciencias Naturales', room:'room_ciencias', floor:2,
+    look:{ hair:'short', hairColor:'#f5f5f5', skin:'#f0c8a0', shirt:'#558b2f', pants:'#4e342e', chubby:true },
+    team:[['hojalata',7],['hojarbol',8]], reward:'Insignia Natural', badgeColor:'#4fb259', prize:400,
+    intro:['¡Hola, hola! Pasa, pasa, pero cuidado con pisar las plantas, que esta semana han brotado los geranios.', 'Aquí no hacemos exámenes, tranquilo. Solo un combatito amistoso para ver cómo crece tu equipo.'],
+    win:['¡Qué bien! Tu equipo ha crecido como un buen helecho.', 'Toma la insignia, y si quieres llévate un esqueje. ¡Riégalo dos veces por semana!'] },
   ingles:{ id:'ingles', name:'Mr. Shakespeare', subject:'Inglés', room:'room_ingles', floor:2,
     look:{ hair:'short', hairColor:'#d4a017', skin:'#ffdbac', shirt:'#1e3a8a', pants:'#212121', tie:'#c62828' },
     team:[['vocabulix',9],['vocabulemperor',10]], reward:'Insignia de Idioma', badgeColor:'#e0a93f', prize:430,
     intro:['Good morning, student!', 'To win or not to win, that is the question. Let\'s battle!'],
     win:'Well done! Your English... I mean, your battling, is excellent.' },
-  arte:  { id:'arte', name:'Profesora Frida', subject:'Arte', room:'room_arte', floor:3,
-    look:{ hair:'long', hairColor:'#1a1a1a', skin:'#e0ac69', shirt:'#c2185b', pants:'#4a148c', skirt:true },
+  arte:  { id:'arte', name:'Robertiño', subject:'Arte y Dibujo Técnico', room:'room_arte', floor:3,
+    look:{ hair:'short', hairColor:'#141414', skin:'#e8b892', shirt:'#607d8b', pants:'#263238', glasses:true, glassesColor:'#d32f2f', chubby:true, doubleChin:true },
     team:[['acuarelix',11],['acuaremaster',12]], reward:'Insignia de Arte', badgeColor:'#e05f9c', prize:460,
-    intro:['Cuidado con el caballete, que la pintura aún está fresca.', 'Un combate también es una obra de arte. Pinta tu victoria... si puedes.'],
-    win:'¡Qué composición tan atrevida! Me la llevo para la exposición.' },
+    intro:['¿Qué? ¿Quién ha entrado sin llamar? Cierra la puerta, que entra corriente.', 'Hoy toca dibujo técnico: escuadra, cartabón y compás. ¿Que no los has traído? Pues ya empezamos mal.',
+      'Venga, combate. Y como me tuerzas una línea, suspendes.'],
+    win:['Hmpf. Bueno... no está mal. Las líneas, rectas. Los ángulos, a noventa grados.', 'Toma la insignia y no me manches la mesa.'] },
   director:{ id:'director', name:'El Director', subject:'Prueba del Director', room:'room_liga', floor:5,
     look:{ hair:'short', hairColor:'#616161', skin:'#e0ac69', shirt:'#212121', pants:'#212121', tie:'#7b1fa2', glasses:true },
     team:[['teoremorfo',13],['bibliomante',13],['atletisaurio',13],['musarte',14],['lingualord',14],['directorex',16]],
@@ -221,17 +226,20 @@ const TRAINERS = {
     win:'Tienes el corazón de un verdadero Corazonista. Cuida de los demás como yo cuidé de aquellas niñas. Esta casa es tuya.' }
 };
 
-// Alumnos que retan a combate (opcionales, dan dinero y experiencia)
+// Alumnos que retan a combate (opcionales, dan dinero y experiencia).
+// En este cole manda el baloncesto y, sobre todo, el balonmano. El fútbol... resiste.
 const STUDENT_TRAINERS = {
-  basket1:   { name:'Alumno de baloncesto', team:[['pelotroncho',4]], prize:120, intro:'¡Eh, tú! ¡Un uno contra uno, pero de Coremon!', win:'Vale, vale... me has hecho un mate.' },
-  basket2:   { name:'Alumna capitana', team:[['pelotroncho',5],['gomitas',5]], prize:180, intro:'Soy la capitana del equipo. ¡Nadie me gana en mi cancha!', win:'Hoy has ganado tú. Mañana revancha.' },
-  judoka:    { name:'Judoka de 2º ESO', team:[['mochiloide',6]], prize:150, intro:'¡Hajime! ¡A combatir!', win:'Ippon... para ti.' },
-  empollon:  { name:'Empollón de 6º', team:[['librillo',7],['gomitas',7]], prize:220, intro:'He leído 47 libros de estrategia Coremon este verano.', win:'Esto no venía en ningún libro...' },
-  friki:     { name:'Alumno de robótica', team:[['gomitas',8],['vocabulix',8]], prize:260, intro:'Mi robot ha calculado que tienes un 3% de probabilidades de ganar.', win:'Error de cálculo. Recalibrando...' },
-  lector:    { name:'Lectora de la biblioteca', team:[['librillo',10],['acuarelix',11]], prize:300, intro:'Shhh... Si pierdes, en silencio.', win:'Shhh... vale, has ganado. Pero en silencio.' },
-  bachi1:    { name:'Alumno de 2º de Bachillerato', team:[['libratomo',14],['gomigante',15]], prize:450, intro:'Estoy de exámenes de selectividad. Esto será rápido.', win:'Vuelvo a estudiar... con la moral por los suelos.' },
-  bachi2:    { name:'Delegada de Bachillerato', team:[['acuaremaster',15],['hojarbol',15],['vocabulemperor',16]], prize:520, intro:'Como delegada, debo comprobar que estás preparado para subir.', win:'Aprobado. Puedes pasar.' },
-  castigado: { name:'Alumno castigado', team:[['pelotitan',16],['gomigante',16]], prize:600, intro:'Llevo aquí desde 3º de la ESO por copiar en Lógica. Me aburro. ¡Pelea conmigo!', win:'Bueno, al menos ha sido entretenido. Me quedo aquí otro rato...' }
+  basket1:    { name:'Alumno de baloncesto', team:[['pelotroncho',4]], prize:120, intro:'¡Eh, tú! ¡Un uno contra uno, pero de Coremon!', win:'Vale, vale... me has hecho un mate.' },
+  basket2:    { name:'Alumna capitana', team:[['pelotroncho',5],['gomitas',5]], prize:180, intro:'Soy la capitana del equipo. ¡Nadie me gana en mi cancha!', win:'Hoy has ganado tú. Mañana revancha.' },
+  portera:    { name:'Portera de balonmano', team:[['pelotroncho',5],['mochiloide',5]], prize:200, intro:'¡Aquí no pasa ni una! Ni balones, ni Coremon.', win:'Vale, me has colado uno por la escuadra. No se lo digas al entrenador.' },
+  balonmano:  { name:'Jugador de balonmano', team:[['mochiloide',6]], prize:160, intro:'¡En este cole el balonmano es casi una religión! Calienta, que empezamos.', win:'¡Gol en contra! Bueno, a por la siguiente jugada.' },
+  futbolista: { name:'El último futbolista', team:[['pelotroncho',5]], prize:90, intro:'Soy del equipo de fútbol del cole. Bueno... soy EL equipo de fútbol. Los demás se pasaron al balonmano.', win:'Si quieres apuntarte, entrenamos los martes. Bueno, entreno. Yo solo. Contra la portería.' },
+  empollon:   { name:'Empollón de 6º', team:[['librillo',7],['gomitas',7]], prize:220, intro:'He leído 47 libros de estrategia Coremon este verano.', win:'Esto no venía en ningún libro...' },
+  friki:      { name:'Alumno de robótica', team:[['gomitas',8],['vocabulix',8]], prize:260, intro:'Mi robot ha calculado que tienes un 3% de probabilidades de ganar.', win:'Error de cálculo. Recalibrando...' },
+  lector:     { name:'Lectora de la biblioteca', team:[['librillo',10],['acuarelix',11]], prize:300, intro:'Shhh... Si pierdes, en silencio.', win:'Shhh... vale, has ganado. Pero en silencio.' },
+  bachi1:     { name:'Alumno de 2º de Bachillerato', team:[['libratomo',14],['gomigante',15]], prize:450, intro:'Estoy de exámenes de selectividad. Esto será rápido.', win:'Vuelvo a estudiar... con la moral por los suelos.' },
+  bachi2:     { name:'Delegada de Bachillerato', team:[['acuaremaster',15],['hojarbol',15],['vocabulemperor',16]], prize:520, intro:'Como delegada, debo comprobar que estás preparado para subir.', win:'Aprobado. Puedes pasar.' },
+  castigado:  { name:'Alumno castigado', team:[['pelotitan',16],['gomigante',16]], prize:600, intro:'Llevo aquí desde 3º de la ESO por colarme en la sala de profesores. Me aburro. ¡Pelea conmigo!', win:'Bueno, al menos ha sido entretenido. Me quedo aquí otro rato...' }
 };
 
 function academicBadgeCount(badges) {
@@ -254,5 +262,5 @@ const FLOORS = [
   { id:2, name:'2ª planta - 5º/6º y Apoyo', hub:'piso2', needBadges:2 },
   { id:3, name:'3ª planta - ESO', hub:'piso3', needBadges:4 },
   { id:4, name:'4ª planta - Bachillerato', hub:'piso4', needBadges:5 },
-  { id:5, name:'5ª planta - Sala de Profesores', hub:'piso5', needBadges:6 }
+  { id:5, name:'5ª planta - Dirección', hub:'piso5', needBadges:6 }
 ];
