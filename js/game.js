@@ -25,6 +25,7 @@ let keysDown = {};
 let lastMoveAt = 0;
 const MOVE_INTERVAL = 150;
 let moving = false;
+let walkFrame = false;
 
 // ---------------- GUARDADO ----------------
 function saveGame() {
@@ -107,7 +108,12 @@ function tryMove(dir) {
   const npc = map.npcs.find(n => n.x === x && n.y === y);
   if (npc) { interactNpc(npc); return; }
 
+  // decoración sólida bloquea paso
+  const deco = decorAt(map, x, y);
+  if (deco && deco.solid) return;
+
   game.pos = {x,y};
+  walkFrame = !walkFrame;
 
   if (door && !door.locked) {
     changeRoom(door.to, door.tx, door.ty);
@@ -164,57 +170,73 @@ function gameLoop(ts) {
 
 function renderOverworld() {
   const map = MAPS[game.room];
+  canvas.height = map.grid.length * TILE;
+  canvas.width = map.grid[0].length * TILE;
   ctx.fillStyle = map.bg;
   ctx.fillRect(0,0,canvas.width,canvas.height);
+
   for (let y=0; y<map.grid.length; y++) {
     for (let x=0; x<map.grid[y].length; x++) {
-      const t = map.grid[y][x];
-      drawTile(t, x, y);
+      drawTile(map, map.grid[y][x], x, y);
     }
   }
-  for (const n of map.npcs) {
-    const color = n.sprite === 'director' ? '#512da8' : n.sprite === 'nurse' ? '#e91e63' : '#5d4037';
-    const emoji = n.sprite === 'nurse' ? '💉' : '🎓';
-    drawSprite(n.x, n.y, color, emoji);
+  for (const d of (map.decor || [])) {
+    drawDecor(ctx, d.type, d.x*TILE, d.y*TILE, TILE, d.color);
   }
-  drawSprite(game.pos.x, game.pos.y, '#1e88e5', '🧑');
+  for (const n of map.npcs) drawNpc(ctx, n.sprite, n.x*TILE, n.y*TILE, TILE);
+
+  // el jugador se dibuja con un pequeño salto al moverse
+  drawPlayer(ctx, game.pos.x*TILE, game.pos.y*TILE, TILE, game.facing, walkFrame);
+
+  drawDoorLabels(map);
   drawHud();
 }
 
-function drawTile(t, x, y) {
+function drawTile(map, t, x, y) {
   const px = x*TILE, py = y*TILE;
-  if (t === '#') { ctx.fillStyle = '#37474f'; ctx.fillRect(px,py,TILE,TILE); return; }
-  if (t === ',') { ctx.fillStyle = '#7cb342'; ctx.fillRect(px,py,TILE,TILE);
-    ctx.fillStyle = '#558b2f'; ctx.fillRect(px+6,py+6,4,4); ctx.fillRect(px+22,py+18,4,4); return; }
-  if (t === 'D') { ctx.fillStyle = '#8d6e63'; ctx.fillRect(px,py,TILE,TILE);
-    ctx.fillStyle = '#4e342e'; ctx.fillRect(px+10,py+4,TILE-20,TILE-8); return; }
-  if (t === 'L') { ctx.fillStyle = '#ab47bc'; ctx.fillRect(px,py,TILE,TILE);
-    ctx.fillStyle = '#6a1b9a'; ctx.fillRect(px+8,py+4,TILE-16,TILE-8); return; }
-  ctx.fillStyle = '#eceff1';
-  ctx.fillRect(px,py,TILE,TILE);
-  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
-  ctx.strokeRect(px,py,TILE,TILE);
+  if (t === '#') { drawWallBrick(ctx, px, py, TILE); return; }
+  if (t === ',') { drawGrassTile(ctx, px, py, TILE, (x+y)%2===0); return; }
+  if (t === 'p') { drawPathTile(ctx, px, py, TILE); return; }
+  if (t === 'D') {
+    const door = map.doors.find(d => d.x===x && d.y===y);
+    drawDoorTile(ctx, px, py, TILE, door ? TYPE_COLOR[subjectColorType(door)] : '#8d6e63');
+    return;
+  }
+  if (t === 'L') {
+    const unlocked = game.badges && game.badges.length >= 6;
+    drawLigaDoorTile(ctx, px, py, TILE, unlocked);
+    return;
+  }
+  if (map.wildZone) drawPatioFloor(ctx, px, py, TILE);
+  else drawFloorWood(ctx, px, py, TILE);
 }
 
-function drawSprite(x, y, color, emoji) {
-  const px = x*TILE, py = y*TILE;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(px+TILE/2, py+TILE/2, TILE*0.38, 0, Math.PI*2);
-  ctx.fill();
-  ctx.font = '22px sans-serif';
+function subjectColorType(door) {
+  const trainer = Object.values(TRAINERS).find(t => t.room === door.to);
+  return trainer ? SPECIES[trainer.team[0][0]].type : 'logica';
+}
+
+function drawDoorLabels(map) {
+  ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, px+TILE/2, py+TILE/2+2);
+  for (const d of map.doors) {
+    if (!d.short) continue;
+    const px = d.x*TILE + TILE/2, py = d.y*TILE - 4;
+    const w = ctx.measureText(d.short).width + 10;
+    ctx.fillStyle = d.locked && game.badges.length < (d.requiredBadges||0) ? 'rgba(90,20,110,0.85)' : 'rgba(20,20,20,0.75)';
+    ctx.fillRect(px - w/2, py - 13, w, 16);
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText(d.short, px, py - 1);
+  }
 }
 
 function drawHud() {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0,0,220,34);
-  ctx.fillStyle = '#fff';
-  ctx.font = '14px sans-serif';
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0,0,230,30);
+  ctx.fillStyle = '#ffd54f';
+  ctx.font = 'bold 13px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(`Insignias: ${game.badges.length}/6   Cromos: ${game.stickers}`, 8, 22);
+  ctx.fillText(`🏅 ${game.badges.length}/6   🏷️ ${game.stickers}   💰 ${game.coins}`, 8, 20);
 }
 
 // ---------------- HISTORIA / INICIO ----------------
