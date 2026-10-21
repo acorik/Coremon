@@ -145,9 +145,15 @@ function drawBattleBg(t) {
     }
   } else {
     const m = b.map;
-    const wall = m.wallColor || '#e9dcc3';
-    bctx.fillStyle = wall; bctx.fillRect(0, 0, BW, BH * 0.5);
-    bctx.fillStyle = hexShade(wall, -30); bctx.fillRect(0, BH * 0.5 - 14, BW, 14);
+    const faceY = Math.floor(BH * 0.5 / TILE) * TILE - TILE;
+    const sky = { brick:'#e8f1f6', travertine:'#e8dcc0', wood:'#e6be86' }[m.wallStyle] || hexShade(m.wallColor || '#e9dcc3', 8);
+    const g = bctx.createLinearGradient(0, 0, 0, faceY);
+    g.addColorStop(0, hexShade(sky, -12)); g.addColorStop(1, sky);
+    bctx.fillStyle = g; bctx.fillRect(0, 0, BW, faceY);
+    for (let x = 0; x < BW; x += TILE) {
+      drawUpperWall(bctx, m, x, faceY - TILE, TILE, x / TILE);
+      drawWall(bctx, m, x, faceY, TILE, true, x / TILE, 3);
+    }
     for (let y = BH * 0.5; y < BH; y += TILE) for (let x = 0; x < BW; x += TILE)
       drawFloor(bctx, m, x, y, TILE, x / TILE, y / TILE);
     bctx.fillStyle = 'rgba(0,0,0,0.12)'; bctx.fillRect(0, BH * 0.5, BW, BH * 0.5);

@@ -12,19 +12,19 @@ const grid = rows => rows.map(r => r.split(''));
 // ---------------- PLANTA BAJA: VESTÍBULO ----------------
 MAPS.planta_baja = {
   name: 'Vestíbulo - Planta Baja', floor: 0,
-  floorStyle: 'marble', wallColor: '#efe3c8', wainscot: '#8d6e63', rugColor: '#8e2b3a',
+  floorStyle: 'darkgranite', rugStyle: 'granite', wallStyle: 'travertine', doorStyle: 'wood',
   grid: grid([
     '##D##D##A##D##D##',
-    '#.......p.......#',
-    '#.......p.......#',
-    '#.......p.......#',
+    '#......ppp......#',
+    '#......ppp......#',
+    '#......ppp......#',
     '#ppppppppppppppp#',
-    '#.......p.......#',
-    '#.......p.......#',
-    '#.......p.......#',
-    '#.......p.......#',
-    '#.......p.......#',
-    '########D########'
+    '#......ppp......#',
+    '#......ppp......#',
+    '#......ppp......#',
+    '#......ppp......#',
+    '#......ppp......#',
+    '########D####D###'
   ]),
   doors: [
     { x:2, y:0, to:'room_tatami', tx:6, ty:7, short:'TATAMI' },
@@ -32,7 +32,8 @@ MAPS.planta_baja = {
     { x:8, y:0, elevator:true, short:'ASCENSOR' },
     { x:11, y:0, to:'capilla', tx:5, ty:9, short:'CAPILLA' },
     { x:14, y:0, to:'sala_conferencias', tx:6, ty:7, short:'CONF.' },
-    { x:8, y:10, to:'patio', tx:9, ty:1, exit:true, short:'PATIO' }
+    { x:8, y:10, to:'exterior', tx:9, ty:2, exit:true, style:'glass', short:'SALIDA' },
+    { x:13, y:10, to:'patio', tx:9, ty:1, exit:true, style:'stairs', short:'PATIO' }
   ],
   npcs: [
     { id:'secretaria', kind:'talk', x:1, y:7, look:LOOKS.secretaria, facing:'right',
@@ -40,18 +41,19 @@ MAPS.planta_baja = {
              'Cada planta del colegio se abre según las insignias que consigas. El ascensor sabe cuántas llevas.',
              'Si tu mochila va llena de Coremon, deja los que sobren en las taquillas de aquí al lado.'] },
     { id:'enfermera', kind:'nurse', x:15, y:7, look:LOOKS.enfermera, facing:'left' },
-    { id:'conserje', kind:'talk', x:6, y:9, look:LOOKS.conserje, facing:'right',
-      lines:['¿Qué tal, chaval? Ya sabes: antes de retar a un profe, entrena en el Patio.',
+    { id:'conserje', kind:'talk', x:6, y:8, look:LOOKS.conserje, facing:'right',
+      lines:['¿Qué tal, chaval? Ya sabes: antes de retar a un profe, entrena en el Patio. Se sube por las escaleras de la derecha.',
              'Las máquinas de al lado venden bocadillos y cromos. ¡Nunca salgas sin cromos!',
              'Pulsa EQUIPO o MOCHILA en la pantalla de abajo para revisar tus cosas.'] }
   ],
   decor: [
-    { type:'window', x:3, y:0 }, { type:'poster', x:4, y:0, color:'#ffcc80' },
+    { type:'poster', x:3, y:0, color:'#ffcc80' }, { type:'poster', x:4, y:0, color:'#c5e1a5', text:['Cartel: «Proyecto Erasmus+ — Cofinanciado por la Unión Europea».'] },
     { type:'notice', x:6, y:0, w:2 }, { type:'clock', x:10, y:0 },
-    { type:'window', x:12, y:0 }, { type:'poster', x:13, y:0, color:'#90caf9' },
+    { type:'poster', x:12, y:0, color:'#90caf9' }, { type:'poster', x:13, y:0, color:'#ffab91' },
+    { type:'bin', x:7, y:9 }, { type:'bin', x:9, y:9 },
     { type:'trophy', x:6, y:1, w:2, text:['Vitrina de trofeos.', '«CESTA Y PUNTOS - 1971». Los Coras ganaron el concurso cultural de televisión y los recibieron en la plaza de la Virgen Blanca.', 'Al lado, camisetas firmadas de antiguos alumnos que llegaron a la NBA y a la ACB.'] },
     { type:'plant', x:1, y:1 }, { type:'plant', x:15, y:1 },
-    { type:'bench', x:9, y:1, w:2 },
+    { type:'bench', x:12, y:1, w:1 },
     { type:'column', x:4, y:2 }, { type:'column', x:12, y:2 }, { type:'column', x:4, y:7 }, { type:'column', x:12, y:7 },
     { type:'counter', x:2, y:7, h:2, talkThrough:true },
     { type:'counter', x:14, y:7, h:2, talkThrough:true },
@@ -68,9 +70,52 @@ MAPS.planta_baja = {
   spawn: { x:8, y:8 }
 };
 
+// ---------------- EXTERIOR: ENTRADA PRINCIPAL ----------------
+MAPS.exterior = {
+  name: 'Entrada principal', outdoor: true, facadeRows: [0, 1], floorStyle: 'pavement',
+  grid: grid([
+    '###################',
+    '#########D#########',
+    '#.................#',
+    '#.................#',
+    '#gggg.........ggggD',
+    '#gggg.........gggg#',
+    '#.................#',
+    '#.................#',
+    '#ggggggg...ggggggg#',
+    '#ggggggg...ggggggg#',
+    '###################'
+  ]),
+  doors: [
+    { x:9, y:1, to:'planta_baja', tx:8, ty:9, short:'ENTRADA' },
+    { x:18, y:4, to:'patio', tx:1, ty:6, exit:true, short:'PATIO' }
+  ],
+  npcs: [
+    { id:'portero', kind:'talk', x:11, y:2, look:{ hair:'short', hairColor:'#424242', shirt:'#37474f', pants:'#263238', glasses:true }, facing:'down',
+      lines:['Buenos días. Esto es el Colegio Sagrado Corazón, Corazonistas de Vitoria-Gasteiz.',
+             'El logo rojo de la fachada es el de Kristau Eskola, la red de escuelas cristianas del País Vasco.',
+             'El patio está por la verja de la derecha... o subiendo las escaleras de dentro.'] }
+  ],
+  decor: [
+    { type:'keLogo', x:7, y:1, dy:12 },
+    { type:'sign', x:13, y:3, text:['COLEGIO SAGRADO CORAZÓN — CORAZONISTAS', 'Vitoria-Gasteiz. Hermanos del Sagrado Corazón, desde 1821.'] },
+    { type:'bin', x:10, y:2, color:'#455a64' },
+    { type:'tree', x:2, y:4 }, { type:'tree', x:15, y:5 }, { type:'tree', x:3, y:9 }, { type:'tree', x:15, y:9 },
+    { type:'lamp', x:6, y:6 }, { type:'lamp', x:12, y:6 },
+    { type:'bikeRack', x:5, y:2, w:2 }, { type:'bench', x:13, y:7, w:2 },
+    { type:'flowers', x:6, y:8, solid:false, color:'#ef5350' }, { type:'flowers', x:12, y:8, solid:false, color:'#ffd54f' }
+  ],
+  wanderers: [
+    { seed: 31, x:8, y:6, lines:['¡Llego tarde! ¡Llego tarde!'] },
+    { seed: 52, x:4, y:7, lines:['Mi padre también estudió aquí. Dice que el cole ha cambiado un montón.'] }
+  ],
+  items: [ { id:'ext_bocata', x:17, y:9, item:'bocadillo', qty:2 } ],
+  spawn: { x:9, y:2 }
+};
+
 // ---------------- EXTERIOR ----------------
 MAPS.patio = {
-  name: 'Patio', outdoor: true, facadeRow: 0, floorStyle: 'grass', rugColor:'#c9a26b',
+  name: 'Patio', outdoor: true, facadeRows: [0], floorStyle: 'grass', rugColor:'#c9a26b',
   grid: grid([
     '#########D#########',
     '#,,,,...ppp...,,,,#',
@@ -78,7 +123,7 @@ MAPS.patio = {
     '#,,ccccccccccccc,,#',
     '#,,ccccccccccccc,,#',
     '#,,ccccccccccccc,,#',
-    '#,,ccccccccccccc,,D',
+    'D,,ccccccccccccc,,D',
     '#,,ccccccccccccc,,#',
     '#,,ccccccccccccc,,#',
     '#,,,...........,,,#',
@@ -87,8 +132,9 @@ MAPS.patio = {
     '###################'
   ]),
   doors: [
-    { x:9, y:0, to:'planta_baja', tx:8, ty:9, short:'ENTRADA' },
-    { x:18, y:6, to:'jardin', tx:1, ty:5, exit:true, short:'JARDÍN' }
+    { x:9, y:0, to:'planta_baja', tx:13, ty:9, short:'ESCALERAS' },
+    { x:18, y:6, to:'jardin', tx:1, ty:5, exit:true, short:'JARDÍN' },
+    { x:0, y:6, to:'exterior', tx:17, ty:4, exit:true, short:'ENTRADA' }
   ],
   npcs: [
     { id:'basket1', kind:'student', x:6, y:5, look:{ hair:'cap', cap:'#c62828', hairColor:'#3b2416', shirt:'#c62828', pants:'#fafafa' }, facing:'right' },
@@ -172,10 +218,13 @@ MAPS.room_tatami = {
 };
 
 const SEATS = [];
-for (const y of [4, 6, 8]) for (const x of [2,3,4,5,6,8,9,10,11,12]) SEATS.push({ type:'seat', x, y });
+// butacas de madera clara, algunas con cojín rojo, morado o azul (como las reales)
+const CUSHIONS = ['#e3b673', '#e3b673', '#c62828', '#e3b673', '#5e35b1', '#e3b673', '#1e88e5', '#e3b673'];
+for (const y of [4, 5, 7, 8]) for (const x of [2,3,4,5,6,8,9,10,11,12])
+  SEATS.push({ type:'woodSeat', x, y, color: CUSHIONS[(x * 3 + y * 5) % CUSHIONS.length] });
 
 MAPS.salon_actos = {
-  name: 'Salón de Actos', floorStyle: 'wood', floorColor: '#9c6b3e', wallColor: '#6d2a2a', wainscot: '#3e1c1c',
+  name: 'Salón de Actos', floorStyle: 'darkgranite', wallStyle: 'wood',
   grid: grid([
     '###############',
     '#.............#',
@@ -192,9 +241,13 @@ MAPS.salon_actos = {
   doors: [ { x:7, y:10, to:'planta_baja', tx:5, ty:1, exit:true } ],
   npcs: [],
   decor: [
-    { type:'curtain', x:1, y:0, w:13 },
+    { type:'curtainSide', x:1, y:0 }, { type:'curtainSide', x:2, y:0 },
+    { type:'speaker', x:3, y:0 },
+    { type:'screen', x:5, y:0, w:5, text:'BIENVENIDOS', textLines:['En la pantalla del proyector: «Bienvenidos al Colegio Corazonistas».'] },
+    { type:'speaker', x:11, y:0 },
+    { type:'curtainSide', x:12, y:0 }, { type:'curtainSide', x:13, y:0 },
     { type:'stage', x:1, y:1, w:13, h:2 },
-    { type:'piano', x:2, y:1, w:2 },
+    { type:'stageSteps', x:1, y:3, w:1 }, { type:'stageSteps', x:13, y:3, w:1 },
     ...SEATS
   ],
   items: [ { id:'salon_menu', x:13, y:5, item:'menu', qty:1 } ],
@@ -267,30 +320,37 @@ function hub(id, opts) {
     '#.................#',
     '#.................#'
   ];
+  const bottom = opts.bottom === 'coatrack'
+    ? [ { type:'coatrack', x:2, y:7, w:4, seed:id }, { type:'coatrack', x:13, y:7, w:4, seed:id + 3 } ]
+    : opts.bottom === 'none' ? []
+    : [ { type:'lockers', x:2, y:7, w:4, color: opts.lockerColor || '#5c7fa3' }, { type:'lockers', x:13, y:7, w:4, color: opts.lockerColor || '#5c7fa3' } ];
   return Object.assign({
-    floor: id, floorStyle: 'tile', grid: grid([opts.top, ...midRows, '###################']),
+    floor: id, floorStyle: 'terrazzo', rugStyle: 'terrazzo', wallStyle: 'brick', doorStyle: 'primaria',
+    grid: grid([opts.top, ...midRows, '###################']),
     npcs: [], items: [], wanderers: [], spawn: { x:9, y:1 }
   }, opts, {
     doors: [{ x:9, y:0, elevator:true, short:'ASCENSOR' }, ...opts.doors],
     decor: [
       { type:'plant', x:1, y:1 }, { type:'plant', x:17, y:1 },
-      { type:'lockers', x:2, y:7, w:4, color: opts.lockerColor || '#5c7fa3' },
-      { type:'lockers', x:13, y:7, w:4, color: opts.lockerColor || '#5c7fa3' },
+      ...bottom,
       ...(opts.decor || [])
     ]
   });
 }
 
+// Puertas reales: amarillas en 1ª y 3ª planta, azules en 2ª y 4ª (marco azul marino)
+const DOOR_YELLOW = '#f2c12e', DOOR_BLUE = '#3a78d6';
+
 MAPS.piso1 = hub(1, {
-  name: '1ª planta - Primaria', floorColor: '#e7d9b0', wallColor: '#fff3c4', wainscot: '#f9a825', rugColor: '#1976d2', lockerColor:'#ef6c00',
+  name: '1ª planta - Primaria', doorColor: DOOR_YELLOW, bottom: 'coatrack',
   top: '###D#####A#####D###',
   doors: [
     { x:3, y:0, to:'room_mates', tx:6, ty:8, short:'MATES' },
     { x:15, y:0, to:'room_lengua', tx:6, ty:8, short:'LENGUA' }
   ],
   decor: [
-    { type:'window', x:1, y:0 }, { type:'poster', x:5, y:0, color:'#ffab91' }, { type:'notice', x:6, y:0, w:2 },
-    { type:'poster', x:11, y:0, color:'#a5d6a7' }, { type:'notice', x:12, y:0, w:2 }, { type:'window', x:17, y:0 },
+    { type:'mural', x:1, y:0, w:2, seed:0, bg:'#f5e6c8' }, { type:'drawing', x:5, y:0, seed:1 }, { type:'whiteboard', x:6, y:0, w:2 },
+    { type:'mural', x:11, y:0, w:2, seed:1 }, { type:'drawing', x:13, y:0, seed:3 }, { type:'drawing', x:14, y:0, seed:4 }, { type:'mural', x:16, y:0, w:2, seed:2 },
     { type:'watercooler', x:17, y:5 }
   ],
   npcs: [ { id:'empollon', kind:'student', x:16, y:3, look:{ hair:'short', hairColor:'#8d5524', shirt:'#1f3b73', pants:'#33334a', glasses:true, tie:'#b71c1c' }, facing:'left' } ],
@@ -302,7 +362,7 @@ MAPS.piso1 = hub(1, {
 });
 
 MAPS.piso2 = hub(2, {
-  name: '2ª planta - 5º/6º y Apoyo', floorColor: '#cfe3cf', wallColor: '#e8f5e9', wainscot: '#2e7d32', rugColor: '#2e7d32', lockerColor:'#00897b',
+  name: '2ª planta - 5º/6º y Apoyo', doorColor: DOOR_BLUE, bottom: 'coatrack',
   top: '###D##D##A###D#####',
   doors: [
     { x:3, y:0, to:'room_ciencias', tx:6, ty:8, short:'CIENC.' },
@@ -310,8 +370,9 @@ MAPS.piso2 = hub(2, {
     { x:13, y:0, to:'room_apoyo', tx:6, ty:8, short:'APOYO' }
   ],
   decor: [
-    { type:'window', x:1, y:0 }, { type:'flagUK', x:7, y:0 }, { type:'poster', x:11, y:0, color:'#80deea' },
-    { type:'notice', x:15, y:0, w:2 }, { type:'window', x:17, y:0 }, { type:'aquarium', x:17, y:5 }
+    { type:'mural', x:1, y:0, w:2, seed:2 }, { type:'drawing', x:4, y:0, seed:2 }, { type:'flagUK', x:7, y:0 },
+    { type:'whiteboard', x:10, y:0, w:2 }, { type:'drawing', x:12, y:0, seed:0 }, { type:'mural', x:15, y:0, w:2, seed:0, bg:'#f5e6c8' },
+    { type:'aquarium', x:17, y:5 }
   ],
   wanderers: [
     { seed: 8, x:4, y:5, lines:['En el laboratorio hay un esqueleto que se llama Paco.'] },
@@ -321,15 +382,16 @@ MAPS.piso2 = hub(2, {
 });
 
 MAPS.piso3 = hub(3, {
-  name: '3ª planta - ESO', floorColor: '#e6cfd6', wallColor: '#fce4ec', wainscot: '#ad1457', rugColor: '#6a1b9a', lockerColor:'#8e24aa',
+  name: '3ª planta - ESO', doorColor: DOOR_YELLOW, lockerColor:'#455a64',
   top: '###D#####A#####D###',
   doors: [
     { x:3, y:0, to:'room_arte', tx:6, ty:8, short:'ARTE' },
     { x:15, y:0, to:'biblioteca_eso', tx:7, ty:9, short:'BIBLIO.' }
   ],
   decor: [
-    { type:'window', x:1, y:0 }, { type:'poster', x:5, y:0, color:'#f48fb1' }, { type:'notice', x:6, y:0, w:2 },
-    { type:'poster', x:12, y:0, color:'#ce93d8' }, { type:'window', x:17, y:0 }, { type:'bust', x:17, y:5 }
+    { type:'poster', x:1, y:0, color:'#f48fb1' }, { type:'mural', x:5, y:0, w:2, seed:1 }, { type:'whiteboard', x:7, y:0, w:1 },
+    { type:'whiteboard', x:11, y:0, w:2 }, { type:'poster', x:13, y:0, color:'#ce93d8' }, { type:'drawing', x:17, y:0, seed:2 },
+    { type:'bust', x:17, y:5 }
   ],
   wanderers: [
     { seed: 15, x:6, y:5, lines:['La profe Frida se enfada si pisas sus cuadros. Ojo con la pintura del suelo.'] },
@@ -338,11 +400,11 @@ MAPS.piso3 = hub(3, {
 });
 
 MAPS.piso4 = hub(4, {
-  name: '4ª planta - Bachillerato', floorColor: '#d0cde0', wallColor: '#ede7f6', wainscot: '#4527a0', rugColor: '#311b92', lockerColor:'#455a64',
+  name: '4ª planta - Bachillerato', doorColor: DOOR_BLUE, lockerColor:'#37474f',
   top: '#########A###D#####',
   doors: [ { x:13, y:0, to:'sala_bachillerato', tx:7, ty:8, short:'BACHI.' } ],
   decor: [
-    { type:'window', x:2, y:0 }, { type:'notice', x:4, y:0, w:3 }, { type:'clock', x:11, y:0 }, { type:'window', x:16, y:0 },
+    { type:'poster', x:2, y:0, color:'#b39ddb' }, { type:'whiteboard', x:4, y:0, w:3 }, { type:'clock', x:11, y:0 }, { type:'poster', x:16, y:0, color:'#80cbc4' },
     { type:'coffee', x:17, y:5 }
   ],
   npcs: [ { id:'bachi1', kind:'student', x:4, y:3, look:{ hair:'spiky', hairColor:'#3b2416', shirt:'#455a64', pants:'#263238' }, facing:'right' } ],
@@ -351,7 +413,7 @@ MAPS.piso4 = hub(4, {
 });
 
 MAPS.piso5 = hub(5, {
-  name: '5ª planta - Sala de Profesores', floorStyle: 'carpet', floorColor: '#4a3b5c', wallColor: '#d7ccc8', wainscot: '#4e342e', rugColor: '#7b1fa2', lockerColor:'#6d4c41',
+  name: '5ª planta - Sala de Profesores', floorStyle: 'carpet', floorColor: '#4a3b5c', wallStyle: 'wood', rugStyle: 'none', rugColor: '#7b1fa2', doorStyle: 'wood', lockerColor:'#6d4c41',
   top: '###D###L#A#####D###',
   doors: [
     { x:3, y:0, to:'room_liga', tx:6, ty:8, short:'DIRECTOR' },
@@ -579,6 +641,7 @@ MAPS.sala_castigo = {
 
 // ---------------- UTILIDADES ----------------
 const TILE_WALKABLE = t => t !== '#' && t !== 'w';
+// 'g' = césped corto decorativo (se puede pisar, sin encuentros)
 const TILE_ENCOUNTER = t => t === ',' || t === 'z';
 
 function decorAt(map, x, y) {
@@ -589,3 +652,17 @@ function decorAt(map, x, y) {
 Object.values(MAPS).forEach(m => {
   m.npcs = m.npcs || []; m.decor = m.decor || []; m.items = m.items || []; m.wanderers = m.wanderers || [];
 });
+
+// Paredes de dos casillas de alto (estilo DS) en todas las salas interiores:
+// añade una fila de pared arriba y desplaza todo una casilla hacia abajo,
+// incluidas las puertas de otras salas que llevan a esta.
+function addTallWall(id) {
+  const m = MAPS[id];
+  m.grid.unshift(new Array(m.grid[0].length).fill('#'));
+  // copias propias: algunas listas (pupitres, butacas) se comparten entre salas
+  ['doors', 'npcs', 'decor', 'wanderers', 'items'].forEach(k => { m[k] = m[k].map(o => Object.assign({}, o, { y: o.y + 1 })); });
+  m.spawn = { x: m.spawn.x, y: m.spawn.y + 1 };
+  Object.values(MAPS).forEach(other => other.doors.forEach(d => { if (d.to === id) d.ty += 1; }));
+  m.tallWall = true;
+}
+Object.keys(MAPS).filter(id => !MAPS[id].outdoor).forEach(addTallWall);

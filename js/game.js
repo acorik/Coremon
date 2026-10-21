@@ -138,21 +138,31 @@ function buildStaticLayer(map) {
   const c = document.createElement('canvas');
   c.width = W * TILE; c.height = H * TILE;
   const g = c.getContext('2d');
+  const facade = map.facadeRows || [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = map.grid[y][x], px = x * TILE, py = y * TILE;
+    if (map.outdoor && facade.includes(y)) continue;
     if (t === '#') { const below = tileAt(map, x, y + 1); drawWall(g, map, px, py, TILE, below && below !== '#', x, y); continue; }
     if (t === ',') { drawTallGrass(g, px, py, TILE, 0, false); continue; }
+    if (t === 'g') { drawFloor(g, Object.assign({}, map, { floorStyle:'grass' }), px, py, TILE, x, y); continue; }
     if (t === 'z') { drawPapers(g, map, px, py, TILE, x, y); continue; }
-    if (t === 'p') { drawRug(g, map, px, py, TILE); continue; }
+    if (t === 'p') { drawRug(g, map, px, py, TILE, x, y); continue; }
     if (t === 'c') { drawFloor(g, Object.assign({}, map, { floorStyle:'court' }), px, py, TILE, x, y); continue; }
     if (t === 'w') continue;
     if (t === 'D' || t === 'L' || t === 'A') {
       const door = map.doors.find(d => d.x === x && d.y === y);
-      if (door && door.exit) { drawFloor(g, map, px, py, TILE, x, y); }
-      if (door && !door.elevator) drawDoor(g, px, py, TILE, Object.assign({}, door, { locked: door.locked && !doorOpen(door) }), doorColor(door), 0);
+      if (door && door.exit && !door.style) { drawFloor(g, map, px, py, TILE, x, y); }
+      if (door && !door.elevator) drawDoor(g, px, py, TILE, Object.assign({}, door, { locked: door.locked && !doorOpen(door) }), doorColor(door), 0, map);
       continue;
     }
     drawFloor(g, map, px, py, TILE, x, y);
+  }
+  if (map.outdoor && facade.length) {
+    const top = Math.min(...facade), h = facade.length;
+    for (let x = 0; x < W; x++) {
+      const isDoor = facade.some(fy => tileAt(map, x, fy) === 'D');
+      drawFacadeColumn(g, x * TILE, top * TILE, TILE, h, x, isDoor);
+    }
   }
   for (const d of map.decor) {
     const def = decorDef(d.type);
@@ -413,7 +423,8 @@ function onPlayerArrive(door) {
   player.justArrived = !!heldDir();
   const map = currentMap();
   if (door && door.to) {
-    transitionTo(door.to, door.tx, door.ty, door.ty <= 1 ? 'down' : player.facing);
+    const dest = MAPS[door.to];
+    transitionTo(door.to, door.tx, door.ty, door.ty <= (dest.tallWall ? 2 : 1) ? 'down' : player.facing);
     return;
   }
   const t = tileAt(map, player.x, player.y);
@@ -469,7 +480,7 @@ function render() {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = map.grid[y][x];
     if (t === 'w') drawWater(ctx, x * TILE, y * TILE, TILE, now);
-    if (t === 'A') { const door = map.doors.find(d => d.x === x && d.y === y); drawDoor(ctx, x * TILE, y * TILE, TILE, door, null, now); }
+    if (t === 'A') { const door = map.doors.find(d => d.x === x && d.y === y); drawDoor(ctx, x * TILE, y * TILE, TILE, door, null, now, map); }
   }
   for (const d of map.decor) {
     const def = decorDef(d.type);
@@ -521,8 +532,8 @@ function drawDoorLabels(map) {
   ctx.font = 'bold 8px monospace';
   ctx.textAlign = 'center';
   for (const d of map.doors) {
-    if (!d.short || d.exit) continue;
-    const cx = d.x * TILE + TILE / 2, y = d.y * TILE + 2;
+    if (!d.short || (d.exit && !d.style)) continue;
+    const cx = d.x * TILE + TILE / 2, y = d.y * TILE + (map.tallWall && d.y === 1 ? -14 : 2);
     const w = ctx.measureText(d.short).width + 6;
     box(ctx, cx - w / 2, y, w, 11, d.locked && !doorOpen(d) ? '#4a148c' : '#263238', OUT);
     ctx.fillStyle = '#ffd54f';
@@ -734,7 +745,7 @@ async function startNewGame() {
     `Conserje: ¡${SPECIES[starter].name}! Buena elección. Se nota que os vais a llevar bien.`,
     'Conserje: Toma, para el camino: 5 cromos para capturar Coremon salvajes y 3 bocadillos.',
     '¡Has recibido 5 x Cromo y 3 x Bocadillo!',
-    'Conserje: Un consejo: antes de retar a un profesor, entrena en el Patio. Sales por la puerta de abajo.',
+    'Conserje: Un consejo: antes de retar a un profesor, entrena en el Patio. Se sube por las escaleras de abajo a la derecha.',
     'Conserje: La enfermera de la derecha te cura gratis, y en las máquinas venden de todo.',
     'Conserje: ¡Ánimo, Cora!'
   ]);
@@ -754,6 +765,8 @@ function continueGame() {
   if (!loadGame()) { startNewGame(); return; }
   showTouch('main');
   enterRoom(game.room, game.pos.x, game.pos.y, game.facing || 'down');
+  const m = currentMap();
+  if (blocked(m, player.x, player.y, true) || '#DLA'.includes(tileAt(m, player.x, player.y) || '#')) placeActor(player, m.spawn.x, m.spawn.y);
   STATE = 'OVERWORLD';
   if (!game.team.length) { STATE = 'CUTSCENE'; chooseStarter().then(sp => { game.team = [createPokemon(sp, 5)]; STATE = 'OVERWORLD'; saveGame(); refreshTouch(); }); }
 }
@@ -766,7 +779,7 @@ async function afterBattle(info) {
     healTeam();
     const lost = Math.floor(game.coins / 2);
     game.coins -= lost;
-    enterRoom('planta_baja', 13, 7, 'right');
+    enterRoom('planta_baja', 13, 8, 'right');
     await fadeTo(0, 400);
     await say([`Te has quedado sin Coremon en pie... Pierdes ${lost} monedas al volver corriendo a la enfermería.`,
       'Enfermera: ¡Ay, madre! Ya están curados. Entrena un poco más antes de volver a intentarlo, ¿vale?']);

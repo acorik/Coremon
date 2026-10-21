@@ -38,10 +38,20 @@ Fundador.
 
 ## El colegio
 
-- **Planta Baja:** vestíbulo (secretaría, enfermería, máquinas expendedoras,
-  taquillas para guardar Coremon, vitrina de trofeos), Tatami (Ed. Física),
-  Salón de Actos, Capilla y Sala de Conferencias. Salida al Patio (cancha de
-  baloncesto) y al Jardín (estanque).
+Los espacios están recreados a partir de fotos reales del colegio.
+
+- **Exterior:** fachada de pilastras de ladrillo rojo, piedra gris y
+  ventanales blancos, entrada con arco y logo de Kristau Eskola.
+- **Planta Baja:** vestíbulo de granito negro con pasillo central de granito
+  beige, paredes de travertino y puertas de madera clara (secretaría,
+  enfermería, máquinas expendedoras, taquillas, vitrina de trofeos). Puerta
+  de cristal a la entrada principal y puertas dobles con la escalera que sube
+  al Patio. Tatami (Ed. Física), Salón de Actos (butacas de madera con
+  cojines de colores, escenario con cortinas rojas y pantalla), Capilla y
+  Sala de Conferencias. Del Patio (cancha de baloncesto) se pasa al Jardín.
+- **Pasillos de las plantas:** ladrillo naranja con mampara de cristal,
+  terrazo azul-gris, murales y dibujos. Puertas con marco azul marino y ojo
+  de buey: amarillas en 1ª y 3ª planta, azules en 2ª y 4ª.
 - **1ª planta (Primaria):** Matemáticas y Lengua.
 - **2ª planta (5º-6º):** Ciencias (laboratorio), Inglés y Sala de Apoyo y
   Tecnología (ordenadores, Coremon salvajes). Requiere 2 insignias.
