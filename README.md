@@ -1,68 +1,82 @@
-# Coremon: Corazonistas Vitoria
+# Coremon: Edición Corazonistas Vitoria
 
-Un juego tipo Pokémon ambientado en el colegio Corazonistas Vitoria, jugable
-directamente en el navegador (HTML/CSS/JS, sin dependencias ni build).
+Un juego tipo Pokémon con aspecto de Nintendo DS (dos pantallas), ambientado en
+el colegio Corazonistas de Vitoria-Gasteiz. HTML/CSS/JS puro: sin dependencias
+ni compilación.
 
 ## Jugar
 
-- **Online (GitHub Pages):** activa Pages en este repo (Settings → Pages →
-  Deploy from branch) y abre la URL que te dé.
-- **Local / descargado:** abre `index.html` con cualquier navegador, o sirve
-  la carpeta con `python3 -m http.server` y entra a `localhost:PUERTO`.
+- **Online (GitHub Pages):** activa Pages en el repo (Settings → Pages →
+  Deploy from branch) y abre la URL.
+- **Descargado:** baja el repo entero (botón "Code" → "Download ZIP"),
+  descomprime y abre `index.html`. Necesitas toda la carpeta (`css/`, `js/`),
+  no solo el HTML.
+
+## Controles
+
+| Acción | Teclado | Pantalla táctil |
+|---|---|---|
+| Moverse | Flechas / WASD | Cruceta |
+| Correr | Mantener Shift | Mantener B |
+| Hablar / usar (A) | Enter, Espacio o Z | Botón A |
+| Atrás (B) | Esc, X o Retroceso | Botón B |
+
+La pantalla de abajo tiene el equipo, la mochila, la Coredex y el guardado.
+La partida también se guarda sola al cambiar de sala.
 
 ## Historia
 
-Es tu primer día en Corazonistas Vitoria. El colegio tiene 6 plantas
-conectadas por un ascensor en la Planta Baja, y cada asignatura es un
-gimnasio regentado por un profesor con su propio equipo de Coremon. El
-ascensor solo sube más alto según las insignias que consigas. Para llegar a
-la 5ª planta y enfrentarte al Director en la Liga Corazonistas necesitas las
-6 insignias: Lógica (Matemáticas), Letras (Lengua), Física (Ed. Física),
-Arte, Natural (Ciencias) e Idioma (Inglés).
+En 1817, en Lyon, el joven sacerdote Andrés Coindre encontró a dos niñas
+temblando de frío en el pórtico de Saint-Nizier, y en 1821 fundó los Hermanos
+del Sagrado Corazón para educar a niños sin hogar. Doscientos años después,
+empiezas tu primer día en el colegio de Vitoria, el centro corazonista con más
+alumnos de España.
+
+Cada asignatura es un gimnasio. Consigue las 6 insignias, supera la prueba del
+Director y enfréntate al jefe final: el Padre Andrés Coindre, en la Sala del
+Fundador.
 
 ## El colegio
 
-- **Planta Baja:** Tatami (gimnasio de Ed. Física), Salón de Actos, Capilla
-  y Sala de Conferencias (estas tres solo dan historia/ambiente), más la
-  salida al Patio y el Jardín.
-- **1º (Primaria):** aulas de Matemáticas y Lengua. Desbloqueada desde el inicio.
-- **2º (Primaria 5º-6º):** Ciencias, Inglés y una Sala de Apoyo y Tecnología
-  con Coremon salvajes. Requiere 2 insignias.
-- **3º (ESO):** aula de Arte y la Biblioteca ESO (Coremon salvajes). Requiere 4 insignias.
-- **4º (Bachillerato):** sala de entrenamiento opcional con Coremon más
-  fuertes para subir de nivel antes de la Liga. Requiere 5 insignias.
-- **5º (Sala de Profesores):** despacho del Director (combate final) y la
-  Sala de Castigo. Requiere las 6 insignias.
+- **Planta Baja:** vestíbulo (secretaría, enfermería, máquinas expendedoras,
+  taquillas para guardar Coremon, vitrina de trofeos), Tatami (Ed. Física),
+  Salón de Actos, Capilla y Sala de Conferencias. Salida al Patio (cancha de
+  baloncesto) y al Jardín (estanque).
+- **1ª planta (Primaria):** Matemáticas y Lengua.
+- **2ª planta (5º-6º):** Ciencias (laboratorio), Inglés y Sala de Apoyo y
+  Tecnología (ordenadores, Coremon salvajes). Requiere 2 insignias.
+- **3ª planta (ESO):** Arte (caballetes) y Biblioteca. Requiere 4 insignias.
+- **4ª planta (Bachillerato):** zona de entrenamiento con Coremon fuertes.
+  Requiere 5 insignias.
+- **5ª planta (Sala de Profesores):** despacho del Director, Sala de Castigo y
+  Sala del Fundador (se abre al vencer al Director). Requiere 6 insignias.
 
-## Cómo se juega
+Solo hay personal donde tiene sentido: cada profe en su aula, la enfermera, la
+secretaria, la bibliotecaria, el conserje... Además hay alumnos paseando por
+los pasillos y alumnos que te retan a combate.
 
-- Muévete con las flechas o WASD.
-- Usa el ascensor (en cada planta) para moverte entre pisos; los pisos
-  bloqueados se ven atenuados y dicen cuántas insignias te faltan.
-- Entra en las aulas y habla con el profesor para retarlo a combate.
-- En el Patio, el Jardín y las salas de apoyo/biblioteca/bachillerato hay
-  Coremon salvajes: lucha, sube de nivel y captúralos con tus cromos (🏷️).
-- La Enfermera de la Planta Baja cura gratis a tu equipo.
-- En combate puedes **Luchar** (cada movimiento gasta PP), **Defender**
-  (no atacas esa ronda pero reduces mucho el daño que recibes), cambiar de
-  **Equipo**, lanzar un **Cromo** para capturar, o **Huir**. Los golpes
-  también pueden ser bloqueados parcialmente al azar (no muy a menudo), así
-  que no sirve de nada spamear siempre el mismo ataque.
-- **Consejo:** no retes directamente a un profesor con un solo Coremon.
-  Entrena y captura antes de retar la primera aula.
-- El progreso se guarda automáticamente en el navegador (`localStorage`).
+## Combate
 
-## Estado de este base
+- **Luchar:** cada movimiento gasta PP. Los ataques de tu mismo tipo hacen un
+  20% más, hay golpes críticos y bloqueos ocasionales.
+- **Defender:** no atacas esa ronda, pero encajas muchísimo menos daño.
+- **Mochila:** bocadillos y menús (curan), zumo (PP), tirita (reanima),
+  caramelo raro (sube nivel), cromos y cromos dorados (capturar).
+- **Equipo** y **Huir** (no se puede huir de un profesor).
+- La experiencia se reparte: el que lucha recibe toda y el resto del equipo la
+  mitad.
 
-Incluye: colegio de 6 plantas con ascensor y desbloqueo progresivo, salas de
-historia sin combate, salas de entrenamiento interior, selección de inicial,
-21 especies con evoluciones y sprite propio por línea evolutiva, sistema de
-tipos (ciclo de 6), combate por turnos animado (con bloqueo, Defender y
-texto flotante) con captura y experiencia, 7 profesores + combate final
-contra el Director, guardado de partida.
+## Archivos
 
-Pendiente / siguiente iteración natural:
-- Sustituir tiles/sprites placeholder por fotos y diseños reales del
-  colegio (ver `assets/README.md`).
-- Sprites propios para cada profesor (de momento comparten plantilla).
-- Más diálogo de historia específico de cada planta/profesor.
+- `js/data.js`: tipos, movimientos, especies, objetos, profesores y alumnos.
+- `js/sprites.js`: sprites pixel-art de Coremon (una silueta por línea
+  evolutiva) y de personas (cada profe con su aspecto).
+- `js/scenery.js`: suelos, paredes, puertas y decoración (con animaciones).
+- `js/maps.js`: todas las salas del colegio.
+- `js/game.js`: mundo, movimiento, diálogos y cinemáticas.
+- `js/ui.js`: pantalla inferior (menús, mochila, tienda, taquillas, Coredex).
+- `js/battle.js`: combate.
+
+Para cambiar el aspecto de un profesor, edita su `look` en `TRAINERS`
+(`js/data.js`): peinado (`short`, `long`, `bald`, `spiky`, `bun`, `cap`),
+colores de pelo, piel, camisa y pantalón, gafas, barba, falda o sotana.

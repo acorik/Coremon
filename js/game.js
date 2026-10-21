@@ -1,334 +1,823 @@
 // ============================================================
-// COREMON - Motor principal (overworld, historia, guardado)
+// COREMON - Motor principal (pantalla superior, mundo, cinemáticas)
 // ============================================================
 
-const TILE = 40;
+const TILE = 32;
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+const VIEW_W = canvas.width, VIEW_H = canvas.height;
+const SAVE_KEY = 'corazonistasvitoria_save_v2';
+const OLD_SAVE_KEY = 'corazonistasvitoria_save_v1';
+const WALK_MS = 170, RUN_MS = 95;
 
-const SAVE_KEY = 'corazonistasvitoria_save_v1';
+// TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE
+let STATE = 'TITLE';
+let game = newGameState();
+let now = 0, lastFrame = 0;
 
-let STATE = 'BOOT'; // BOOT | STORY | STARTER | OVERWORLD | DIALOGUE | BATTLE | WIN
-let game = {
-  room: 'planta_baja',
-  pos: { x:7, y:6 },
-  facing: 'down',
-  team: [],
-  badges: [],       // ids de TRAINERS ya vencidos
-  defeatedWild: {},
-  stickers: 5,       // "cromos" para capturar
-  coins: 300,
-  name: 'Estudiante'
-};
-
-let keysDown = {};
-let lastMoveAt = 0;
-const MOVE_INTERVAL = 150;
-let moving = false;
-let walkFrame = false;
+function newGameState() {
+  return { room:'planta_baja', pos:{ x:8, y:9 }, facing:'up', team:[], box:[],
+    bag:{}, badges:[], coins:500, seen:{}, caught:{}, flags:{}, beaten:{}, picked:{}, playTime:0 };
+}
 
 // ---------------- GUARDADO ----------------
 function saveGame() {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+  game.pos = { x: player.x, y: player.y };
+  game.facing = player.facing;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(game)); } catch (e) {}
+}
+function hasSave() {
+  try { return !!(localStorage.getItem(SAVE_KEY) || localStorage.getItem(OLD_SAVE_KEY)); } catch (e) { return false; }
 }
 function loadGame() {
-  const raw = localStorage.getItem(SAVE_KEY);
+  let raw = null, old = false;
+  try { raw = localStorage.getItem(SAVE_KEY); if (!raw) { raw = localStorage.getItem(OLD_SAVE_KEY); old = true; } } catch (e) {}
   if (!raw) return false;
-  try { game = JSON.parse(raw); return true; } catch(e){ return false; }
+  try {
+    const data = JSON.parse(raw);
+    game = Object.assign(newGameState(), data);
+    if (old) {
+      game.bag = { cromo: data.stickers || 5, bocadillo: 3 };
+      game.room = 'planta_baja'; game.pos = { x:8, y:8 };
+      game.flags = { introDone: true };
+    }
+    if (!MAPS[game.room]) { game.room = 'planta_baja'; game.pos = { x:8, y:8 }; }
+    game.team.forEach(p => { game.seen[p.species] = true; game.caught[p.species] = true; });
+    return true;
+  } catch (e) { return false; }
 }
-function hasSave() { return !!localStorage.getItem(SAVE_KEY); }
 
-// ---------------- DIALOGO ----------------
-const dialogBox = document.getElementById('dialog-box');
-const dialogText = document.getElementById('dialog-text');
-let dialogQueue = [];
-let dialogCallback = null;
+// ---------------- ACTORES ----------------
+const player = { x:8, y:9, px:0, py:0, facing:'up', moving:false, step:0, look: LOOKS.player };
+let actors = [];        // npcs + paseantes de la sala actual
+let staticLayer = null; // suelo, paredes y decoración fija prerenderizados
+let banner = null;      // cartel de ubicación
+let fade = 0;           // 0..1 fundido a negro
+let cine = null;        // cinemática dibujada encima
+let shake = 0;
 
-function showDialog(lines, callback) {
-  dialogQueue = Array.isArray(lines) ? lines.slice() : [lines];
-  dialogCallback = callback || null;
-  STATE = 'DIALOGUE';
-  dialogBox.classList.remove('hidden');
-  advanceDialog();
+function placeActor(a, x, y) { a.x = x; a.y = y; a.px = x * TILE; a.py = y * TILE; a.moving = false; }
+
+function startMove(a, dir, dur, onDone) {
+  const [dx, dy] = DIRS[dir];
+  a.facing = dir;
+  a.fromX = a.x; a.fromY = a.y;
+  a.x += dx; a.y += dy;
+  a.moving = true; a.t0 = now; a.dur = dur; a.step = (a.step || 0) + 1;
+  a.onDone = onDone;
 }
-function advanceDialog() {
-  if (dialogQueue.length === 0) {
-    dialogBox.classList.add('hidden');
-    STATE = 'OVERWORLD';
-    const cb = dialogCallback; dialogCallback = null;
+
+const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
+
+function updateActorMotion(a) {
+  if (!a.moving) return;
+  const k = Math.min(1, (now - a.t0) / a.dur);
+  a.px = (a.fromX + (a.x - a.fromX) * k) * TILE;
+  a.py = (a.fromY + (a.y - a.fromY) * k) * TILE;
+  if (k >= 1) {
+    a.moving = false;
+    const cb = a.onDone; a.onDone = null;
     if (cb) cb();
-    return;
   }
-  dialogText.textContent = dialogQueue.shift();
 }
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    if (STATE === 'DIALOGUE') { advanceDialog(); e.preventDefault(); }
+function actorFrame(a) {
+  if (!a.moving) return 0;
+  const k = (now - a.t0) / a.dur;
+  return k < 0.6 ? (a.step % 2 ? 1 : 2) : 0;
+}
+
+// ---------------- SALAS ----------------
+function currentMap() { return MAPS[game.room]; }
+
+function enterRoom(roomId, x, y, facing) {
+  game.room = roomId;
+  const map = MAPS[roomId];
+  placeActor(player, x, y);
+  if (facing) player.facing = facing;
+  actors = map.npcs.map(n => Object.assign({}, n, { home:{ x:n.x, y:n.y } }));
+  actors.forEach(a => placeActor(a, a.x, a.y));
+  map.wanderers.forEach((w, i) => {
+    const a = { id:'w' + i, kind:'wander', look: randomStudentLook(w.seed), lines: w.lines, facing:'down',
+      home:{ x:w.x, y:w.y }, nextMove: now + 800 + Math.random() * 2000 };
+    placeActor(a, w.x, w.y);
+    actors.push(a);
+  });
+  buildStaticLayer(map);
+  banner = { text: map.name, t0: now };
+  refreshTouch();
+}
+
+async function transitionTo(roomId, x, y, facing) {
+  const prev = STATE;
+  STATE = 'CUTSCENE';
+  await fadeTo(1, 180);
+  enterRoom(roomId, x, y, facing);
+  saveGame();
+  await fadeTo(0, 180);
+  STATE = prev === 'CUTSCENE' ? 'CUTSCENE' : 'OVERWORLD';
+}
+
+function fadeTo(target, ms) {
+  const start = fade, t0 = performance.now();
+  return new Promise(res => {
+    function step() {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      fade = start + (target - start) * k;
+      if (k < 1) requestAnimationFrame(step); else res();
+    }
+    step();
+  });
+}
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function tileAt(map, x, y) { return map.grid[y] && map.grid[y][x]; }
+
+function buildStaticLayer(map) {
+  const H = map.grid.length, W = map.grid[0].length;
+  const c = document.createElement('canvas');
+  c.width = W * TILE; c.height = H * TILE;
+  const g = c.getContext('2d');
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = map.grid[y][x], px = x * TILE, py = y * TILE;
+    if (t === '#') { const below = tileAt(map, x, y + 1); drawWall(g, map, px, py, TILE, below && below !== '#', x, y); continue; }
+    if (t === ',') { drawTallGrass(g, px, py, TILE, 0, false); continue; }
+    if (t === 'z') { drawPapers(g, map, px, py, TILE, x, y); continue; }
+    if (t === 'p') { drawRug(g, map, px, py, TILE); continue; }
+    if (t === 'c') { drawFloor(g, Object.assign({}, map, { floorStyle:'court' }), px, py, TILE, x, y); continue; }
+    if (t === 'w') continue;
+    if (t === 'D' || t === 'L' || t === 'A') {
+      const door = map.doors.find(d => d.x === x && d.y === y);
+      if (door && door.exit) { drawFloor(g, map, px, py, TILE, x, y); }
+      if (door && !door.elevator) drawDoor(g, px, py, TILE, Object.assign({}, door, { locked: door.locked && !doorOpen(door) }), doorColor(door), 0);
+      continue;
+    }
+    drawFloor(g, map, px, py, TILE, x, y);
   }
-});
-dialogBox.addEventListener('click', () => { if (STATE === 'DIALOGUE') advanceDialog(); });
+  for (const d of map.decor) {
+    const def = decorDef(d.type);
+    if (def.tall || def.anim) continue;
+    def.draw(g, d.x * TILE, d.y * TILE, TILE, d, 0);
+  }
+  staticLayer = c;
+}
+
+function doorOpen(door) { return !door.requires || game.badges.includes(door.requires); }
+function doorColor(door) {
+  const tr = Object.values(TRAINERS).find(t => t.room === door.to);
+  return tr ? tr.badgeColor : '#8d6e63';
+}
+
+// ---------------- COLISIONES ----------------
+function actorAt(x, y) {
+  return actors.find(a => (a.x === x && a.y === y) || (a.moving && a.fromX === x && a.fromY === y));
+}
+function itemAt(map, x, y) { return map.items.find(i => i.x === x && i.y === y && !game.picked[i.id]); }
+
+function blocked(map, x, y, forPlayer) {
+  const t = tileAt(map, x, y);
+  if (t === undefined || !TILE_WALKABLE(t)) return true;
+  const d = decorAt(map, x, y);
+  if (d && d.solid !== false && decorDef(d.type).solid !== false) return true;
+  if (actorAt(x, y)) return true;
+  if (itemAt(map, x, y)) return true;
+  if (!forPlayer && (player.x === x && player.y === y || (player.moving && player.fromX === x && player.fromY === y))) return true;
+  return false;
+}
 
 // ---------------- INPUT ----------------
-window.addEventListener('keydown', (e) => {
-  keysDown[e.key.toLowerCase()] = true;
-  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
-});
-window.addEventListener('keyup', (e) => { keysDown[e.key.toLowerCase()] = false; });
+const keysDown = {};
+let turnUntil = 0;
+const KEYMAP = { arrowup:'up', w:'up', arrowdown:'down', s:'down', arrowleft:'left', a:'left', arrowright:'right', d:'right' };
 
-function dirFromKeys() {
-  if (keysDown['arrowup'] || keysDown['w']) return 'up';
-  if (keysDown['arrowdown'] || keysDown['s']) return 'down';
-  if (keysDown['arrowleft'] || keysDown['a']) return 'left';
-  if (keysDown['arrowright'] || keysDown['d']) return 'right';
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+  if (keysDown[k]) return;
+  keysDown[k] = true;
+  if (k === 'enter' || k === ' ' || k === 'z') pressA();
+  if (k === 'escape' || k === 'x' || k === 'backspace') pressB();
+});
+window.addEventListener('keyup', e => { keysDown[e.key.toLowerCase()] = false; });
+
+const virtualDir = { dir: null };
+function heldDir() {
+  if (virtualDir.dir) return virtualDir.dir;
+  for (const k of ['arrowup','w','arrowdown','s','arrowleft','a','arrowright','d']) if (keysDown[k]) return KEYMAP[k];
   return null;
 }
+function running() { return keysDown['shift'] || keysDown['virtualb']; }
 
-function tryMove(dir) {
-  const map = MAPS[game.room];
-  let {x,y} = game.pos;
-  if (dir === 'up') y--; else if (dir === 'down') y++;
-  else if (dir === 'left') x--; else if (dir === 'right') x++;
-  game.facing = dir;
-  const row = map.grid[y];
-  if (!row) return;
-  const tile = row[x];
-  if (tile === undefined || !TILE_WALKABLE(tile)) return;
+function pressA() {
+  if (STATE === 'DIALOGUE') { advanceDialog(); return; }
+  if (STATE === 'TITLE') { titleStart(); return; }
+  if (cine && cine.skippable) { cine.skip = true; return; }
+  if (STATE === 'OVERWORLD' && !player.moving) interact();
+}
+function pressB() {
+  if (STATE === 'DIALOGUE') { advanceDialog(); return; }
+  if (STATE === 'MENU') { closePanel(); return; }
+}
 
-  const door = map.doors.find(d => d.x === x && d.y === y);
+// ---------------- DIÁLOGO (texto progresivo) ----------------
+const dialogBox = document.getElementById('dialog-box');
+const dialogName = document.getElementById('dialog-name');
+const dialogText = document.getElementById('dialog-text');
+let dlg = null;
 
-  // npc bloquea paso
-  const npc = map.npcs.find(n => n.x === x && n.y === y);
-  if (npc) { interactNpc(npc, map); return; }
-
-  // decoración sólida bloquea paso
-  const deco = decorAt(map, x, y);
-  if (deco && deco.solid) return;
-
-  game.pos = {x,y};
-  walkFrame = !walkFrame;
-
-  if (door) {
-    if (door.elevator) { openElevator(); return; }
-    changeRoom(door.to, door.tx, door.ty);
+function showDialog(lines, cb) {
+  dlg = { lines: Array.isArray(lines) ? lines.slice() : [lines], cb, prevState: STATE === 'DIALOGUE' ? 'OVERWORLD' : STATE };
+  STATE = 'DIALOGUE';
+  dialogBox.classList.remove('hidden');
+  nextLine();
+}
+function nextLine() {
+  if (!dlg.lines.length) {
+    dialogBox.classList.add('hidden');
+    const d = dlg; dlg = null;
+    STATE = d.prevState === 'CUTSCENE' ? 'CUTSCENE' : 'OVERWORLD';
+    if (d.cb) d.cb();
     return;
   }
+  let line = dlg.lines.shift();
+  const m = line.match(/^([^:]{2,28}):\s(.*)$/);
+  if (m) { dialogName.textContent = m[1]; dialogName.classList.remove('hidden'); line = m[2]; }
+  else dialogName.classList.add('hidden');
+  dlg.full = line; dlg.shown = 0;
+  dialogText.textContent = '';
+}
+function advanceDialog() {
+  if (!dlg) return;
+  if (dlg.shown < dlg.full.length) { dlg.shown = dlg.full.length; dialogText.textContent = dlg.full; return; }
+  nextLine();
+}
+function updateDialog(dt) {
+  if (!dlg || dlg.shown >= dlg.full.length) return;
+  dlg.shown = Math.min(dlg.full.length, dlg.shown + dt * 0.055);
+  dialogText.textContent = dlg.full.slice(0, Math.floor(dlg.shown));
+}
+dialogBox.addEventListener('click', () => advanceDialog());
+function say(lines) { return new Promise(res => showDialog(lines, res)); }
 
-  // encuentro salvaje
-  if (map.wildZone && TILE_ENCOUNTER(tile)) {
-    if (Math.random() < 0.18) {
-      startWildBattle(map.wildZone);
-    }
+// ---------------- INTERACCIÓN ----------------
+function frontTile() {
+  const [dx, dy] = DIRS[player.facing];
+  return { x: player.x + dx, y: player.y + dy, dx, dy };
+}
+
+function faceTowards(a, target) {
+  const dx = target.x - a.x, dy = target.y - a.y;
+  a.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+}
+
+function interact() {
+  const map = currentMap();
+  const f = frontTile();
+  let a = actorAt(f.x, f.y);
+  const d = decorAt(map, f.x, f.y) || (map.decor.find(dd => decorCovers(dd, f.x, f.y) && decorDef(dd.type).wall));
+  if (!a && d && d.talkThrough) a = actorAt(f.x + f.dx, f.y + f.dy);
+  if (a) { talkTo(a); return; }
+  const it = itemAt(map, f.x, f.y);
+  if (it) { pickItem(it); return; }
+  if (d) {
+    if (d.action === 'shop') { openShop(); return; }
+    if (d.action === 'box') { openBox(); return; }
+    if (d.action === 'altar') { altarScene(); return; }
+    const txt = d.text || d.textLines;
+    if (txt) { showDialog(txt); return; }
   }
+  // carteles de pared en la fila superior
+  const up = map.decor.find(dd => decorDef(dd.type).wall && decorCovers(dd, f.x, f.y) && (dd.text || dd.textLines));
+  if (up) showDialog(up.text || up.textLines);
 }
 
-function changeRoom(roomId, tx, ty) {
-  game.room = roomId;
-  game.pos = { x: tx, y: ty };
-  saveGame();
+function pickItem(it) {
+  game.picked[it.id] = true;
+  game.bag[it.item] = (game.bag[it.item] || 0) + it.qty;
+  const name = ITEMS[it.item].name;
+  showDialog(`¡Has encontrado ${it.qty > 1 ? it.qty + ' x ' : ''}${name}! Lo guardas en la mochila.`);
+  saveGame(); refreshTouch();
 }
 
-// ---------------- ASCENSOR / PISOS ----------------
-const elevatorScreen = document.getElementById('elevator-screen');
-const elevatorList = document.getElementById('elevator-list');
-const HUB_BY_FLOOR = ['planta_baja','piso1','piso2','piso3','piso4','piso5'];
-
-function openElevator() {
-  elevatorList.innerHTML = '';
-  FLOORS.forEach(f => {
-    const unlocked = game.badges.length >= f.needBadges;
-    const btn = document.createElement('button');
-    btn.className = 'big-btn elevator-btn';
-    btn.disabled = !unlocked || f.id === (MAPS[game.room] && MAPS[game.room].floor);
-    btn.textContent = unlocked ? f.name : `${f.name} 🔒 (${f.needBadges} insignias)`;
-    if (unlocked) btn.addEventListener('click', () => selectFloor(f.id));
-    elevatorList.appendChild(btn);
-  });
-  STATE = 'MENU';
-  elevatorScreen.classList.remove('hidden');
-}
-
-function closeElevator() {
-  elevatorScreen.classList.add('hidden');
-  STATE = 'OVERWORLD';
-}
-
-function selectFloor(floorId) {
-  elevatorScreen.classList.add('hidden');
-  STATE = 'OVERWORLD';
-  const hubId = HUB_BY_FLOOR[floorId];
-  const hub = MAPS[hubId];
-  changeRoom(hubId, hub.spawn.x, hub.spawn.y);
-}
-
-function interactNpc(npc, map) {
-  if (npc.id === 'enfermera') {
-    game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
-    game.stickers = Math.min(10, game.stickers + 1);
-    showDialog('Enfermera: ¡Tu equipo está como nuevo! Toma también un cromo de regalo.');
-    saveGame();
+async function talkTo(a) {
+  faceTowards(a, player);
+  if (a.kind === 'wander') { await say(a.lines[Math.floor(Math.random() * a.lines.length)]); return; }
+  if (a.kind === 'talk') { await say(a.lines); return; }
+  if (a.kind === 'nurse') {
+    STATE = 'CUTSCENE';
+    await say('Enfermera: ¡Hola! Deja que eche un vistazo a tu equipo...');
+    healTeam();
+    cine = { type:'heal', t0: now };
+    await wait(1200);
+    cine = null;
+    await say('Enfermera: ¡Listo! Tus Coremon están como nuevos. ¡Cuídate!');
+    STATE = 'OVERWORLD'; saveGame(); refreshTouch();
     return;
   }
-  if (map && map.flavor && map.flavor.id === npc.id) {
-    showDialog(map.flavor.lines);
+  if (a.kind === 'trainer') {
+    const tr = TRAINERS[a.id];
+    if (game.badges.includes(tr.id)) { await say(`${tr.name}: ${tr.win}`); return; }
+    if (!game.team.some(p => p.hp > 0)) { await say('Tus Coremon están agotados. Ve a la enfermería primero.'); return; }
+    STATE = 'CUTSCENE';
+    await exclaim(a);
+    await say(tr.intro.map(l => `${tr.name}: ${l}`));
+    await battleIntro();
+    startTrainerBattle(tr);
     return;
   }
-  const trainer = TRAINERS[npc.id];
-  if (!trainer) return;
-  if (game.badges.includes(trainer.id)) {
-    showDialog(`${trainer.name}: Ya demostraste tu valía en ${trainer.subject}. ¡Sigue así!`);
-    return;
+  if (a.kind === 'student') {
+    const st = STUDENT_TRAINERS[a.id];
+    if (game.beaten[a.id]) { await say(`${st.name}: ${st.win}`); return; }
+    if (!game.team.some(p => p.hp > 0)) { await say(`${st.name}: Tus Coremon están KO. Vuelve cuando los cures.`); return; }
+    STATE = 'CUTSCENE';
+    await exclaim(a);
+    await say(`${st.name}: ${st.intro}`);
+    await battleIntro();
+    startTrainerBattle(Object.assign({ id: a.id, student: true, look: a.look }, st));
   }
-  const intro = trainer.id === 'director'
-    ? [`${trainer.name}: Has reunido las 6 insignias. Es hora de la prueba final.`,
-       'El Director: ¡Demuestra que eres el mejor estudiante de Corazonistas Vitoria!']
-    : [`${trainer.name}: Para pasar mi asignatura de ${trainer.subject}, derrota a mi equipo.`];
-  showDialog(intro, () => startTrainerBattle(trainer));
 }
 
-// ---------------- LOOP ----------------
+function exclaim(a) {
+  a.bubble = now;
+  return wait(650).then(() => { a.bubble = null; });
+}
+
+function healTeam() {
+  game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
+}
+
+async function altarScene() {
+  if (game.flags.altar) {
+    await say(['Una placa dice: «Que ningún niño se quede sin hogar ni sin educación». — A. Coindre']);
+    return;
+  }
+  STATE = 'CUTSCENE';
+  await say(['Sobre el altar hay un corazón dorado: el símbolo del Sagrado Corazón.',
+    'Una placa dice: «Que ningún niño se quede sin hogar ni sin educación». — A. Coindre']);
+  cine = { type:'heal', t0: now };
+  await wait(900);
+  cine = null;
+  game.flags.altar = true;
+  game.bag.tirita = (game.bag.tirita || 0) + 2;
+  game.bag.caramelo = (game.bag.caramelo || 0) + 1;
+  await say(['Al pie del altar alguien ha dejado un pequeño paquete...', '¡Has recibido 2 x Tirita mágica y 1 x Caramelo raro!']);
+  STATE = 'OVERWORLD'; saveGame(); refreshTouch();
+}
+
+// ---------------- BUCLE PRINCIPAL ----------------
 function gameLoop(ts) {
-  if (STATE === 'OVERWORLD') {
-    const dir = dirFromKeys();
-    if (dir && ts - lastMoveAt > MOVE_INTERVAL) {
-      tryMove(dir);
-      lastMoveAt = ts;
-    }
-    renderOverworld();
-  }
+  const dt = lastFrame ? Math.min(50, ts - lastFrame) : 16;
+  lastFrame = ts; now = ts;
+  if (STATE !== 'TITLE') game.playTime += dt;
+  update(dt);
+  render();
   requestAnimationFrame(gameLoop);
 }
 
-function renderOverworld() {
-  const map = MAPS[game.room];
-  canvas.height = map.grid.length * TILE;
-  canvas.width = map.grid[0].length * TILE;
-  ctx.fillStyle = map.bg;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  for (let y=0; y<map.grid.length; y++) {
-    for (let x=0; x<map.grid[y].length; x++) {
-      drawTile(map, map.grid[y][x], x, y);
-    }
+function update(dt) {
+  updateDialog(dt);
+  updateActorMotion(player);
+  actors.forEach(updateActorMotion);
+  if (STATE === 'OVERWORLD') {
+    updatePlayerInput();
+    updateWanderers();
   }
-  for (const d of (map.decor || [])) {
-    drawDecor(ctx, d.type, d.x*TILE, d.y*TILE, TILE, d.color);
+}
+
+function updatePlayerInput() {
+  if (player.moving) return;
+  const dir = heldDir();
+  if (!dir) return;
+  if (dir !== player.facing && !player.justArrived) {
+    player.facing = dir;
+    turnUntil = now + 90;
+    return;
   }
-  for (const n of map.npcs) drawNpc(ctx, n.sprite, n.x*TILE, n.y*TILE, TILE);
+  if (now < turnUntil) return;
+  player.justArrived = false;
+  const map = currentMap();
+  const [dx, dy] = DIRS[dir];
+  const nx = player.x + dx, ny = player.y + dy;
+  const door = map.doors.find(d => d.x === nx && d.y === ny);
+  if (door && door.elevator) { player.facing = dir; openElevator(); return; }
+  if (door && door.locked && !doorOpen(door)) {
+    player.facing = dir;
+    showDialog('La puerta dorada está cerrada con llave. Quizá el Director tenga algo que ver...');
+    return;
+  }
+  if (blocked(map, nx, ny, true)) { player.facing = dir; return; }
+  startMove(player, dir, running() ? RUN_MS : WALK_MS, () => onPlayerArrive(door));
+}
 
-  // el jugador se dibuja con un pequeño salto al moverse
-  drawPlayer(ctx, game.pos.x*TILE, game.pos.y*TILE, TILE, game.facing, walkFrame);
+function onPlayerArrive(door) {
+  player.justArrived = !!heldDir();
+  const map = currentMap();
+  if (door && door.to) {
+    transitionTo(door.to, door.tx, door.ty, door.ty <= 1 ? 'down' : player.facing);
+    return;
+  }
+  const t = tileAt(map, player.x, player.y);
+  if (map.wildZone && TILE_ENCOUNTER(t) && game.team.some(p => p.hp > 0) && Math.random() < 0.11) {
+    STATE = 'CUTSCENE';
+    battleIntro().then(() => startWildBattle(map.wildZone));
+  }
+}
 
+function updateWanderers() {
+  const map = currentMap();
+  for (const a of actors) {
+    if (a.kind !== 'wander' || a.moving || now < a.nextMove) continue;
+    a.nextMove = now + 1000 + Math.random() * 2600;
+    const dirs = ['up','down','left','right'];
+    const dir = dirs[Math.floor(Math.random() * 4)];
+    const [dx, dy] = DIRS[dir];
+    const nx = a.x + dx, ny = a.y + dy;
+    if (Math.abs(nx - a.home.x) > 3 || Math.abs(ny - a.home.y) > 2) { a.facing = dir; continue; }
+    const t = tileAt(map, nx, ny);
+    if (t === 'D' || t === 'A' || t === 'L' || ny <= 0) { a.facing = dir; continue; }
+    if (map.doors.some(d => Math.abs(d.x - nx) + Math.abs(d.y - ny) <= 1)) { a.facing = dir; continue; }
+    if (blocked(map, nx, ny, false)) { a.facing = dir; continue; }
+    startMove(a, dir, 280);
+  }
+}
+
+// ---------------- RENDER ----------------
+function camera(map) {
+  const mw = map.grid[0].length * TILE, mh = map.grid.length * TILE;
+  const cx = player.px + TILE / 2 - VIEW_W / 2, cy = player.py + TILE / 2 - VIEW_H / 2;
+  return {
+    x: mw <= VIEW_W ? -(VIEW_W - mw) / 2 : Math.max(0, Math.min(mw - VIEW_W, cx)),
+    y: mh <= VIEW_H ? -(VIEW_H - mh) / 2 : Math.max(0, Math.min(mh - VIEW_H, cy))
+  };
+}
+
+function render() {
+  ctx.imageSmoothingEnabled = false;
+  if (STATE === 'TITLE') { drawTitle(); return; }
+  const map = currentMap();
+  if (!map || !staticLayer) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H); drawCine(); return; }
+  const cam = camera(map);
+  const sx = Math.round(-cam.x + (shake ? (Math.random() * 4 - 2) : 0)), sy = Math.round(-cam.y);
+  ctx.fillStyle = '#0d0b14';
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.drawImage(staticLayer, 0, 0);
+
+  // capa animada bajo los personajes
+  const H = map.grid.length, W = map.grid[0].length;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = map.grid[y][x];
+    if (t === 'w') drawWater(ctx, x * TILE, y * TILE, TILE, now);
+    if (t === 'A') { const door = map.doors.find(d => d.x === x && d.y === y); drawDoor(ctx, x * TILE, y * TILE, TILE, door, null, now); }
+  }
+  for (const d of map.decor) {
+    const def = decorDef(d.type);
+    if (def.wall && def.anim) def.draw(ctx, d.x * TILE, d.y * TILE, TILE, d, now);
+  }
+  for (const it of map.items) if (!game.picked[it.id]) drawItemBall(ctx, it.x * TILE, it.y * TILE, TILE, now);
+
+  // objetos altos y personajes ordenados por profundidad
+  const list = [];
+  for (const d of map.decor) {
+    const def = decorDef(d.type);
+    if (def.wall || !(def.tall || def.anim)) continue;
+    list.push({ y: (d.y + (d.h || 1)) * TILE - 1, draw: () => def.draw(ctx, d.x * TILE, d.y * TILE, TILE, d, now) });
+  }
+  for (const a of actors) list.push({ y: a.py + TILE, draw: () => drawActor(a) });
+  list.push({ y: player.py + TILE + 0.5, draw: () => drawActor(player) });
+  list.sort((p, q) => p.y - q.y);
+  list.forEach(o => o.draw());
+
+  // la hierba alta tapa los pies
+  for (const a of [player, ...actors]) {
+    const tx = Math.round(a.px / TILE), ty = Math.round(a.py / TILE);
+    if (tileAt(map, tx, ty) === ',') drawTallGrass(ctx, tx * TILE, ty * TILE + 10, TILE, now, true);
+  }
   drawDoorLabels(map);
-  drawHud();
+  for (const a of actors) if (a.bubble) drawBubble(a);
+  ctx.restore();
+
+  drawBanner();
+  if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, VIEW_W, VIEW_H); }
+  drawCine();
 }
 
-function drawTile(map, t, x, y) {
-  const px = x*TILE, py = y*TILE;
-  if (t === '#') { drawWallBrick(ctx, px, py, TILE); return; }
-  if (t === ',') { drawGrassTile(ctx, px, py, TILE, (x+y)%2===0); return; }
-  if (t === 'z') { drawFloorWood(ctx, px, py, TILE); drawTechSparkle(ctx, px, py, TILE, (x+y)%2===0); return; }
-  if (t === 'p') { drawPathTile(ctx, px, py, TILE); return; }
-  if (t === 'A') { drawElevatorTile(ctx, px, py, TILE); return; }
-  if (t === 'D') {
-    const door = map.doors.find(d => d.x===x && d.y===y);
-    drawDoorTile(ctx, px, py, TILE, door ? TYPE_COLOR[subjectColorType(door)] : '#8d6e63');
-    return;
-  }
-  if (t === 'L') {
-    const unlocked = game.badges && game.badges.length >= 6;
-    drawLigaDoorTile(ctx, px, py, TILE, unlocked);
-    return;
-  }
-  if (map.wildZone) drawPatioFloor(ctx, px, py, TILE);
-  else drawFloorWood(ctx, px, py, TILE);
+function drawActor(a) {
+  drawPerson(ctx, a.look, a.px + TILE / 2, a.py + TILE + 2, TILE + 4, a.facing, actorFrame(a));
 }
 
-function subjectColorType(door) {
-  const trainer = Object.values(TRAINERS).find(t => t.room === door.to);
-  return trainer ? SPECIES[trainer.team[0][0]].type : 'logica';
+function drawBubble(a) {
+  const x = a.px + TILE / 2, y = a.py - 14;
+  const pop = Math.min(1, (now - a.bubble) / 120);
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(pop, pop);
+  box(ctx, -8, -12, 16, 18, '#fafafa', OUT);
+  ctx.fillStyle = '#e53935'; ctx.fillRect(-2, -8, 4, 8); ctx.fillRect(-2, 2, 4, 3);
+  ctx.restore();
 }
 
 function drawDoorLabels(map) {
-  ctx.font = 'bold 11px monospace';
+  ctx.font = 'bold 8px monospace';
   ctx.textAlign = 'center';
   for (const d of map.doors) {
-    if (!d.short) continue;
-    const px = d.x*TILE + TILE/2, py = d.y*TILE - 4;
-    const w = ctx.measureText(d.short).width + 10;
-    ctx.fillStyle = d.elevator ? 'rgba(20,60,90,0.85)' : 'rgba(20,20,20,0.75)';
-    ctx.fillRect(px - w/2, py - 13, w, 16);
+    if (!d.short || d.exit) continue;
+    const cx = d.x * TILE + TILE / 2, y = d.y * TILE + 2;
+    const w = ctx.measureText(d.short).width + 6;
+    box(ctx, cx - w / 2, y, w, 11, d.locked && !doorOpen(d) ? '#4a148c' : '#263238', OUT);
     ctx.fillStyle = '#ffd54f';
-    ctx.fillText(d.short, px, py - 1);
+    ctx.fillText(d.short, cx, y + 8);
   }
 }
 
-function drawHud() {
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.fillRect(0,0,230,30);
-  ctx.fillStyle = '#ffd54f';
-  ctx.font = 'bold 13px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(`🏅 ${game.badges.length}/6   🏷️ ${game.stickers}   💰 ${game.coins}`, 8, 20);
+function drawBanner() {
+  if (!banner) return;
+  const t = now - banner.t0;
+  if (t > 2600) { banner = null; return; }
+  const slide = t < 300 ? t / 300 : t > 2300 ? (2600 - t) / 300 : 1;
+  const y = -40 + slide * 50;
+  ctx.font = 'bold 14px monospace';
+  const w = ctx.measureText(banner.text).width + 32;
+  box(ctx, 8, y, w, 30, '#fff8e1', OUT);
+  box(ctx, 12, y + 4, w - 8, 22, '#fff8e1', '#c9a26b');
+  ctx.fillStyle = '#3e2723'; ctx.textAlign = 'left';
+  ctx.fillText(banner.text, 24, y + 20);
 }
 
-// ---------------- HISTORIA / INICIO ----------------
-const introLines = [
-  'Hoy es tu primer día en el Colegio Corazonistas Vitoria.',
-  'El colegio tiene 6 plantas, y un viejo ascensor en la Planta Baja es la única forma de moverte entre ellas.',
-  'Cada asignatura es un gimnasio: en Primaria (1º y 2º) empezarás con Matemáticas, Lengua, Ciencias e Inglés; en la ESO (3º) te espera Arte, y en el Tatami de la Planta Baja, Educación Física.',
-  'El ascensor solo te dejará subir más alto según las insignias que vayas consiguiendo: Bachillerato (4º) y, al final, la 5ª planta, donde el Director dirige la Liga Corazonistas.',
-  'Para llegar a la Liga necesitarás las 6 insignias: Lógica, Letras, Física, Arte, Natural e Idioma.',
-  'Consejo del conserje: antes de retar a un profesor, entrena y captura algún Coremon salvaje en el Patio (o en las salas de apoyo de cada planta) con tus cromos. ¡Un equipo de uno no basta contra un profesor!',
-  'Un viejo conserje te espera en la entrada con un regalo especial antes de empezar...'
+// ---------------- CINEMÁTICAS ----------------
+function drawCine() {
+  if (!cine) return;
+  const t = now - cine.t0;
+  if (cine.type === 'heal') {
+    ctx.fillStyle = `rgba(255,255,255,${0.5 * Math.abs(Math.sin(t / 150))})`;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2 + t / 300;
+      ctx.fillStyle = '#ff80ab';
+      ctx.fillRect(VIEW_W / 2 + Math.cos(a) * (40 + t / 20) - 3, VIEW_H / 2 + Math.sin(a) * (40 + t / 20) - 3, 6, 6);
+    }
+  } else if (cine.type === 'battleIntro') {
+    const k = Math.min(1, t / cine.dur);
+    if (k < 0.45) {
+      ctx.fillStyle = Math.floor(t / 70) % 2 ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    } else {
+      const kk = (k - 0.45) / 0.55, bars = 8, bh = VIEW_H / bars;
+      ctx.fillStyle = '#000';
+      for (let i = 0; i < bars; i++) {
+        const w = VIEW_W * kk;
+        if (i % 2) ctx.fillRect(0, i * bh, w, bh); else ctx.fillRect(VIEW_W - w, i * bh, w, bh);
+      }
+    }
+  } else if (cine.type === 'cards') {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const a = Math.min(1, t / 500, Math.max(0, (cine.dur - t) / 500));
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#fafafa'; ctx.textAlign = 'center';
+    ctx.font = 'bold 18px monospace';
+    (cine.lines || []).forEach((l, i) => ctx.fillText(l, VIEW_W / 2, VIEW_H / 2 - (cine.lines.length - 1) * 14 + i * 28));
+    if (cine.heart) drawHeartIcon(VIEW_W / 2, VIEW_H / 2 - 80, 18);
+    ctx.globalAlpha = 1;
+  } else if (cine.type === 'badge') {
+    ctx.fillStyle = 'rgba(10,8,20,0.82)'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const k = Math.min(1, t / 700);
+    const r = 20 + 40 * k;
+    ctx.save();
+    ctx.translate(VIEW_W / 2, VIEW_H / 2 - 30);
+    ctx.scale(Math.cos(t / 220) * 0.4 + 0.6 + 0.4 * k * 0, 1);
+    drawBadge(ctx, 0, 0, r, cine.color, true);
+    ctx.restore();
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2 + t / 900, d = 70 + 20 * Math.sin(t / 200 + i);
+      ctx.fillStyle = i % 2 ? '#fff59d' : '#ffffff';
+      ctx.fillRect(VIEW_W / 2 + Math.cos(a) * d - 2, VIEW_H / 2 - 30 + Math.sin(a) * d - 2, 4, 4);
+    }
+    ctx.fillStyle = '#ffd54f'; ctx.textAlign = 'center'; ctx.font = 'bold 18px monospace';
+    ctx.fillText('¡INSIGNIA CONSEGUIDA!', VIEW_W / 2, VIEW_H / 2 + 60);
+    ctx.fillStyle = '#fafafa'; ctx.font = 'bold 14px monospace';
+    ctx.fillText(cine.title, VIEW_W / 2, VIEW_H / 2 + 84);
+  } else if (cine.type === 'evo') {
+    ctx.fillStyle = '#0b0b1e'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    for (let i = 0; i < 30; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.3 * Math.sin(t / 200 + i)})`;
+      ctx.fillRect((i * 97 + t / 10) % VIEW_W, (i * 53) % VIEW_H, 2, 2);
+    }
+    const dur = 3600, k = Math.min(1, t / dur);
+    const freq = 2 + k * 18;
+    const showNew = k >= 1 || Math.sin(t / 1000 * freq * Math.PI) > 0;
+    const sp = showNew && k > 0.15 ? cine.to : cine.from;
+    const white = k < 1 ? 0.85 : Math.max(0, 1 - (t - dur) / 600);
+    drawCreature(ctx, sp, VIEW_W / 2 - 64, VIEW_H / 2 - 90, 128, { white: white, silhouette: false });
+    ctx.fillStyle = '#fafafa'; ctx.textAlign = 'center'; ctx.font = 'bold 16px monospace';
+    ctx.fillText(k < 1 ? `¡${SPECIES[cine.from].name} está evolucionando!` : `¡${SPECIES[cine.from].name} evolucionó a ${SPECIES[cine.to].name}!`, VIEW_W / 2, VIEW_H - 60);
+  } else if (cine.type === 'credits') {
+    ctx.fillStyle = '#100a14'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawHeartIcon(VIEW_W / 2, 60, 22 + Math.sin(t / 300) * 2);
+    const y0 = VIEW_H + 20 - t / 28;
+    ctx.textAlign = 'center';
+    CREDITS.forEach((l, i) => {
+      ctx.fillStyle = l.startsWith('#') ? '#ffd54f' : '#fafafa';
+      ctx.font = l.startsWith('#') ? 'bold 16px monospace' : '13px monospace';
+      ctx.fillText(l.replace(/^#/, ''), VIEW_W / 2, y0 + i * 26);
+    });
+    if (y0 + CREDITS.length * 26 < 120) cine.done = true;
+  }
+}
+
+function drawHeartIcon(cx, cy, s) {
+  ctx.fillStyle = '#d32f2f';
+  ctx.beginPath(); ctx.arc(cx - s / 2, cy, s / 2, 0, Math.PI * 2); ctx.arc(cx + s / 2, cy, s / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - s, cy + 2); ctx.lineTo(cx, cy + s * 1.2); ctx.lineTo(cx + s, cy + 2); ctx.fill();
+  ctx.fillStyle = '#ffd54f';
+  ctx.beginPath(); ctx.moveTo(cx - 3, cy - s * 0.4); ctx.lineTo(cx, cy - s * 1.1); ctx.lineTo(cx + 3, cy - s * 0.4); ctx.fill();
+}
+
+const CREDITS = [
+  '#COREMON', 'Edición Corazonistas Vitoria', '',
+  'Has demostrado saber... y tener corazón.', '',
+  '#Inspirado en la historia real', 'Padre Andrés Coindre (1787-1826)', 'Fundó en Lyon, en 1821,', 'los Hermanos del Sagrado Corazón', 'para educar a niños sin hogar.', '',
+  'Doscientos años después,', 'el colegio de Vitoria-Gasteiz', 'es la casa corazonista', 'con más alumnos de España.', '',
+  '#Profesores', 'Profe Atlas · Profesora Álgebra', 'Profesor Cervantes · Profesor Darwin', 'Mr. Shakespeare · Profesora Frida', 'El Director', '',
+  '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!'
 ];
 
-function startNewGame() {
-  STATE = 'STORY';
-  document.getElementById('start-screen').classList.add('hidden');
-  showDialog(introLines, showStarterSelect);
+function battleIntro() {
+  cine = { type:'battleIntro', t0: now, dur: 900 };
+  return wait(900).then(() => { cine = null; });
+}
+
+async function cinematic(obj, ms) {
+  cine = Object.assign({ t0: now }, obj);
+  const start = performance.now();
+  while (performance.now() - start < ms && !(cine && cine.skip)) await wait(30);
+  cine = null;
+}
+
+// ---------------- PANTALLA DE TÍTULO ----------------
+function drawTitle() {
+  const t = now;
+  const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+  g.addColorStop(0, '#4fa3e0'); g.addColorStop(0.6, '#bfe3f7'); g.addColorStop(0.61, '#7cc35a'); g.addColorStop(1, '#5aa13f');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  for (let i = 0; i < 4; i++) {
+    const cx = ((t / 40 + i * 160) % (VIEW_W + 120)) - 60;
+    ctx.fillStyle = '#ffffffcc';
+    ctx.beginPath(); ctx.arc(cx, 40 + i * 22, 16, 0, 7); ctx.arc(cx + 18, 36 + i * 22, 20, 0, 7); ctx.arc(cx + 38, 42 + i * 22, 14, 0, 7); ctx.fill();
+  }
+  // edificio del colegio
+  box(ctx, 96, 130, 320, 106, '#b85c42', OUT);
+  box(ctx, 216, 100, 80, 40, '#b85c42', OUT);
+  box(ctx, 196, 92, 120, 12, '#8d3b2a', OUT);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) {
+    if (c === 3 || c === 4) continue;
+    box(ctx, 110 + c * 38, 146 + r * 40, 22, 26, '#8ecae6', OUT);
+  }
+  box(ctx, 236, 190, 40, 46, '#5d4037', OUT);
+  box(ctx, 176, 112, 160, 20, '#fff8e1', OUT);
+  ctx.fillStyle = '#8e2b3a'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('CORAZONISTAS', 256, 126);
+  drawHeartIcon(256, 76, 10);
+  // logo
+  ctx.font = 'bold 54px monospace';
+  ctx.lineWidth = 8; ctx.strokeStyle = '#1d1a26'; ctx.strokeText('COREMON', 256, 290);
+  ctx.fillStyle = '#ffd54f'; ctx.fillText('COREMON', 256, 290);
+  ctx.font = 'bold 15px monospace';
+  ctx.lineWidth = 4; ctx.strokeText('Edición Corazonistas Vitoria', 256, 314);
+  ctx.fillStyle = '#fafafa'; ctx.fillText('Edición Corazonistas Vitoria', 256, 314);
+  ['tizorex', 'plumavox', 'mochiloide'].forEach((sp, i) => {
+    drawCreature(ctx, sp, 70 + i * 160, 318 + Math.sin(t / 300 + i) * 4, 56, { flip: i === 2 });
+  });
+  if (Math.floor(t / 600) % 2) {
+    box(ctx, 106, 6, 300, 20, 'rgba(29,26,38,0.75)');
+    ctx.fillStyle = '#ffd54f'; ctx.font = 'bold 12px monospace';
+    ctx.fillText('▼ Elige una opción abajo ▼', 256, 20);
+  }
+}
+
+function titleStart() {
+  if (hasSave()) continueGame(); else startNewGame();
+}
+
+// ---------------- INICIO / HISTORIA ----------------
+async function startNewGame() {
+  game = newGameState();
+  STATE = 'CUTSCENE';
+  showTouch('main');
+  enterRoom('planta_baja', 8, 9, 'up');
+  fade = 1;
+  const cards = [
+    { lines:['Lyon, Francia. Invierno de 1817.'], dur: 2600 },
+    { lines:['Un joven sacerdote, Andrés Coindre,', 'encuentra a dos niñas temblando de frío', 'en el pórtico de Saint-Nizier.'], dur: 3800 },
+    { lines:['En 1821 funda los', 'Hermanos del Sagrado Corazón.'], dur: 3000, heart: true },
+    { lines:['Doscientos años después...', 'Vitoria-Gasteiz.'], dur: 2800 },
+    { lines:['Tu primer día', 'en el Colegio Corazonistas.'], dur: 2600 }
+  ];
+  for (const c of cards) { await cinematic(Object.assign({ type:'cards', skippable:true }, c), c.dur); }
+  await fadeTo(0, 500);
+  const conserje = actors.find(a => a.id === 'conserje');
+  await wait(400);
+  await exclaim(conserje);
+  await walkActor(conserje, ['right']);
+  faceTowards(conserje, player);
+  player.facing = 'left';
+  await say([
+    'Conserje: ¡Hombre! Tú debes de ser el alumno nuevo. ¡Bienvenido a Corazonistas!',
+    'Conserje: Aquí somos más de 1.260 alumnos, los «Coras». Y cada uno tiene su Coremon.',
+    'Conserje: Cada asignatura es un gimnasio. Si ganas a un profesor, te da su insignia.',
+    'Conserje: Con 6 insignias, el ascensor te subirá hasta la Sala de Profesores... y quien sabe qué más.',
+    'Conserje: Pero primero necesitas un compañero. ¡Mira lo que tengo aquí!'
+  ]);
+  const starter = await chooseStarter();
+  game.team = [createPokemon(starter, 5)];
+  game.seen[starter] = true; game.caught[starter] = true;
+  await say([
+    `Conserje: ¡${SPECIES[starter].name}! Buena elección. Se nota que os vais a llevar bien.`,
+    'Conserje: Toma, para el camino: 5 cromos para capturar Coremon salvajes y 3 bocadillos.',
+    '¡Has recibido 5 x Cromo y 3 x Bocadillo!',
+    'Conserje: Un consejo: antes de retar a un profesor, entrena en el Patio. Sales por la puerta de abajo.',
+    'Conserje: La enfermera de la derecha te cura gratis, y en las máquinas venden de todo.',
+    'Conserje: ¡Ánimo, Cora!'
+  ]);
+  game.bag = { cromo: 5, bocadillo: 3 };
+  await walkActor(conserje, ['left']);
+  conserje.facing = 'right';
+  game.flags.introDone = true;
+  STATE = 'OVERWORLD';
+  saveGame(); refreshTouch();
+}
+
+function walkActor(a, dirs) {
+  return dirs.reduce((p, d) => p.then(() => new Promise(res => startMove(a, d, 260, res))), Promise.resolve());
 }
 
 function continueGame() {
-  loadGame();
-  document.getElementById('start-screen').classList.add('hidden');
-  enterOverworld();
-}
-
-function showStarterSelect() {
-  STATE = 'STARTER';
-  document.getElementById('starter-screen').classList.remove('hidden');
-}
-
-function pickStarter(speciesId) {
-  document.getElementById('starter-screen').classList.add('hidden');
-  game.team = [createPokemon(speciesId, 5)];
-  const name = SPECIES[speciesId].name;
-  showDialog([`El conserje: ¡${name} te ha elegido a ti también! Cuida bien de tu Coremon.`,
-    'Recorre el colegio, entra en cada aula y derrota a los profesores para ganar sus insignias.'],
-    enterOverworld);
-}
-
-function enterOverworld() {
+  if (!loadGame()) { startNewGame(); return; }
+  showTouch('main');
+  enterRoom(game.room, game.pos.x, game.pos.y, game.facing || 'down');
   STATE = 'OVERWORLD';
-  document.getElementById('game-screen').classList.remove('hidden');
-  saveGame();
+  if (!game.team.length) { STATE = 'CUTSCENE'; chooseStarter().then(sp => { game.team = [createPokemon(sp, 5)]; STATE = 'OVERWORLD'; saveGame(); refreshTouch(); }); }
 }
 
-function checkWinCondition() {
-  if (game.badges.includes('director')) {
-    STATE = 'WIN';
-    document.getElementById('win-screen').classList.remove('hidden');
+// ---------------- DESPUÉS DEL COMBATE ----------------
+async function afterBattle(info) {
+  STATE = 'CUTSCENE';
+  if (info.result === 'lose') {
+    await fadeTo(1, 400);
+    healTeam();
+    const lost = Math.floor(game.coins / 2);
+    game.coins -= lost;
+    enterRoom('planta_baja', 13, 7, 'right');
+    await fadeTo(0, 400);
+    await say([`Te has quedado sin Coremon en pie... Pierdes ${lost} monedas al volver corriendo a la enfermería.`,
+      'Enfermera: ¡Ay, madre! Ya están curados. Entrena un poco más antes de volver a intentarlo, ¿vale?']);
+    STATE = 'OVERWORLD'; saveGame(); refreshTouch();
+    return;
   }
+  for (const evo of (info.evolutions || [])) {
+    await cinematic({ type:'evo', from: evo.from, to: evo.to }, 4400);
+    evo.mon.species = evo.to;
+    evo.mon.moves = relearnMoveSlots(evo.mon.moves, evo.to, evo.mon.level);
+    game.seen[evo.to] = true; game.caught[evo.to] = true;
+    await say(`¡Enhorabuena! Tu ${SPECIES[evo.from].name} ha evolucionado a ${SPECIES[evo.to].name}.`);
+  }
+  if (info.trainer && info.result === 'win') {
+    const t = info.trainer;
+    if (t.student) {
+      await say(`${t.name}: ${t.win}`);
+    } else {
+      await say(`${t.name}: ${t.win}`);
+      if (t.id === 'coindre') { await endingScene(); return; }
+      if (info.newBadge) {
+        await cinematic({ type:'badge', color: t.badgeColor, title: t.reward }, 2800);
+        await say(`¡Has conseguido: ${t.reward}!`);
+      }
+      if (t.id === 'director') {
+        shake = 1; await wait(500); shake = 0;
+        await say(['¡CLAC! Se oye un mecanismo antiguo en el pasillo...', 'La puerta dorada de la Sala del Fundador se ha abierto.']);
+      } else if (academicBadgeCount(game.badges) === 6 && !game.flags.allBadges) {
+        game.flags.allBadges = true;
+        await say(['¡Tienes las 6 insignias!', 'Ahora el ascensor puede subir hasta la 5ª planta: la Sala de Profesores.']);
+      } else if (info.newBadge) {
+        const next = FLOORS.find(f => f.needBadges === academicBadgeCount(game.badges));
+        if (next && next.needBadges > 0) await say(`¡El ascensor ya puede subir a la ${next.name}!`);
+      }
+    }
+  }
+  STATE = 'OVERWORLD';
+  saveGame(); refreshTouch();
+}
+
+async function endingScene() {
+  game.flags.champion = true;
+  saveGame();
+  await cinematic({ type:'credits', skippable:true }, 30000);
+  await say(['¡Has completado Coremon: Edición Corazonistas Vitoria!',
+    'Puedes seguir explorando el colegio, completar tu Coredex y retar de nuevo a los alumnos.']);
+  STATE = 'OVERWORLD';
+  refreshTouch();
 }
 
 window.addEventListener('load', () => {
-  document.getElementById('btn-continue').disabled = !hasSave();
-  document.getElementById('btn-new').addEventListener('click', startNewGame);
-  document.getElementById('btn-continue').addEventListener('click', continueGame);
-  document.getElementById('btn-elevator-close').addEventListener('click', closeElevator);
-  document.querySelectorAll('.starter-card').forEach(card => {
-    card.addEventListener('click', () => pickStarter(card.dataset.species));
-  });
+  initTouch();
   requestAnimationFrame(gameLoop);
 });

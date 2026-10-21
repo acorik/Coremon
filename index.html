@@ -2,103 +2,108 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Coremon: Corazonistas Vitoria</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="app">
+<div id="ds">
 
-  <!-- Pantalla de inicio -->
-  <div id="start-screen" class="screen">
-    <h1>🎓 Coremon: Corazonistas Vitoria</h1>
-    <p>Conviértete en el mejor estudiante del colegio.<br>Gana las 6 insignias y derrota al Director.</p>
-    <div class="menu-buttons">
-      <button id="btn-new" class="big-btn">Nueva Partida</button>
-      <button id="btn-continue" class="big-btn">Continuar</button>
-    </div>
-  </div>
+  <!-- ===== PANTALLA SUPERIOR ===== -->
+  <div id="top-screen" class="screen">
+    <canvas id="game-canvas" width="512" height="384"></canvas>
 
-  <!-- Selección de inicial -->
-  <div id="starter-screen" class="screen hidden">
-    <h1>Elige a tu Coremon inicial</h1>
-    <p>El conserje del colegio te ofrece tres compañeros:</p>
-    <div class="starter-row">
-      <div class="starter-card" data-species="tizorex">
-        <div class="starter-emoji">✏️</div>
-        <h3>Tizorex</h3>
-        <p>Tipo Lógica</p>
-      </div>
-      <div class="starter-card" data-species="plumavox">
-        <div class="starter-emoji">🖋️</div>
-        <h3>Plumavox</h3>
-        <p>Tipo Letras</p>
-      </div>
-      <div class="starter-card" data-species="mochiloide">
-        <div class="starter-emoji">🎒</div>
-        <h3>Mochiloide</h3>
-        <p>Tipo Físico</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Juego -->
-  <div id="game-screen" class="hidden">
-    <canvas id="game-canvas" width="600" height="360"></canvas>
-
-    <!-- Pantalla de batalla -->
     <div id="battle-screen" class="hidden">
-      <div class="battle-field">
-        <canvas id="battle-canvas" width="560" height="190"></canvas>
-        <div class="poke-panel enemy">
-          <strong id="enemy-poke-name">-</strong>
-          <div id="enemy-poke-text" style="font-size:11px;color:#555;"></div>
-          <div class="hp-bar-bg"><div id="enemy-hp-bar" class="hp-bar-fill hp-high" style="width:100%"></div></div>
-          <div id="enemy-hp-text" style="font-size:11px;color:#555;text-align:right;"></div>
+      <canvas id="battle-canvas" width="512" height="384"></canvas>
+      <div class="poke-panel enemy">
+        <div class="pp-head"><b id="enemy-poke-name">-</b><span id="enemy-poke-lv"></span></div>
+        <div class="pp-sub"><span id="enemy-poke-text"></span><span id="enemy-balls"></span></div>
+        <div class="hp-row"><span class="hp-label">PS</span><div class="hp-bar-bg"><div id="enemy-hp-bar" class="hp-bar-fill hp-high"></div></div></div>
+        <div id="enemy-hp-text" class="hidden"></div>
+      </div>
+      <div class="poke-panel player">
+        <div class="pp-head"><b id="player-poke-name">-</b><span id="player-poke-lv"></span></div>
+        <div class="hp-row"><span class="hp-label">PS</span><div class="hp-bar-bg"><div id="player-hp-bar" class="hp-bar-fill hp-high"></div></div></div>
+        <div id="player-hp-text" class="hp-num"></div>
+        <div class="exp-bg"><div id="player-exp-bar" class="exp-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="dialog-box" class="hidden">
+      <div id="dialog-name" class="hidden"></div>
+      <div id="dialog-text"></div>
+      <div id="dialog-arrow">▼</div>
+    </div>
+  </div>
+
+  <div id="hinge"><span></span><span></span></div>
+
+  <!-- ===== PANTALLA INFERIOR (TÁCTIL) ===== -->
+  <div id="bottom-screen" class="screen">
+
+    <div id="touch-title" class="touch">
+      <div class="title-menu">
+        <button id="btn-continue" class="ds-btn big">Continuar</button>
+        <button id="btn-new" class="ds-btn big alt">Nueva partida</button>
+        <p class="muted small">Flechas/WASD: mover · Shift: correr · Enter/Z: hablar (A) · Esc/X: atrás (B)<br>En móvil usa la cruceta y los botones A/B.</p>
+      </div>
+    </div>
+
+    <div id="touch-main" class="touch hidden">
+      <div class="status-bar">
+        <span id="loc-name"></span>
+        <span class="coins">💰 <b id="coins">0</b></span>
+      </div>
+      <canvas id="badge-canvas" width="245" height="30"></canvas>
+      <div id="team-strip"></div>
+      <div class="menu-grid">
+        <button id="menu-team" class="ds-btn tile-btn c1">EQUIPO</button>
+        <button id="menu-bag" class="ds-btn tile-btn c2">MOCHILA</button>
+        <button id="menu-dex" class="ds-btn tile-btn c3">COREDEX</button>
+        <button id="menu-save" class="ds-btn tile-btn c4">GUARDAR</button>
+      </div>
+      <div class="pad">
+        <div class="dpad">
+          <button data-dir="up" class="d up">▲</button>
+          <button data-dir="left" class="d left">◀</button>
+          <button data-dir="right" class="d right">▶</button>
+          <button data-dir="down" class="d down">▼</button>
         </div>
-        <div class="poke-panel player">
-          <strong id="player-poke-name">-</strong>
-          <div class="hp-bar-bg"><div id="player-hp-bar" class="hp-bar-fill hp-high" style="width:100%"></div></div>
-          <div id="player-hp-text" style="font-size:11px;color:#555;"></div>
+        <div class="ab">
+          <button id="pad-b" class="round b">B</button>
+          <button id="pad-a" class="round a">A</button>
         </div>
       </div>
+    </div>
+
+    <div id="touch-panel" class="touch hidden">
+      <div class="panel-head"><span id="panel-title"></span><button id="panel-back" class="ds-btn small alt">✕ Cerrar</button></div>
+      <div id="panel-body"></div>
+    </div>
+
+    <div id="touch-battle" class="touch hidden">
       <div id="battle-log"></div>
-      <div id="battle-menu">
-        <button id="btn-fight" class="action-btn">⚔️ Luchar</button>
-        <button id="btn-defend" class="action-btn">🛡️ Defender</button>
-        <button id="btn-team" class="action-btn">🎓 Equipo</button>
-        <button id="btn-capture" class="action-btn">🏷️ Cromo</button>
-        <button id="btn-run" class="action-btn">🏃 Huir</button>
+      <div id="battle-menu" class="hidden">
+        <button id="btn-fight" class="bat-btn fight">LUCHAR</button>
+        <button id="btn-defend" class="bat-btn defend">DEFENDER</button>
+        <button id="btn-bag" class="bat-btn bag">MOCHILA</button>
+        <button id="btn-team" class="bat-btn team">EQUIPO</button>
+        <button id="btn-run" class="bat-btn run">HUIR</button>
       </div>
       <div id="move-menu" class="hidden"></div>
       <div id="team-menu" class="hidden"></div>
     </div>
+
+    <div id="toast" class="hidden"></div>
   </div>
-
-  <!-- Pantalla de victoria -->
-  <div id="win-screen" class="screen hidden">
-    <h1>🏆 ¡Eres el Campeón!</h1>
-    <p>Has derrotado al Director y a todos los profesores de Corazonistas Vitoria.<br>
-    Tu leyenda como estudiante quedará para siempre en el colegio.</p>
-  </div>
-
-  <!-- Ascensor: selección de planta -->
-  <div id="elevator-screen" class="screen hidden elevator-overlay">
-    <h1>🛗 Ascensor</h1>
-    <p>¿A qué planta quieres subir?</p>
-    <div id="elevator-list" class="menu-buttons"></div>
-    <button id="btn-elevator-close" class="big-btn" style="margin-top:10px;background:#777;">Cancelar</button>
-  </div>
-
-  <!-- Caja de diálogo global (historia, NPCs) -->
-  <div id="dialog-box" class="hidden"><div id="dialog-text"></div></div>
-
 </div>
 
 <script src="js/data.js"></script>
 <script src="js/sprites.js"></script>
+<script src="js/scenery.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/game.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/battle.js"></script>
 </body>
 </html>

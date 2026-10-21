@@ -1,8 +1,7 @@
 // ============================================================
-// COREMON - Motor de sprites pixel-art (estilo 8/16-bit)
-// Todo se dibuja por código con cuadrículas de píxeles, sin
-// imágenes externas, para poder sustituirlo luego por arte real
-// del colegio (ver assets/README.md) sin tocar esta interfaz.
+// COREMON - Sprites pixel-art (criaturas y personas), estilo DS
+// Todo se dibuja por código; los sprites se cachean en canvas
+// pequeños y se escalan sin suavizado para que queden nítidos.
 // ============================================================
 
 function hexShade(hex, percent) {
@@ -15,16 +14,13 @@ function hexShade(hex, percent) {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-// Dibuja una cuadrícula de píxeles (filas de strings, un char = un píxel)
-// con un mapa char->color. '.' es transparente.
 function drawPixels(ctx, rows, palette, dx, dy, destSize, flipX) {
   const h = rows.length, w = rows[0].length;
   const cw = destSize / w, ch = destSize / h;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const realX = flipX ? (w - 1 - x) : x;
-      const ch_ = rows[y][realX];
-      const color = palette[ch_];
+      const color = palette[rows[y][realX]];
       if (!color) continue;
       ctx.fillStyle = color;
       ctx.fillRect(dx + x * cw, dy + y * ch, Math.ceil(cw), Math.ceil(ch));
@@ -32,15 +28,67 @@ function drawPixels(ctx, rows, palette, dx, dy, destSize, flipX) {
   }
 }
 
-// mitad izquierda (8 cols) -> espejo para sprite simétrico de 16 cols
 function mirrorRows(halfRows) {
   return halfRows.map(r => r + r.split('').reverse().join(''));
 }
 
-// ---------------- CUERPOS DE CRIATURA (una silueta por archetype) ----------------
-// Cada fila es la MITAD IZQUIERDA (8px); el índice 7 toca el eje central y
-// debe quedar relleno ('A') en las filas de torso para que al reflejar
-// (mirrorRows) el cuerpo quede unido en vez de partido en dos mitades.
+// Añade un contorno oscuro de 1px alrededor de los píxeles opacos ('O').
+function outlineRows(rows) {
+  const h = rows.length, w = rows[0].length;
+  const out = rows.map(r => r.split(''));
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (rows[y][x] !== '.') continue;
+      const n = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy]) => {
+        const r = rows[y+dy];
+        return r && r[x+dx] && r[x+dx] !== '.';
+      });
+      if (n) out[y][x] = 'O';
+    }
+  }
+  return out.map(r => r.join(''));
+}
+
+// Caché de sprites rasterizados (clave -> canvas a resolución nativa)
+const SPRITE_CACHE = {};
+function cachedSprite(key, rows, palette) {
+  if (SPRITE_CACHE[key]) return SPRITE_CACHE[key];
+  const c = document.createElement('canvas');
+  c.width = rows[0].length; c.height = rows.length;
+  const cx = c.getContext('2d');
+  for (let y = 0; y < rows.length; y++) {
+    for (let x = 0; x < rows[0].length; x++) {
+      const color = palette[rows[y][x]];
+      if (!color) continue;
+      cx.fillStyle = color;
+      cx.fillRect(x, y, 1, 1);
+    }
+  }
+  SPRITE_CACHE[key] = c;
+  return c;
+}
+
+function blitSprite(ctx, img, dx, dy, w, h, flipX) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  if (flipX) {
+    ctx.translate(dx + w, dy);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, w, h);
+  } else {
+    ctx.drawImage(img, dx, dy, w, h);
+  }
+  ctx.restore();
+}
+
+function drawShadow(ctx, cx, cy, w) {
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, w, w * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ---------------- CRIATURAS ----------------
 function borderRow(r) {
   if (r < 0) return '........';
   let row = '';
@@ -54,9 +102,7 @@ function feetRow(r) {
   return row;
 }
 
-// torsoRadii: 11 valores para las filas 2-12 (índice de borde 0-7, -1=vacío)
-// eyeRowIndex: qué fila del torso lleva el ojo (0-10)
-// legMode 'feet' (dos patas) o 'point' (una cola/pico, estilo borderRow)
+// Siluetas por línea evolutiva. torsoRadii: borde por fila (filas 2-12)
 const ARCHETYPES = {
   round:  { torsoRadii:[6,5,4,3,2,2,2,2,3,4,5], eyeRowIndex:5, legMode:'feet',  legRadii:[3,3,2] },
   ball:   { torsoRadii:[5,3,2,1,1,1,1,1,2,3,5], eyeRowIndex:5, legMode:'feet',  legRadii:[3,3,2] },
@@ -66,14 +112,18 @@ const ARCHETYPES = {
   pack:   { torsoRadii:[5,4,4,3,3,2,2,1,1,1,2], eyeRowIndex:4, legMode:'feet',  legRadii:[1,1,1] },
   drip:   { torsoRadii:[7,7,6,5,3,2,1,1,2,3,4], eyeRowIndex:6, legMode:'feet',  legRadii:[2,2,2] },
   speech: { torsoRadii:[6,5,4,3,2,2,2,2,3,4,5], eyeRowIndex:5, legMode:'point', legRadii:[6,7,-1] },
-  leaf:   { torsoRadii:[7,6,4,3,2,2,2,2,3,4,5], eyeRowIndex:6, legMode:'feet',  legRadii:[3,3,2] }
+  leaf:   { torsoRadii:[7,6,4,3,2,2,2,2,3,4,5], eyeRowIndex:6, legMode:'feet',  legRadii:[3,3,2] },
+  heart:  { torsoRadii:[2,1,1,1,1,1,2,3,4,5,6], eyeRowIndex:3, legMode:'point', legRadii:[7,-1,-1] }
 };
 
 function genHalfBody(arch) {
   const rows = ['........', '........'];
   arch.torsoRadii.forEach(r => rows.push(borderRow(r)));
   const eyeIdx = 2 + arch.eyeRowIndex;
-  rows[eyeIdx] = rows[eyeIdx].slice(0, 6) + 'Ek';
+  rows[eyeIdx] = rows[eyeIdx].slice(0, 5) + 'Ek' + rows[eyeIdx][7];
+  // brillo en la parte superior
+  const hl = 3;
+  rows[hl] = rows[hl].replace(/A(?=A)/, 'C');
   arch.legRadii.forEach(r => rows.push(arch.legMode === 'point' ? borderRow(r) : feetRow(r)));
   while (rows.length < 16) rows.push('........');
   return rows.slice(0, 16);
@@ -81,10 +131,14 @@ function genHalfBody(arch) {
 
 const CREATURE_BODIES = {};
 Object.keys(ARCHETYPES).forEach(name => {
-  CREATURE_BODIES[name] = mirrorRows(genHalfBody(ARCHETYPES[name]));
+  const body = mirrorRows(genHalfBody(ARCHETYPES[name]));
+  if (name === 'heart') {
+    // muesca central del corazón
+    body[2] = body[2].slice(0, 7) + '..' + body[2].slice(9);
+  }
+  CREATURE_BODIES[name] = body;
 });
 
-// Acentos por tipo (se dibujan encima de las filas 0-1 del cuerpo)
 const TYPE_ACCENT_HALF = {
   logica:     ['....D...', '....D...'],
   letras:     ['..DD....', '.D......'],
@@ -94,320 +148,251 @@ const TYPE_ACCENT_HALF = {
   fisico:     ['........', 'DDDDDDD.']
 };
 
-function creaturePalette(type, stage) {
-  const base = TYPE_COLOR[type];
-  const glow = stage >= 2 ? 25 : stage >= 1 ? 12 : 0;
+function creaturePalette(sp) {
+  const base = sp.color || TYPE_COLOR[sp.type];
+  const stage = sp.stage || 0;
+  const glow = stage >= 2 ? 22 : stage >= 1 ? 10 : 0;
   return {
-    A: hexShade(base, glow),
-    B: hexShade(base, -45),
-    C: hexShade(base, 30 + glow),
-    D: hexShade(base, -20),
-    E: '#ffffff',
-    k: '#1a1a1a'
+    A: hexShade(base, glow), B: hexShade(base, -45), C: hexShade(base, 35 + glow),
+    D: sp.accent || hexShade(base, -20), E: '#ffffff', k: '#1a1a1a', O: '#141420'
   };
 }
 
+function creatureRows(speciesId) {
+  const sp = SPECIES[speciesId];
+  const rows = (CREATURE_BODIES[sp.archetype] || CREATURE_BODIES.round).slice();
+  const accent = mirrorRows(TYPE_ACCENT_HALF[sp.type] || ['........', '........']);
+  if (sp.archetype !== 'heart') { rows[0] = accent[0]; rows[1] = accent[1]; }
+  else { rows[0] = mirrorRows(['...D....'])[0]; }
+  // 18x18 con margen para el contorno
+  const padded = ['..................'].concat(rows.map(r => '.' + r + '.'), ['..................']);
+  return outlineRows(padded);
+}
+
+function creatureSprite(speciesId, silhouette) {
+  const key = 'cr:' + speciesId + (silhouette ? ':s' : '');
+  if (SPRITE_CACHE[key]) return SPRITE_CACHE[key];
+  const sp = SPECIES[speciesId];
+  let pal = creaturePalette(sp);
+  if (silhouette) pal = Object.fromEntries(Object.keys(pal).map(k => [k, '#2a2a3a']));
+  return cachedSprite(key, creatureRows(speciesId), pal);
+}
+
+// opts: {flip, bob, white (flash), alpha, silhouette}
 function drawCreature(ctx, speciesId, dx, dy, size, opts) {
   opts = opts || {};
   const sp = SPECIES[speciesId];
   const stage = sp.stage || 0;
-  const scale = 1 + stage * 0.08;
-  const s = size * scale;
-  const offset = (s - size) / 2;
-  const palette = creaturePalette(sp.type, stage);
-  const accent = TYPE_ACCENT_HALF[sp.type] || ['........', '........'];
-  const rows = (CREATURE_BODIES[sp.archetype] || CREATURE_BODIES.round).slice();
-  const mirroredAccent = mirrorRows(accent);
-  rows[0] = mirroredAccent[0];
-  rows[1] = mirroredAccent[1];
-  const bob = opts.bob || 0;
-  drawPixels(ctx, rows, palette, dx - offset, dy - offset + bob, s, opts.flip);
+  const s = size * (1 + stage * 0.08);
+  const off = (s - size) / 2;
+  const img = creatureSprite(speciesId, opts.silhouette);
+  ctx.save();
+  if (opts.alpha != null) ctx.globalAlpha = opts.alpha;
+  blitSprite(ctx, img, dx - off, dy - off + (opts.bob || 0), s, s, opts.flip);
+  if (opts.white) {
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = opts.white;
+  }
+  ctx.restore();
+  if (opts.white) {
+    // destello blanco: dibuja la silueta en blanco encima
+    const wkey = 'crw:' + speciesId;
+    const wimg = SPRITE_CACHE[wkey] || cachedSprite(wkey, creatureRows(speciesId),
+      { A:'#fff',B:'#fff',C:'#fff',D:'#fff',E:'#fff',k:'#fff',O:'#fff' });
+    ctx.save();
+    ctx.globalAlpha = opts.white;
+    blitSprite(ctx, wimg, dx - off, dy - off + (opts.bob || 0), s, s, opts.flip);
+    ctx.restore();
+  }
 }
 
-// ---------------- JUGADOR ----------------
-const PLAYER_ROWS = {
+// ---------------- PERSONAS ----------------
+// Plantillas 16x16. H pelo, S piel, E ojo, m boca, C ropa, c ropa oscura,
+// P pantalón, K zapatos, G gafas, B barba, W cuello blanco, T corbata/detalle
+const PERSON_BASE = {
   down: [
-    '...BBBB........',
-    '..BHHHHB.......',
-    '..BHHHHB.......',
-    '..BSSSSB.......',
-    '.BSS11SSB......',
-    '.BS1EE1SB......',
-    '.BS1EE1SB......',
-    '.BSS11SSB......',
-    '..BCCCCB.......',
-    '.BBCCCCBB......',
-    '.BJCCCCJB......',
-    '.BJCCCCJB......',
-    '..PP..PP.......',
-    '..PP..PP.......',
-    '..KK..KK.......',
+    '......HHHH......',
+    '....HHHHHHHH....',
+    '...HHHHHHHHHH...',
+    '...HHHHHHHHHH...',
+    '...HSSSSSSSSH...',
+    '...SSESSSSESS...',
+    '...SSSSSSSSSS...',
+    '....SSSmmSSS....',
+    '.....CCWWCC.....',
+    '...SCCCTTCCCS...',
+    '...SCCCTTCCCS...',
+    '....CCCCCCCC....',
+    '.....PPPPPP.....',
+    '.....PP..PP.....',
+    '.....KK..KK.....',
     '................'
-  ].map(r => r.padEnd(16, '.').slice(0, 16))
+  ],
+  up: [
+    '......HHHH......',
+    '....HHHHHHHH....',
+    '...HHHHHHHHHH...',
+    '...HHHHHHHHHH...',
+    '...HHHHHHHHHH...',
+    '...HHHHHHHHHH...',
+    '...SHHHHHHHHS...',
+    '....SSSSSSSS....',
+    '.....CCCCCC.....',
+    '...SCCCCCCCCS...',
+    '...SCCCCCCCCS...',
+    '....CCCCCCCC....',
+    '.....PPPPPP.....',
+    '.....PP..PP.....',
+    '.....KK..KK.....',
+    '................'
+  ],
+  right: [
+    '.....HHHH.......',
+    '....HHHHHHH.....',
+    '...HHHHHHHHH....',
+    '...HHHHHHHHH....',
+    '...HHHSSSSSS....',
+    '...HHSSSSESS....',
+    '...HSSSSSSSS....',
+    '....SSSSSmS.....',
+    '.....CCCWC......',
+    '.....CCSCCC.....',
+    '.....CCSCCC.....',
+    '.....CCCCCC.....',
+    '.....PPPPPP.....',
+    '.....PP.PP......',
+    '.....KK.KK......',
+    '................'
+  ]
 };
-PLAYER_ROWS.up = PLAYER_ROWS.down;
-PLAYER_ROWS.left = PLAYER_ROWS.down;
-PLAYER_ROWS.right = PLAYER_ROWS.down;
 
-// Segundo fotograma de la animación de andar: piernas separadas en zancada
-// (una adelantada, otra atrás) para alternar con PLAYER_ROWS al caminar.
-const PLAYER_ROWS_WALK = {
-  down: PLAYER_ROWS.down.map((row, i) => {
-    if (i === 12 || i === 13) return '.PP.....PP......'.slice(0,16);
-    if (i === 14) return '.KK.....KK......'.slice(0,16);
-    return row;
-  })
-};
-PLAYER_ROWS_WALK.up = PLAYER_ROWS_WALK.down;
-PLAYER_ROWS_WALK.left = PLAYER_ROWS_WALK.down;
-PLAYER_ROWS_WALK.right = PLAYER_ROWS_WALK.down;
-
-const PLAYER_PALETTE = {
-  B: '#3b2314', H: '#5a3824', S: '#f0b088', '1': '#c98a63',
-  E: '#222222', C: '#2f6fb0', J: '#1e4d80', P: '#2b2b2b', K: '#111111'
+const WALK_LEGS = {
+  down:  [['.....PP..PP.....','.....KK..KK.....'], ['....PP...PP.....','....KK....KK....'], ['.....PP...PP....','....KK....KK....']],
+  up:    [['.....PP..PP.....','.....KK..KK.....'], ['....PP...PP.....','....KK....KK....'], ['.....PP...PP....','....KK....KK....']],
+  right: [['.....PP.PP......','.....KK.KK......'], ['....PP...PP.....','....KK...KK.....'], ['......PPP.......','......KKK.......']]
 };
 
-function drawPlayer(ctx, dx, dy, size, facing, walkFrame) {
-  const bob = walkFrame ? -2 : 0;
-  const set = walkFrame ? PLAYER_ROWS_WALK : PLAYER_ROWS;
-  const rows = set[facing || 'down'];
-  drawPixels(ctx, rows, PLAYER_PALETTE, dx, dy + bob, size, facing === 'left');
+function setPx(rows, y, x, ch) {
+  if (!rows[y]) return;
+  rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1);
 }
 
-// ---------------- NPCs ----------------
-const NPC_PALETTES = {
-  prof:     { body: '#8d6e63', shirt: '#37474f', skin: '#f0b088' },
-  director: { body: '#4a148c', shirt: '#212121', skin: '#e0a988' },
-  nurse:    { body: '#ad1457', shirt: '#ffffff', skin: '#f0b088' },
-  flavor:   { body: '#455a64', shirt: '#78909c', skin: '#e0a988' }
-};
+function personRows(look, facing, frame) {
+  const dir = facing === 'left' ? 'right' : facing;
+  let rows = PERSON_BASE[dir].slice();
+  const legs = WALK_LEGS[dir][frame || 0];
+  rows[13] = legs[0]; rows[14] = legs[1];
+  if (frame === 1 && dir !== 'right') { rows[9] = rows[9].replace('S', 'C'); }
+  if (frame === 2 && dir !== 'right') { rows[10] = rows[10].replace(/S(?=\.*$)/, 'C'); }
 
-const NPC_HALF = [
-  '......B.',
-  '.....BHB',
-  '....BHHB',
-  '....BSSB',
-  '...BS11B',
-  '...BS1EB',
-  '...BS11B',
-  '....BSSB',
-  '...BCCCB',
-  '..BCCCCB',
-  '..BCCCCB',
-  '..BCCCCB',
-  '...PP...',
-  '...PP...',
-  '...KK...',
-  '........'
-];
+  const hs = look.hair || 'short';
+  if (hs === 'long') {
+    if (dir === 'down') for (let y = 4; y <= 9; y++) { setPx(rows, y, 3, 'H'); setPx(rows, y, 12, 'H'); }
+    if (dir === 'up') for (let y = 6; y <= 10; y++) { for (let x = 4; x <= 11; x++) setPx(rows, y, x, 'H'); }
+    if (dir === 'right') for (let y = 4; y <= 9; y++) { setPx(rows, y, 3, 'H'); setPx(rows, y, 4, 'H'); }
+  } else if (hs === 'bald') {
+    rows[0] = '................';
+    rows[1] = dir === 'right' ? '................' : '................';
+    rows[2] = dir === 'right' ? '...HSSSSSSS.....' : '...HSSSSSSSSH...';
+    rows[3] = dir === 'right' ? '...HSSSSSSSS....' : '...HSSSSSSSSH...';
+    if (dir === 'up') { rows[4] = '...HSSSSSSSSH...'; rows[5] = '...HHSSSSSSHH...'; }
+  } else if (hs === 'spiky') {
+    rows[0] = dir === 'right' ? '....H.H.H.......' : '....H.HH.H.H....';
+  } else if (hs === 'bun') {
+    rows[0] = dir === 'right' ? '..HHHHH.........' : '.....HHHHHH.....';
+  } else if (hs === 'cap') {
+    rows[0] = '................';
+    rows[1] = '....QQQQQQQQ....';
+    rows[2] = dir === 'right' ? '...QQQQQQQQQQQ..' : '...QQQQQQQQQQ...';
+    if (dir === 'down') rows[3] = '..QQQQQQQQQQQQ..';
+  }
+  if (look.glasses) {
+    if (dir === 'down') { ['4','6','9','11'].forEach(x => setPx(rows, 5, +x, 'G')); setPx(rows, 5, 7, 'G'); setPx(rows, 5, 8, 'G'); }
+    if (dir === 'right') { setPx(rows, 5, 8, 'G'); setPx(rows, 5, 10, 'G'); }
+  }
+  if (look.beard) {
+    if (dir === 'down') { rows[7] = '....BBBmmBBB....'; rows[6] = '...SBSSSSSSBS...'; }
+    if (dir === 'right') { rows[7] = '....BBBBBmB.....'; }
+  }
+  if (look.skirt) {
+    if (dir !== 'right') { rows[12] = '....PPPPPPPP....'; rows[13] = rows[13].replace(/P/g, 'S'); }
+    else { rows[12] = '....PPPPPPP.....'; rows[13] = rows[13].replace(/P/g, 'S'); }
+  }
+  if (look.robe) {
+    // sotana larga hasta los pies
+    for (let y = 11; y <= 13; y++) rows[y] = dir === 'right' ? '.....CCCCCC.....' : '....CCCCCCCC....';
+  }
+  if (!look.tie) rows = rows.map(r => r.replace(/T/g, 'C'));
+  const padded = ['..................'].concat(rows.map(r => '.' + r.padEnd(16, '.').slice(0, 16) + '.'), ['..................']);
+  return outlineRows(padded);
+}
 
-function drawNpc(ctx, kind, dx, dy, size) {
-  const pal = NPC_PALETTES[kind] || NPC_PALETTES.prof;
-  const palette = {
-    B: '#1a1a1a', H: hexShade(pal.body, -20), S: pal.skin, '1': hexShade(pal.skin, -15),
-    E: '#1a1a1a', C: pal.shirt, P: '#263238', K: '#111111'
+function personPalette(look) {
+  return {
+    H: look.hairColor || '#4a2f1d', S: look.skin || '#f2c49b', E: '#1b1b2a', m: '#b5634b',
+    C: look.shirt || '#2c3e7a', W: look.collar || '#f5f5f5', T: look.tie || '#c0392b', Q: look.cap || '#c62828',
+    P: look.pants || '#2b2b38', K: look.shoes || '#1a1a1a', G: '#20202a',
+    B: look.beardColor || hexShade(look.hairColor || '#4a2f1d', -10), O: '#141420'
   };
-  drawPixels(ctx, mirrorRows(NPC_HALF), palette, dx, dy, size);
 }
 
-// ---------------- TILES ----------------
-function drawFloorWood(ctx, x, y, size) {
-  ctx.fillStyle = '#e8c39e';
-  ctx.fillRect(x, y, size, size);
-  ctx.strokeStyle = 'rgba(100,60,20,0.18)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x, y + size * 0.5); ctx.lineTo(x + size, y + size * 0.5);
-  ctx.moveTo(x + size * 0.5, y); ctx.lineTo(x + size * 0.5, y + size * 0.5);
-  ctx.moveTo(x, y + size); ctx.lineTo(x, y + size * 0.5);
-  ctx.stroke();
+function lookKey(look) {
+  return [look.hair, look.hairColor, look.skin, look.shirt, look.pants, look.glasses ? 1 : 0,
+    look.beard ? 1 : 0, look.skirt ? 1 : 0, look.robe ? 1 : 0, look.tie || '', look.collar || '', look.cap || ''].join('|');
 }
 
-function drawWallBrick(ctx, x, y, size) {
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = '#4e342e';
-  ctx.fillRect(x, y + size * 0.45, size, size * 0.1);
-  ctx.fillRect(x + size * 0.45, y, size * 0.1, size * 0.45);
-  ctx.fillRect(x, y + size * 0.9, size, size * 0.1);
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+function drawPerson(ctx, look, cx, footY, size, facing, frame) {
+  const dir = facing || 'down';
+  const key = 'p:' + lookKey(look) + ':' + (dir === 'left' ? 'right' : dir) + ':' + (frame || 0);
+  const img = SPRITE_CACHE[key] || cachedSprite(key, personRows(look, dir, frame || 0), personPalette(look));
+  drawShadow(ctx, cx, footY - 2, size * 0.32);
+  blitSprite(ctx, img, cx - size / 2, footY - size, size, size, dir === 'left');
 }
 
-function drawDoorTile(ctx, x, y, size, accentColor) {
-  ctx.fillStyle = '#6d4c2f';
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = accentColor || '#8d6e63';
-  ctx.fillRect(x + size * 0.12, y + size * 0.08, size * 0.76, size * 0.84);
-  ctx.fillStyle = '#4e342e';
-  ctx.fillRect(x + size * 0.12, y + size * 0.08, size * 0.76, size * 0.12);
-  ctx.beginPath();
-  ctx.fillStyle = '#ffd54f';
-  ctx.arc(x + size * 0.72, y + size * 0.55, size * 0.05, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawElevatorTile(ctx, x, y, size) {
-  ctx.fillStyle = '#90a4ae';
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = '#546e7a';
-  ctx.fillRect(x + size*0.1, y + size*0.08, size*0.8, size*0.84);
-  ctx.fillStyle = '#263238';
-  ctx.fillRect(x + size*0.18, y + size*0.16, size*0.64, size*0.5);
-  ctx.fillStyle = '#ffd54f';
-  ctx.beginPath();
-  ctx.moveTo(x + size*0.42, y + size*0.3); ctx.lineTo(x + size*0.58, y + size*0.3); ctx.lineTo(x + size*0.5, y + size*0.2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(x + size*0.42, y + size*0.42); ctx.lineTo(x + size*0.58, y + size*0.42); ctx.lineTo(x + size*0.5, y + size*0.52);
-  ctx.fill();
-}
-
-function drawLigaDoorTile(ctx, x, y, size, unlocked) {
-  ctx.fillStyle = unlocked ? '#8e24aa' : '#4a148c';
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = unlocked ? '#ce93d8' : '#6a1b9a';
-  ctx.fillRect(x + size * 0.1, y + size * 0.06, size * 0.8, size * 0.88);
-  ctx.fillStyle = '#ffd700';
-  ctx.beginPath();
-  ctx.moveTo(x + size * 0.5, y + size * 0.18);
-  ctx.lineTo(x + size * 0.62, y + size * 0.42);
-  ctx.lineTo(x + size * 0.38, y + size * 0.42);
-  ctx.fill();
-}
-
-function drawGrassTile(ctx, x, y, size, variant) {
-  ctx.fillStyle = variant ? '#7cb342' : '#8bc34a';
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = '#558b2f';
-  const blades = [[0.15,0.2],[0.55,0.35],[0.75,0.15],[0.3,0.6],[0.65,0.7]];
-  blades.forEach(([bx,by]) => ctx.fillRect(x + size*bx, y + size*by, size*0.08, size*0.18));
-}
-
-function drawPathTile(ctx, x, y, size) {
-  ctx.fillStyle = '#d7b98e';
-  ctx.fillRect(x, y, size, size);
-  ctx.strokeStyle = 'rgba(120,80,40,0.25)';
-  ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
-}
-
-function drawTechSparkle(ctx, x, y, size, variant) {
-  ctx.fillStyle = variant ? '#4fc3f7' : '#29b6f6';
-  ctx.globalAlpha = 0.35;
-  ctx.fillRect(x + size*0.2, y + size*0.2, size*0.6, size*0.6);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = '#01579b';
-  ctx.beginPath();
-  ctx.arc(x + size*0.5, y + size*0.5, size*0.06, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function drawPatioFloor(ctx, x, y, size) {
-  ctx.fillStyle = '#aed581';
-  ctx.fillRect(x, y, size, size);
-}
-
-// ---------------- DECORACIÓN ----------------
-function drawDesk(ctx, x, y, size) {
-  ctx.fillStyle = '#8d6e63';
-  ctx.fillRect(x + size*0.08, y + size*0.35, size*0.84, size*0.4);
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(x + size*0.12, y + size*0.7, size*0.12, size*0.22);
-  ctx.fillRect(x + size*0.76, y + size*0.7, size*0.12, size*0.22);
-  ctx.fillStyle = '#efebe9';
-  ctx.fillRect(x + size*0.15, y + size*0.4, size*0.3, size*0.08);
-}
-
-function drawBookshelf(ctx, x, y, size) {
-  ctx.fillStyle = '#4e342e';
-  ctx.fillRect(x + size*0.05, y, size*0.9, size);
-  const colors = ['#c62828','#2e7d32','#1565c0','#f9a825','#6a1b9a'];
-  for (let i=0;i<5;i++) {
-    ctx.fillStyle = colors[i];
-    ctx.fillRect(x + size*0.1 + i*size*0.16, y + size*0.1, size*0.12, size*0.35);
-  }
-  ctx.fillStyle = '#3e2723';
-  ctx.fillRect(x + size*0.05, y + size*0.55, size*0.9, size*0.08);
-  for (let i=0;i<5;i++) {
-    ctx.fillStyle = colors[(i+2)%5];
-    ctx.fillRect(x + size*0.1 + i*size*0.16, y + size*0.65, size*0.12, size*0.3);
-  }
-}
-
-function drawChalkboard(ctx, x, y, size) {
-  ctx.fillStyle = '#4e342e';
-  ctx.fillRect(x, y, size, size*0.75);
-  ctx.fillStyle = '#1b5e20';
-  ctx.fillRect(x + size*0.08, y + size*0.08, size*0.84, size*0.58);
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + size*0.15, y + size*0.3); ctx.lineTo(x + size*0.5, y + size*0.3);
-  ctx.moveTo(x + size*0.15, y + size*0.45); ctx.lineTo(x + size*0.7, y + size*0.45);
-  ctx.stroke();
-}
-
-function drawTrophyCase(ctx, x, y, size) {
-  ctx.fillStyle = '#ffd54f';
-  ctx.fillRect(x + size*0.3, y + size*0.3, size*0.4, size*0.5);
-  ctx.fillStyle = '#ffa000';
-  ctx.beginPath();
-  ctx.arc(x + size*0.5, y + size*0.3, size*0.18, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = '#795548';
-  ctx.fillRect(x + size*0.25, y + size*0.78, size*0.5, size*0.1);
-}
-
-function drawTree(ctx, x, y, size) {
-  ctx.fillStyle = '#6d4c2f';
-  ctx.fillRect(x + size*0.42, y + size*0.55, size*0.16, size*0.45);
-  ctx.fillStyle = '#2e7d32';
-  ctx.beginPath();
-  ctx.arc(x + size*0.5, y + size*0.4, size*0.42, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = '#388e3c';
-  ctx.beginPath();
-  ctx.arc(x + size*0.35, y + size*0.3, size*0.22, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function drawBush(ctx, x, y, size) {
-  ctx.fillStyle = '#558b2f';
-  ctx.beginPath();
-  ctx.arc(x + size*0.3, y + size*0.65, size*0.26, 0, Math.PI*2);
-  ctx.arc(x + size*0.65, y + size*0.65, size*0.26, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function drawFountain(ctx, x, y, size) {
-  ctx.fillStyle = '#90a4ae';
-  ctx.beginPath();
-  ctx.arc(x + size*0.5, y + size*0.55, size*0.42, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = '#4fc3f7';
-  ctx.beginPath();
-  ctx.arc(x + size*0.5, y + size*0.55, size*0.3, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = '#eceff1';
-  ctx.fillRect(x + size*0.46, y + size*0.15, size*0.08, size*0.4);
-}
-
-function drawFlower(ctx, x, y, size, color) {
-  ctx.fillStyle = color || '#ef5350';
-  [[0.3,0.3],[0.6,0.3],[0.45,0.5]].forEach(([fx,fy]) => {
-    ctx.beginPath(); ctx.arc(x+size*fx, y+size*fy, size*0.09, 0, Math.PI*2); ctx.fill();
-  });
-  ctx.fillStyle = '#ffeb3b';
-  ctx.beginPath(); ctx.arc(x+size*0.45, y+size*0.4, size*0.06, 0, Math.PI*2); ctx.fill();
-}
-
-const DECOR_DRAW = {
-  desk: drawDesk, bookshelf: drawBookshelf, chalkboard: drawChalkboard,
-  trophy: drawTrophyCase, tree: drawTree, bush: drawBush,
-  fountain: drawFountain, flower: drawFlower
+// Uniforme de los Coras y aspectos fijos
+const LOOKS = {
+  player:   { hair:'short', hairColor:'#3b2416', shirt:'#1f3b73', pants:'#3a3a48', tie:'#b71c1c' },
+  conserje: { hair:'bald', hairColor:'#8d8d8d', shirt:'#6d4c41', pants:'#3e2723', beard:true, beardColor:'#9e9e9e' },
+  enfermera:{ hair:'bun', hairColor:'#6d3b1f', shirt:'#ffffff', pants:'#ffffff', skirt:true, collar:'#e91e63' },
+  secretaria:{ hair:'long', hairColor:'#2d1b12', shirt:'#7b1fa2', pants:'#37474f', skirt:true, glasses:true },
+  bibliotecaria:{ hair:'bun', hairColor:'#b0b0b0', shirt:'#455a64', pants:'#263238', skirt:true, glasses:true }
 };
 
-function drawDecor(ctx, type, x, y, size, color) {
-  const fn = DECOR_DRAW[type];
-  if (fn) fn(ctx, x, y, size, color);
+function randomStudentLook(seed) {
+  const r = (n) => { seed = (seed * 9301 + 49297) % 233280; return Math.floor(seed / 233280 * n); };
+  const hairs = ['short', 'long', 'spiky', 'bun', 'short', 'cap'];
+  const hairColors = ['#3b2416', '#1a1a1a', '#8d5524', '#d4a017', '#6d3b1f', '#a0522d'];
+  const skins = ['#f2c49b', '#e0ac69', '#c68642', '#ffdbac', '#8d5524'];
+  const shirts = ['#1f3b73', '#1f3b73', '#2e7d32', '#c62828', '#6a1b9a', '#455a64'];
+  const hair = hairs[r(hairs.length)];
+  const shirt = shirts[r(shirts.length)];
+  return {
+    hair, hairColor: hairColors[r(hairColors.length)], skin: skins[r(skins.length)],
+    shirt, pants: '#33334a', skirt: hair === 'long' || hair === 'bun' ? r(2) === 0 : false,
+    glasses: r(5) === 0, cap: hair === 'cap' ? ['#c62828', '#1565c0', '#2e7d32'][r(3)] : undefined,
+    tie: shirt === '#1f3b73' ? '#b71c1c' : undefined
+  };
+}
+
+// Medalla/insignia para menús y cinemáticas
+function drawBadge(ctx, cx, cy, r, color, earned) {
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = Math.PI / 8 + i * Math.PI / 4;
+    ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  }
+  ctx.closePath();
+  ctx.fillStyle = earned ? color : '#3a3a4a';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r / 6);
+  ctx.strokeStyle = earned ? hexShade(color, -40) : '#22222e';
+  ctx.stroke();
+  if (earned) {
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }

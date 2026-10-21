@@ -1,10 +1,8 @@
 // ============================================================
-// COREMON - Sistema de combate por turnos (con animaciones)
+// COREMON - Combate por turnos (escena arriba, mandos abajo)
 // ============================================================
 
-let battle = null; // estado de la batalla activa
-let battleAnimT = 0;
-
+let battle = null;
 const battleScreen = document.getElementById('battle-screen');
 const battleCanvas = document.getElementById('battle-canvas');
 const bctx = battleCanvas.getContext('2d');
@@ -13,170 +11,318 @@ const battleMenu = document.getElementById('battle-menu');
 const moveMenu = document.getElementById('move-menu');
 const teamMenu = document.getElementById('team-menu');
 
-const STRUGGLE = { name:'Forcejeo', type:null, power:25, acc:1.0, pp:999 };
-const ATTACK_MS = 2000; // cada ataque (ida, impacto, vuelta) dura ~2s, como pide el diseño
+const STRUGGLE = { name:'Forcejeo', type:null, power:30, acc:1.0, pp:999 };
+const DAMAGE_DIV = 10; // más bajo = más daño por golpe
+const BW = battleCanvas.width, BH = battleCanvas.height;
+const POS = { enemy: { x: BW * 0.72, y: BH * 0.42, size: 120 }, player: { x: BW * 0.28, y: BH * 0.80, size: 150 } };
 
-function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
+function bwait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// ---------------- ARRANQUE ----------------
 function startWildBattle(zone) {
   const pool = WILD_TABLE[zone] || WILD_TABLE.patio;
-  const speciesId = pool[Math.floor(Math.random()*pool.length)];
-  const lvl = 3 + Math.floor(Math.random()*6);
+  const speciesId = pool[Math.floor(Math.random() * pool.length)];
+  const base = { patio:3, jardin:4, apoyo:7, biblioteca_eso:10, bachillerato:14 }[zone] || 3;
+  const lvl = base + Math.floor(Math.random() * 4);
   openBattle({ kind:'wild', enemyTeam:[createPokemon(speciesId, lvl)] });
 }
 
 function startTrainerBattle(trainer) {
-  const enemyTeam = trainer.team.map(([sp,lvl]) => createPokemon(sp, lvl));
+  const enemyTeam = trainer.team.map(([sp, lvl]) => createPokemon(sp, lvl));
   openBattle({ kind:'trainer', trainer, enemyTeam });
 }
 
 function openBattle(opts) {
   STATE = 'BATTLE';
+  const map = MAPS[game.room];
+  const firstAlive = Math.max(0, game.team.findIndex(p => p.hp > 0));
   battle = {
-    kind: opts.kind,
-    trainer: opts.trainer || null,
-    playerTeam: game.team,
-    playerActive: 0,
-    enemyTeam: opts.enemyTeam,
-    enemyActive: 0,
-    over: false,
-    busy: false,
-    playerDefending: false,
-    flashPlayer: 0,
-    flashEnemy: 0,
-    lunge: null, // {side:'player'|'enemy', progress:0..1}
-    floatingTexts: []
+    kind: opts.kind, trainer: opts.trainer || null,
+    playerTeam: game.team, playerActive: firstAlive,
+    enemyTeam: opts.enemyTeam, enemyActive: 0,
+    over: false, busy: true, playerDefending: false,
+    map, bgOutdoor: !!map.outdoor,
+    show: { enemyMon:false, playerMon:false, enemyTrainer: opts.kind === 'trainer', playerTrainer:true },
+    off: { enemy: 400, player: -400, enemyTrainer: 400, playerTrainer: -400 },
+    fx: [], texts: [], flash: { enemy:0, player:0 }, appear: { enemy:0, player:0 },
+    faint: { enemy:0, player:0 }, lunge: null, shake: 0, card: null,
+    participants: new Set(), evolutions: []
   };
+  game.seen[opts.enemyTeam[0].species] = true;
   battleScreen.classList.remove('hidden');
+  showTouch('battle');
+  hideMenus();
   logClear();
-  log(opts.kind === 'trainer'
-    ? `${opts.trainer.name} te desafía con ${opts.trainer.subject}!`
-    : `¡Un ${SPECIES[battle.enemyTeam[0].species].name} salvaje aparece!`);
   renderBattle();
-  showMainMenu();
   requestAnimationFrame(battleAnimLoop);
+  introSequence();
+}
+
+async function introSequence() {
+  const b = battle;
+  // los dos lados entran deslizándose
+  await tween(400, k => {
+    b.off.player = -400 * (1 - k); b.off.playerTrainer = -400 * (1 - k);
+    b.off.enemy = 400 * (1 - k); b.off.enemyTrainer = 400 * (1 - k);
+  });
+  if (b.kind === 'wild') {
+    b.show.enemyMon = true;
+    await say2(`¡Un ${SPECIES[activeEnemy().species].name} salvaje te corta el paso!`);
+  } else {
+    await say2(`¡${b.trainer.name} quiere luchar!`);
+    await tween(300, k => { b.off.enemyTrainer = 300 * k; });
+    b.show.enemyTrainer = false;
+    await sendOut('enemy');
+  }
+  await tween(300, k => { b.off.playerTrainer = -300 * k; });
+  b.show.playerTrainer = false;
+  await sendOut('player');
+  b.busy = false;
+  showMainMenu();
+}
+
+async function sendOut(side) {
+  const b = battle;
+  const mon = side === 'enemy' ? activeEnemy() : activePlayer();
+  if (side === 'enemy') { b.show.enemyMon = true; game.seen[mon.species] = true; }
+  else { b.show.playerMon = true; b.participants.add(mon); }
+  b.faint[side] = 0;
+  b.appear[side] = 1;
+  renderBattle();
+  log(side === 'enemy' ? (b.kind === 'trainer' ? `${b.trainer.name} saca a ${SPECIES[mon.species].name}.` : '') : `¡Adelante, ${SPECIES[mon.species].name}!`);
+  await tween(450, k => { b.appear[side] = 1 - k; });
+}
+
+function tween(ms, fn) {
+  const t0 = performance.now();
+  return new Promise(res => {
+    function step() {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      fn(k);
+      if (k < 1) requestAnimationFrame(step); else res();
+    }
+    step();
+  });
 }
 
 function activePlayer() { return battle.playerTeam[battle.playerActive]; }
 function activeEnemy() { return battle.enemyTeam[battle.enemyActive]; }
 
+// ---------------- TEXTO ----------------
 function logClear() { battleLog.innerHTML = ''; }
 function log(msg) {
+  if (!msg) return;
   const p = document.createElement('div');
   p.textContent = msg;
   battleLog.appendChild(p);
+  while (battleLog.children.length > 4) battleLog.removeChild(battleLog.firstChild);
   battleLog.scrollTop = battleLog.scrollHeight;
 }
+async function say2(msg, ms) { log(msg); await bwait(ms || 1000); }
 
-function floatText(side, text, color) {
-  const w = battleCanvas.width, h = battleCanvas.height;
-  const x = side === 'enemy' ? w*0.74 : w*0.26;
-  const y = side === 'enemy' ? h*0.62 - 90 : h*0.88 - 110;
-  battle.floatingTexts.push({ text, x, y, life: 55, maxLife: 55, color: color || '#fff' });
+function floatText(side, text, color, big) {
+  const p = POS[side];
+  battle.texts.push({ text, x: p.x + (Math.random() * 30 - 15), y: p.y - p.size * 0.8, life: 60, color: color || '#fff', big });
 }
 
-// ---------------- RENDER DE SPRITES EN COMBATE ----------------
-function battleAnimLoop(ts) {
+// ---------------- ESCENA ----------------
+function battleAnimLoop() {
   if (!battle) return;
-  battleAnimT = ts || 0;
-  drawBattleScene();
-  if (STATE === 'BATTLE') requestAnimationFrame(battleAnimLoop);
+  drawBattleScene(performance.now());
+  requestAnimationFrame(battleAnimLoop);
 }
 
-function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+function drawBattleBg(t) {
+  const b = battle;
+  if (b.bgOutdoor) {
+    const g = bctx.createLinearGradient(0, 0, 0, BH);
+    g.addColorStop(0, '#7ec4f2'); g.addColorStop(0.5, '#cdeaf8'); g.addColorStop(0.5, '#8fd16a'); g.addColorStop(1, '#5fae45');
+    bctx.fillStyle = g; bctx.fillRect(0, 0, BW, BH);
+    for (let i = 0; i < 3; i++) {
+      const cx = ((t / 60 + i * 200) % (BW + 100)) - 50;
+      bctx.fillStyle = '#ffffffbb';
+      bctx.beginPath(); bctx.arc(cx, 40 + i * 25, 14, 0, 7); bctx.arc(cx + 16, 36 + i * 25, 18, 0, 7); bctx.fill();
+    }
+  } else {
+    const m = b.map;
+    const wall = m.wallColor || '#e9dcc3';
+    bctx.fillStyle = wall; bctx.fillRect(0, 0, BW, BH * 0.5);
+    bctx.fillStyle = hexShade(wall, -30); bctx.fillRect(0, BH * 0.5 - 14, BW, 14);
+    for (let y = BH * 0.5; y < BH; y += TILE) for (let x = 0; x < BW; x += TILE)
+      drawFloor(bctx, m, x, y, TILE, x / TILE, y / TILE);
+    bctx.fillStyle = 'rgba(0,0,0,0.12)'; bctx.fillRect(0, BH * 0.5, BW, BH * 0.5);
+  }
+  // plataformas
+  plat(POS.enemy.x, POS.enemy.y + 8, 92, 24);
+  plat(POS.player.x, POS.player.y + 10, 116, 28);
+}
+function plat(x, y, rx, ry) {
+  bctx.fillStyle = 'rgba(0,0,0,0.18)';
+  bctx.beginPath(); bctx.ellipse(x, y + 4, rx, ry, 0, 0, Math.PI * 2); bctx.fill();
+  bctx.fillStyle = battle.bgOutdoor ? '#a8d98a' : 'rgba(255,255,255,0.25)';
+  bctx.beginPath(); bctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); bctx.fill();
+  bctx.strokeStyle = 'rgba(0,0,0,0.2)'; bctx.lineWidth = 2; bctx.stroke();
+}
 
-function drawBattleScene() {
-  if (!battle) return;
-  const w = battleCanvas.width, h = battleCanvas.height;
-  bctx.clearRect(0,0,w,h);
-  const grad = bctx.createLinearGradient(0,0,0,h);
-  grad.addColorStop(0, '#9fd1ff');
-  grad.addColorStop(0.55, '#d7ecb0');
-  grad.addColorStop(1, '#8fbf6a');
-  bctx.fillStyle = grad;
-  bctx.fillRect(0,0,w,h);
-  bctx.fillStyle = 'rgba(0,0,0,0.12)';
-  bctx.beginPath(); bctx.ellipse(w*0.74, h*0.62, 46, 14, 0, 0, Math.PI*2); bctx.fill();
-  bctx.beginPath(); bctx.ellipse(w*0.26, h*0.88, 54, 15, 0, 0, Math.PI*2); bctx.fill();
+function drawBattleScene(t) {
+  const b = battle;
+  bctx.save();
+  bctx.imageSmoothingEnabled = false;
+  if (b.shake > 0) { bctx.translate(Math.random() * 8 - 4, Math.random() * 6 - 3); b.shake--; }
+  drawBattleBg(t);
+  const bob = Math.sin(t / 260) * 3;
 
-  const bob = Math.sin(battleAnimT / 220) * 3;
-  const e = activeEnemy(), p = activePlayer();
-
-  // desplazamiento de embestida (lunge) hacia el rival durante el ataque
-  let lungeEnemyX = 0, lungePlayerX = 0;
-  if (battle.lunge) {
-    const amt = Math.sin(easeInOut(battle.lunge.progress) * Math.PI) * 26;
-    if (battle.lunge.side === 'enemy') lungeEnemyX = -amt;
-    if (battle.lunge.side === 'player') lungePlayerX = amt;
+  // lanzamiento/embestida
+  let lE = 0, lP = 0;
+  if (b.lunge) {
+    const amt = Math.sin(Math.min(1, b.lunge.k) * Math.PI) * 34;
+    if (b.lunge.side === 'enemy') lE = -amt; else lP = amt;
   }
 
-  if (e) {
-    const shakeE = battle.flashEnemy > 0 ? (Math.random()*8-4) : 0;
-    drawCreature(bctx, e.species, w*0.74 - 34 + shakeE + lungeEnemyX, h*0.62 - 68 + bob, 68, { bob: 0 });
-    if (battle.flashEnemy > 0) battle.flashEnemy--;
+  if (b.show.enemyTrainer && b.trainer) {
+    const look = b.trainer.look || randomStudentLook(b.trainer.name.length * 7);
+    drawPerson(bctx, look, POS.enemy.x + 70 + b.off.enemyTrainer, POS.enemy.y + 10, 110, 'down', 0);
   }
-  if (p) {
-    const shakeP = battle.flashPlayer > 0 ? (Math.random()*8-4) : 0;
-    drawCreature(bctx, p.species, w*0.26 - 42 + shakeP + lungePlayerX, h*0.88 - 84 - bob, 84, { bob: 0, flip:true });
-    if (battle.flashPlayer > 0) battle.flashPlayer--;
-  }
-  if (battle.playerDefending) {
-    bctx.fillStyle = 'rgba(100,180,255,0.35)';
-    bctx.beginPath(); bctx.arc(w*0.26, h*0.88-45, 46, 0, Math.PI*2); bctx.fill();
-  }
+  if (b.show.enemyMon) drawMon('enemy', activeEnemy(), POS.enemy.x + lE + b.off.enemy, POS.enemy.y, POS.enemy.size, bob, false);
+  if (b.show.playerTrainer) drawPerson(bctx, LOOKS.player, POS.player.x - 40 + b.off.playerTrainer, POS.player.y + 24, 150, 'up', 0);
+  if (b.show.playerMon) drawMon('player', activePlayer(), POS.player.x + lP + b.off.player, POS.player.y, POS.player.size, -bob, true);
 
-  // texto flotante (daño, fallos, bloqueos...)
-  battle.floatingTexts = battle.floatingTexts.filter(t => t.life > 0);
-  battle.floatingTexts.forEach(t => {
-    t.y -= 0.6; t.life--;
-    const alpha = Math.min(1, t.life / 20);
-    bctx.globalAlpha = alpha;
-    bctx.font = 'bold 16px monospace';
-    bctx.textAlign = 'center';
-    bctx.fillStyle = 'rgba(0,0,0,0.5)';
-    bctx.fillText(t.text, t.x+1, t.y+1);
-    bctx.fillStyle = t.color;
-    bctx.fillText(t.text, t.x, t.y);
+  if (b.card) drawCard(b.card, t);
+
+  // partículas de ataques
+  b.fx = b.fx.filter(p => p.life > 0);
+  b.fx.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += p.g || 0; p.life--;
+    bctx.globalAlpha = Math.min(1, p.life / 12);
+    if (p.glyph) {
+      bctx.font = `bold ${p.size}px monospace`; bctx.textAlign = 'center';
+      bctx.fillStyle = OUT; bctx.fillText(p.glyph, p.x + 1, p.y + 1);
+      bctx.fillStyle = p.color; bctx.fillText(p.glyph, p.x, p.y);
+    } else {
+      bctx.fillStyle = p.color; bctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
     bctx.globalAlpha = 1;
   });
+
+  // textos flotantes
+  b.texts = b.texts.filter(x => x.life > 0);
+  b.texts.forEach(x => {
+    x.y -= 0.7; x.life--;
+    bctx.globalAlpha = Math.min(1, x.life / 18);
+    bctx.font = `bold ${x.big ? 22 : 16}px monospace`; bctx.textAlign = 'center';
+    bctx.lineWidth = 4; bctx.strokeStyle = OUT; bctx.strokeText(x.text, x.x, x.y);
+    bctx.fillStyle = x.color; bctx.fillText(x.text, x.x, x.y);
+    bctx.globalAlpha = 1;
+  });
+  if (b.flashScreen) { bctx.fillStyle = `rgba(255,255,255,${b.flashScreen / 10})`; bctx.fillRect(0, 0, BW, BH); b.flashScreen--; }
+  bctx.restore();
 }
 
+function drawMon(side, mon, cx, cy, size, bob, back) {
+  const b = battle;
+  if (!mon) return;
+  const faint = b.faint[side];
+  const appear = b.appear[side];
+  if (faint >= 1) return;
+  const s = size * (1 - appear * 0.8);
+  let white = appear > 0 ? appear : 0;
+  if (b.flash[side] > 0) { white = b.flash[side] % 4 < 2 ? 0.8 : 0; b.flash[side]--; }
+  bctx.save();
+  bctx.beginPath(); bctx.rect(0, 0, BW, cy + 14); bctx.clip();
+  drawCreature(bctx, mon.species, cx - s / 2, cy - s + 10 + faint * size + bob * (1 - faint), s,
+    { flip: back, white, alpha: 1 - faint * 0.6 });
+  bctx.restore();
+  if (side === 'player' && b.playerDefending) {
+    bctx.strokeStyle = `rgba(120,200,255,${0.6 + 0.3 * Math.sin(performance.now() / 120)})`;
+    bctx.lineWidth = 4;
+    bctx.beginPath(); bctx.arc(cx, cy - size / 2 + 10, size * 0.55, 0, Math.PI * 2); bctx.stroke();
+  }
+}
+
+function drawCard(c, t) {
+  bctx.save();
+  bctx.translate(c.x, c.y);
+  bctx.rotate(c.rot || 0);
+  box(bctx, -12, -16, 24, 32, c.gold ? '#ffd54f' : '#42a5f5', OUT);
+  box(bctx, -8, -12, 16, 16, '#fafafa');
+  bctx.fillStyle = '#d32f2f';
+  bctx.beginPath(); bctx.arc(-2, -5, 2.5, 0, 7); bctx.arc(2, -5, 2.5, 0, 7); bctx.fill();
+  bctx.beginPath(); bctx.moveTo(-5, -4); bctx.lineTo(0, 1); bctx.lineTo(5, -4); bctx.fill();
+  bctx.restore();
+}
+
+// ---------------- EFECTOS POR TIPO ----------------
+const FX_STYLE = {
+  logica:     { color:'#82b1ff', glyphs:['π','√','Σ','∞','='] },
+  letras:     { color:'#e1bee7', glyphs:['A','Ñ','¿','á','§'] },
+  arte:       { color:'#ff80ab', glyphs:null, colors:['#e53935','#fdd835','#1e88e5','#43a047'] },
+  idioma:     { color:'#ffe082', glyphs:['Hi!','OK','Wow','¡!'] },
+  naturaleza: { color:'#a5d6a7', glyphs:['❀','✿'], colors:['#66bb6a','#2e7d32'] },
+  fisico:     { color:'#ffab91', glyphs:['✶','!'] },
+  normal:     { color:'#fafafa', glyphs:null }
+};
+
+function spawnMoveFx(fromSide, mv) {
+  const st = FX_STYLE[mv.type || 'normal'];
+  const a = POS[fromSide], d = POS[fromSide === 'player' ? 'enemy' : 'player'];
+  const ax = a.x, ay = a.y - a.size * 0.5, dx = d.x, dy = d.y - d.size * 0.5;
+  for (let i = 0; i < 10; i++) {
+    const delay = i * 2;
+    const life = 22 + delay;
+    battle.fx.push({
+      x: ax, y: ay, vx: (dx - ax) / 22 + (Math.random() - 0.5) * 2, vy: (dy - ay) / 22 + (Math.random() - 0.5) * 2,
+      life, size: st.glyphs ? 16 : 7,
+      glyph: st.glyphs ? st.glyphs[i % st.glyphs.length] : null,
+      color: st.colors ? st.colors[i % st.colors.length] : st.color
+    });
+  }
+}
+function spawnHitFx(side, color, n) {
+  const p = POS[side];
+  for (let i = 0; i < (n || 12); i++) {
+    const a = Math.random() * Math.PI * 2, s = 2 + Math.random() * 4;
+    battle.fx.push({ x: p.x, y: p.y - p.size * 0.5, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 18 + Math.random() * 10, size: 5, color });
+  }
+}
+
+// ---------------- PANELES HP (pantalla superior) ----------------
 function renderBattle() {
   const p = activePlayer(), e = activeEnemy();
+  if (!p || !e) return;
   setHpPanel('player', p);
   setHpPanel('enemy', e);
-  document.getElementById('enemy-poke-text').textContent = battle.kind === 'trainer' ? `(${battle.trainer.name})` : '(Salvaje)';
+  document.getElementById('enemy-poke-text').textContent = battle.kind === 'trainer' ? battle.trainer.name : 'Salvaje';
+  const exp = document.getElementById('player-exp-bar');
+  exp.style.width = Math.min(100, p.exp / expToNext(p.level) * 100) + '%';
+  const balls = document.getElementById('enemy-balls');
+  balls.innerHTML = '';
+  if (battle.kind === 'trainer') battle.enemyTeam.forEach(m => { const s = document.createElement('span'); s.className = 'ball' + (m.hp <= 0 ? ' ko' : ''); balls.appendChild(s); });
 }
 
 function setHpPanel(who, pk) {
   const pct = Math.max(0, pk.hp / pk.stats.hp * 100);
-  document.getElementById(`${who}-poke-name`).textContent = `${SPECIES[pk.species].name} Lv.${pk.level}`;
+  document.getElementById(`${who}-poke-name`).textContent = SPECIES[pk.species].name;
+  document.getElementById(`${who}-poke-lv`).textContent = 'Nv' + pk.level;
   const bar = document.getElementById(`${who}-hp-bar`);
   bar.style.width = pct + '%';
   bar.className = 'hp-bar-fill ' + (pct > 50 ? 'hp-high' : pct > 20 ? 'hp-mid' : 'hp-low');
   const txt = document.getElementById(`${who}-hp-text`);
-  if (txt) txt.textContent = `${Math.max(0,pk.hp)}/${pk.stats.hp}`;
+  if (txt) txt.textContent = `${Math.max(0, pk.hp)}/${pk.stats.hp}`;
 }
 
+// ---------------- MENÚS (pantalla inferior) ----------------
+function hideMenus() {
+  battleMenu.classList.add('hidden'); moveMenu.classList.add('hidden'); teamMenu.classList.add('hidden');
+}
 function showMainMenu() {
+  if (!battle || battle.over) return;
+  hideMenus();
   battleMenu.classList.remove('hidden');
-  moveMenu.classList.add('hidden');
-  teamMenu.classList.add('hidden');
-}
-
-function pipBar(pp, maxPp) {
-  const pips = document.createElement('div');
-  pips.className = 'pp-pips';
-  for (let i=0;i<maxPp;i++) {
-    const s = document.createElement('span');
-    s.className = i < pp ? 'pip-full' : 'pip-empty';
-    pips.appendChild(s);
-  }
-  return pips;
+  log(`¿Qué debe hacer ${SPECIES[activePlayer().species].name}?`);
 }
 
 function showMoveMenu() {
-  if (battle.busy) return;
+  if (!battle || battle.busy) return;
   const p = activePlayer();
   moveMenu.innerHTML = '';
   const anyPp = p.moves.some(m => m.pp > 0);
@@ -185,328 +331,373 @@ function showMoveMenu() {
     const btn = document.createElement('button');
     btn.className = 'move-btn';
     btn.disabled = slot.pp <= 0;
-    btn.style.borderColor = mv.type ? TYPE_COLOR[mv.type] : '#999';
-    const top = document.createElement('div');
-    top.className = 'move-top';
-    top.textContent = `${mv.name}`;
-    const info = document.createElement('div');
-    info.className = 'move-info';
-    info.textContent = `${mv.type ? TYPE_LABEL[mv.type] : 'Normal'} · Pot. ${mv.power} · PP ${slot.pp}/${slot.maxPp}`;
-    btn.appendChild(top);
-    btn.appendChild(info);
+    btn.style.background = mv.type ? `linear-gradient(180deg, ${hexShade(TYPE_COLOR[mv.type], 25)}, ${TYPE_COLOR[mv.type]})` : 'linear-gradient(180deg,#9e9e9e,#616161)';
+    const eff = mv.type ? typeEffectiveness(mv.type, SPECIES[activeEnemy().species].type) : 1;
+    btn.innerHTML = `<div class="move-top">${mv.name}</div>
+      <div class="move-info">${mv.type ? TYPE_LABEL[mv.type] : 'Normal'} · Pot ${mv.power} · PP ${slot.pp}/${slot.maxPp}${eff > 1 ? ' · ¡Eficaz!' : eff < 1 ? ' · Poco eficaz' : ''}</div>`;
     btn.appendChild(pipBar(slot.pp, slot.maxPp));
     btn.addEventListener('click', () => playerTurn(idx));
     moveMenu.appendChild(btn);
   });
   if (!anyPp) {
-    const struggle = document.createElement('button');
-    struggle.className = 'move-btn';
-    struggle.style.borderColor = '#999';
-    struggle.innerHTML = '<div class="move-top">Forcejeo</div><div class="move-info">¡Sin PP! Ataque desesperado (te hace daño a ti también)</div>';
-    struggle.addEventListener('click', () => playerTurn('struggle'));
-    moveMenu.appendChild(struggle);
+    const s = document.createElement('button');
+    s.className = 'move-btn';
+    s.innerHTML = '<div class="move-top">Forcejeo</div><div class="move-info">Sin PP: ataque desesperado que también te hiere</div>';
+    s.addEventListener('click', () => playerTurn('struggle'));
+    moveMenu.appendChild(s);
   }
   const back = document.createElement('button');
-  back.className = 'move-btn back-btn';
-  back.textContent = '← Volver';
+  back.className = 'move-btn back-btn'; back.textContent = '← Volver';
   back.addEventListener('click', showMainMenu);
   moveMenu.appendChild(back);
-  battleMenu.classList.add('hidden');
-  moveMenu.classList.remove('hidden');
+  hideMenus(); moveMenu.classList.remove('hidden');
 }
 
-function showTeamMenu() {
-  if (battle.busy) return;
+function pipBar(pp, maxPp) {
+  const pips = document.createElement('div');
+  pips.className = 'pp-pips';
+  for (let i = 0; i < Math.min(maxPp, 20); i++) {
+    const s = document.createElement('span');
+    s.className = i < pp * Math.min(maxPp, 20) / maxPp ? 'pip-full' : 'pip-empty';
+    pips.appendChild(s);
+  }
+  return pips;
+}
+
+function showTeamMenu(forced) {
+  if (!battle || (battle.busy && !forced)) return;
   teamMenu.innerHTML = '';
   battle.playerTeam.forEach((pk, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'move-btn';
-    const fainted = pk.hp <= 0;
-    btn.disabled = fainted || i === battle.playerActive;
-    btn.textContent = `${SPECIES[pk.species].name} Lv.${pk.level} HP ${Math.max(0,pk.hp)}/${pk.stats.hp}${fainted ? ' (debilitado)' : ''}`;
-    btn.addEventListener('click', () => { battle.playerActive = i; renderBattle(); showMainMenu(); log(`¡Sale ${SPECIES[pk.species].name}!`); });
-    teamMenu.appendChild(btn);
+    const row = monRow(pk, null);
+    const disabled = pk.hp <= 0 || i === battle.playerActive;
+    if (disabled) row.classList.add('disabled');
+    else row.addEventListener('click', () => switchMon(i, forced));
+    teamMenu.appendChild(row);
   });
-  const back = document.createElement('button');
-  back.className = 'move-btn back-btn';
-  back.textContent = '← Volver';
-  back.addEventListener('click', showMainMenu);
-  teamMenu.appendChild(back);
-  battleMenu.classList.add('hidden');
-  teamMenu.classList.remove('hidden');
+  if (!forced) {
+    const back = document.createElement('button');
+    back.className = 'move-btn back-btn'; back.textContent = '← Volver';
+    back.addEventListener('click', showMainMenu);
+    teamMenu.appendChild(back);
+  }
+  hideMenus(); teamMenu.classList.remove('hidden');
 }
 
+async function switchMon(i, forced) {
+  const b = battle;
+  b.busy = true; hideMenus();
+  if (b.show.playerMon && activePlayer().hp > 0) {
+    log(`¡Vuelve, ${SPECIES[activePlayer().species].name}!`);
+    await tween(300, k => { b.appear.player = k; });
+  }
+  b.playerActive = i;
+  await sendOut('player');
+  if (forced) { b.busy = false; showMainMenu(); return; }
+  await enemyOnlyTurn(false);
+}
+
+// ---------------- DAÑO ----------------
 function damageFormula(attacker, move, defender) {
-  if (!move.power) return { dmg: 0, eff: 1 };
+  if (!move.power) return { dmg: 0, eff: 1, crit: false };
   const eff = move.type ? typeEffectiveness(move.type, SPECIES[defender.species].type) : 1;
-  const base = ((2*attacker.level/5+2) * move.power * (attacker.stats.atk/defender.stats.def)) / 50 + 2;
-  const variance = 0.85 + Math.random()*0.15;
-  return { dmg: Math.max(1, Math.floor(base*eff*variance)), eff };
+  const stab = move.type && move.type === SPECIES[attacker.species].type ? 1.2 : 1;
+  const crit = Math.random() < 0.0625;
+  const base = ((attacker.level / 5 + 2) * move.power * (attacker.stats.atk / defender.stats.def)) / DAMAGE_DIV + 2;
+  const variance = 0.85 + Math.random() * 0.15;
+  return { dmg: Math.max(1, Math.floor(base * eff * stab * variance * (crit ? 1.5 : 1))), eff, crit };
 }
 
-function pickEnemyMove(e) {
+function pickEnemyMove(e, target) {
   const usable = e.moves.filter(m => m.pp > 0);
-  if (usable.length === 0) return { slot: null, mv: STRUGGLE };
-  const slot = usable[Math.floor(Math.random()*usable.length)];
+  if (!usable.length) return { slot: null, mv: STRUGGLE };
+  // los entrenadores eligen con cabeza; los salvajes, más al azar
+  if (battle.kind === 'trainer' && Math.random() < 0.7) {
+    let best = usable[0], bestScore = -1;
+    usable.forEach(s => {
+      const mv = MOVES[s.id];
+      const eff = mv.type ? typeEffectiveness(mv.type, SPECIES[target.species].type) : 1;
+      const score = mv.power * eff * mv.acc * (mv.type === SPECIES[e.species].type ? 1.2 : 1);
+      if (score > bestScore) { bestScore = score; best = s; }
+    });
+    return { slot: best, mv: MOVES[best.id] };
+  }
+  const slot = usable[Math.floor(Math.random() * usable.length)];
   return { slot, mv: MOVES[slot.id] };
 }
 
-// ---------------- SECUENCIA DE ATAQUE ANIMADA (~2s) ----------------
-async function performAttack(side, attacker, mv, defender, defenderIsGuarding) {
-  const attackerName = SPECIES[attacker.species].name;
-  log(`${attackerName} usa ${mv.name}...`);
-  floatText(side, '¡' + mv.name + '!', '#ffffff');
-
-  battle.lunge = { side, progress: 0 };
-  const outSteps = 10;
-  for (let i=1;i<=outSteps;i++) {
-    battle.lunge.progress = i/outSteps;
-    await wait(ATTACK_MS*0.3/outSteps);
-  }
-
-  let result = 'hit';
-  let dmg = 0, eff = 1, blocked = false;
-
+async function performAttack(side, attacker, mv, defender, guarding) {
+  const b = battle;
+  const other = side === 'player' ? 'enemy' : 'player';
+  log(`${side === 'enemy' && b.kind === 'wild' ? 'El ' : ''}${SPECIES[attacker.species].name} usa ${mv.name}.`);
+  // embestida
+  b.lunge = { side, k: 0 };
+  await tween(260, k => { b.lunge.k = k * 0.5; });
+  spawnMoveFx(side, mv);
+  await bwait(380);
   if (Math.random() > mv.acc) {
-    result = 'miss';
-    floatText(side === 'enemy' ? 'player' : 'enemy', '¡Fallo!', '#cfd8dc');
-    log(`${attackerName} usó ${mv.name}, ¡pero falló!`);
-  } else {
-    // bloqueo: una pequeña posibilidad de que el objetivo pare el golpe
-    const guardBonus = defenderIsGuarding ? 0.55 : 0;
-    blocked = Math.random() < (0.12 + guardBonus);
-    const calc = damageFormula(attacker, mv, defender);
-    dmg = calc.dmg; eff = calc.eff;
-    if (blocked) dmg = Math.max(1, Math.floor(dmg * (defenderIsGuarding ? 0.2 : 0.35)));
-    defender.hp -= dmg;
-    if (mv === STRUGGLE) {
-      const recoil = Math.max(1, Math.floor(attacker.stats.hp * 0.1));
-      attacker.hp -= recoil;
-    }
-    const otherSide = side === 'enemy' ? 'player' : 'enemy';
-    if (otherSide === 'enemy') battle.flashEnemy = 10; else battle.flashPlayer = 10;
-    floatText(otherSide, '-' + dmg, blocked ? '#90caf9' : (eff > 1 ? '#ffca28' : '#ff5252'));
-    if (blocked) floatText(otherSide, '¡Bloqueado!', '#90caf9');
-    renderBattle();
-    log(`${attackerName} usó ${mv.name}. ${blocked ? '¡Bloqueado parcialmente! ' : ''}${effText(eff)}(-${dmg} HP)`);
+    floatText(other, '¡Falla!', '#cfd8dc');
+    log('¡Pero ha fallado!');
+    await tween(260, k => { b.lunge.k = 0.5 + k * 0.5; });
+    b.lunge = null;
+    await bwait(500);
+    return;
   }
-
-  await wait(ATTACK_MS*0.2);
-  const backSteps = 8;
-  for (let i=backSteps-1;i>=0;i--) {
-    battle.lunge.progress = i/backSteps;
-    await wait(ATTACK_MS*0.3/backSteps);
-  }
-  battle.lunge = null;
-  await wait(ATTACK_MS*0.2);
-  return { result, dmg, eff, blocked };
+  const r = damageFormula(attacker, mv, defender);
+  let dmg = r.dmg;
+  const blocked = Math.random() < (guarding ? 0.6 : 0.1);
+  if (guarding) dmg = Math.max(1, Math.floor(dmg * (blocked ? 0.15 : 0.4)));
+  else if (blocked) dmg = Math.max(1, Math.floor(dmg * 0.35));
+  defender.hp = Math.max(0, defender.hp - dmg);
+  if (mv === STRUGGLE) attacker.hp = Math.max(0, attacker.hp - Math.max(1, Math.floor(attacker.stats.hp * 0.1)));
+  b.flash[other] = 14;
+  spawnHitFx(other, r.eff > 1 ? '#ffca28' : '#fafafa', r.eff > 1 ? 20 : 10);
+  if (r.eff > 1 || r.crit) { b.shake = 14; b.flashScreen = 4; }
+  floatText(other, '-' + dmg, blocked || guarding ? '#90caf9' : r.eff > 1 ? '#ffca28' : '#ff5252', r.eff > 1);
+  renderBattle();
+  await tween(260, k => { b.lunge.k = 0.5 + k * 0.5; });
+  b.lunge = null;
+  if (r.crit) { floatText(other, '¡CRÍTICO!', '#ff7043'); await say2('¡Un golpe crítico!', 650); }
+  if (blocked || guarding) await say2(guarding ? (blocked ? '¡Bloqueo perfecto! Casi no le hace nada.' : 'La defensa reduce el golpe.') : `¡${SPECIES[defender.species].name} bloquea parte del golpe!`, 700);
+  if (r.eff > 1) await say2('¡Es muy eficaz!', 700);
+  else if (r.eff < 1) await say2('No es muy eficaz...', 700);
+  else await bwait(350);
 }
 
-function effText(eff) {
-  if (eff > 1) return '¡Muy eficaz! ';
-  if (eff < 1) return 'No muy eficaz... ';
-  return '';
-}
-
-async function playerTurn(moveIdxOrStruggle) {
-  if (battle.over || battle.busy) return;
-  battle.busy = true;
-  moveMenu.classList.add('hidden');
-  battleMenu.classList.add('hidden');
+// ---------------- TURNOS ----------------
+async function playerTurn(moveIdx) {
+  const b = battle;
+  if (!b || b.over || b.busy) return;
+  b.busy = true; hideMenus();
   const p = activePlayer(), e = activeEnemy();
   let mv;
-  if (moveIdxOrStruggle === 'struggle') {
-    mv = STRUGGLE;
+  if (moveIdx === 'struggle') mv = STRUGGLE;
+  else { const slot = p.moves[moveIdx]; mv = MOVES[slot.id]; slot.pp = Math.max(0, slot.pp - 1); }
+  b.playerDefending = false;
+  const playerFirst = p.stats.spd >= e.stats.spd;
+  const enemyAct = async () => {
+    const { slot, mv: emv } = pickEnemyMove(activeEnemy(), activePlayer());
+    if (slot) slot.pp = Math.max(0, slot.pp - 1);
+    await performAttack('enemy', activeEnemy(), emv, activePlayer(), false);
+  };
+  if (playerFirst) {
+    await performAttack('player', p, mv, e, false);
+    if (await checkFaints()) return;
+    await enemyAct();
   } else {
-    const slot = p.moves[moveIdxOrStruggle];
-    mv = MOVES[slot.id];
-    slot.pp = Math.max(0, slot.pp - 1);
+    await enemyAct();
+    if (await checkFaints()) return;
+    await performAttack('player', p, mv, e, false);
   }
-  battle.playerDefending = false;
-  await resolveRound({ playerAttacks: true, mv });
+  if (await checkFaints()) return;
+  b.busy = false; showMainMenu();
 }
 
 async function playerDefend() {
-  if (battle.over || battle.busy) return;
-  battle.busy = true;
-  battleMenu.classList.add('hidden');
-  battle.playerDefending = true;
-  log(`${SPECIES[activePlayer().species].name} se prepara para bloquear el golpe.`);
-  floatText('player', '¡Defensa!', '#90caf9');
-  await wait(500);
-  await resolveRound({ playerAttacks: false });
+  const b = battle;
+  if (!b || b.over || b.busy) return;
+  b.busy = true; hideMenus();
+  b.playerDefending = true;
+  floatText('player', '¡DEFENSA!', '#90caf9');
+  await say2(`${SPECIES[activePlayer().species].name} se pone en guardia.`, 700);
+  await enemyOnlyTurn(true);
 }
 
-async function resolveRound({ playerAttacks, mv }) {
-  const p = activePlayer(), e = activeEnemy();
-  const playerFirst = playerAttacks && p.stats.spd >= e.stats.spd;
+async function enemyOnlyTurn(guarding) {
+  const b = battle;
+  const { slot, mv } = pickEnemyMove(activeEnemy(), activePlayer());
+  if (slot) slot.pp = Math.max(0, slot.pp - 1);
+  await performAttack('enemy', activeEnemy(), mv, activePlayer(), guarding);
+  b.playerDefending = false;
+  if (await checkFaints()) return;
+  b.busy = false; showMainMenu();
+}
 
-  if (playerAttacks) {
-    if (playerFirst) {
-      const r1 = await performAttack('player', p, mv, e, false);
-      renderBattle();
-      if (checkFaints()) { battle.busy = false; return; }
-      const { slot: eslot, mv: emv } = pickEnemyMove(e);
-      if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
-      await performAttack('enemy', e, emv, p, battle.playerDefending);
-      renderBattle();
-      if (checkFaints()) { battle.busy = false; return; }
-    } else {
-      const { slot: eslot, mv: emv } = pickEnemyMove(e);
-      if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
-      await performAttack('enemy', e, emv, p, false);
-      renderBattle();
-      if (checkFaints()) { battle.busy = false; return; }
-      const r2 = await performAttack('player', p, mv, e, false);
-      renderBattle();
-      if (checkFaints()) { battle.busy = false; return; }
-    }
-  } else {
-    // el jugador se defiende: solo ataca el rival, con daño reducido
-    const { slot: eslot, mv: emv } = pickEnemyMove(e);
-    if (eslot) eslot.pp = Math.max(0, eslot.pp - 1);
-    await performAttack('enemy', e, emv, p, true);
+async function checkFaints() {
+  const b = battle;
+  const e = activeEnemy(), p = activePlayer();
+  if (e.hp <= 0) {
+    await tween(500, k => { b.faint.enemy = k; });
+    await say2(`¡${SPECIES[e.species].name} se ha debilitado!`, 800);
+    await giveExp(e);
     renderBattle();
-    if (checkFaints()) { battle.busy = false; return; }
+    const next = b.enemyTeam.findIndex(m => m.hp > 0);
+    if (next === -1) { await endBattle('win'); return true; }
+    b.enemyActive = next;
+    b.participants = new Set([activePlayer()]);
+    await sendOut('enemy');
+    renderBattle();
+    if (p.hp <= 0) return await checkFaints();
+    b.busy = false; showMainMenu();
+    return true;
   }
-
-  battle.playerDefending = false;
-  battle.busy = false;
-  if (!battle.over) showMainMenu();
-}
-
-function checkFaints() {
-  const p = activePlayer(), e = activeEnemy();
-  if (e.hp <= 0) { e.hp = 0; renderBattle(); onEnemyFainted(); return true; }
-  if (p.hp <= 0) { p.hp = 0; renderBattle(); onPlayerFainted(); return true; }
+  if (p.hp <= 0) {
+    await tween(500, k => { b.faint.player = k; });
+    await say2(`¡${SPECIES[p.species].name} se ha debilitado!`, 800);
+    b.participants.delete(p);
+    if (!b.playerTeam.some(m => m.hp > 0)) { await endBattle('lose'); return true; }
+    b.show.playerMon = false;
+    log('Elige otro Coremon.');
+    showTeamMenu(true);
+    return true;
+  }
   return false;
 }
 
-function onEnemyFainted() {
-  log(`¡${SPECIES[activeEnemy().species].name} se debilitó!`);
-  const remaining = battle.enemyTeam.filter(p => p.hp > 0);
-  if (remaining.length === 0) {
-    endBattleVictory();
-    return;
+// ---------------- EXPERIENCIA ----------------
+function levelUp(p) {
+  p.level++;
+  const sp = SPECIES[p.species];
+  const oldMax = p.stats.hp;
+  p.stats = {
+    hp: Math.floor(sp.baseStats.hp * (1 + p.level * 0.12)),
+    atk: Math.floor(sp.baseStats.atk * (1 + p.level * 0.09)),
+    def: Math.floor(sp.baseStats.def * (1 + p.level * 0.09)),
+    spd: Math.floor(sp.baseStats.spd * (1 + p.level * 0.07))
+  };
+  if (p.hp > 0) p.hp = Math.min(p.stats.hp, p.hp + (p.stats.hp - oldMax));
+  p.moves = relearnMoveSlots(p.moves, p.species, p.level);
+  if (sp.evolvesTo && p.level >= sp.evolveLevel && !p.pendingEvo) {
+    p.pendingEvo = { from: p.species, to: sp.evolvesTo };
+    return true;
   }
-  battle.enemyActive = battle.enemyTeam.findIndex(p => p.hp > 0);
-  log(`${battle.trainer ? battle.trainer.name + ' envía a ' : 'Aparece '}${SPECIES[activeEnemy().species].name}!`);
-  renderBattle();
-  battle.busy = false;
-  showMainMenu();
+  return false;
 }
 
-function onPlayerFainted() {
-  log(`¡${SPECIES[activePlayer().species].name} se debilitó!`);
-  const remaining = battle.playerTeam.filter(p => p.hp > 0);
-  if (remaining.length === 0) {
-    endBattleDefeat();
-    return;
-  }
-  battle.playerActive = battle.playerTeam.findIndex(p => p.hp > 0);
-  renderBattle();
-  battle.busy = false;
-  showTeamMenu();
-}
-
-function grantExp(team) {
-  const exp = 25 + Math.floor(Math.random()*15);
-  team.forEach(p => {
-    if (p.hp <= 0) return;
-    p.exp += exp;
+async function giveExp(defeated) {
+  const b = battle;
+  const base = Math.floor(defeated.level * 13 * (b.kind === 'trainer' ? 1.5 : 1));
+  for (const p of b.playerTeam) {
+    if (p.hp <= 0) continue;
+    const share = b.participants.has(p) ? base : Math.floor(base / 2);
+    p.exp += share;
+    if (p === activePlayer()) { floatText('player', `+${share} EXP`, '#80d8ff'); }
     while (p.exp >= expToNext(p.level) && p.level < 60) {
+      const known = p.moves.map(m => m.id);
       p.exp -= expToNext(p.level);
-      p.level++;
-      const sp = SPECIES[p.species];
-      p.stats = {
-        hp: Math.floor(sp.baseStats.hp * (1 + p.level * 0.12)),
-        atk: Math.floor(sp.baseStats.atk * (1 + p.level * 0.09)),
-        def: Math.floor(sp.baseStats.def * (1 + p.level * 0.09)),
-        spd: Math.floor(sp.baseStats.spd * (1 + p.level * 0.07))
-      };
-      p.hp = p.stats.hp;
-      p.moves = relearnMoveSlots(p.moves, p.species, p.level);
-      log(`¡${sp.name} subió al nivel ${p.level}!`);
-      if (sp.evolvesTo && p.level >= sp.evolveLevel) {
-        log(`¡${sp.name} evolucionó a ${SPECIES[sp.evolvesTo].name}!`);
-        p.species = sp.evolvesTo;
-      }
+      levelUp(p);
+      renderBattle();
+      if (p === activePlayer()) { floatText('player', '¡NIVEL!', '#ffd54f', true); spawnHitFx('player', '#ffd54f', 16); }
+      await say2(`¡${SPECIES[p.species].name} sube al nivel ${p.level}!`, 900);
+      const learned = p.moves.map(m => m.id).filter(id => !known.includes(id));
+      for (const id of learned) await say2(`¡${SPECIES[p.species].name} ha aprendido ${MOVES[id].name}!`, 900);
     }
+  }
+  renderBattle();
+}
+
+// ---------------- CAPTURA ----------------
+async function throwCard(itemId) {
+  const b = battle;
+  b.busy = true; hideMenus();
+  const e = activeEnemy();
+  const it = ITEMS[itemId];
+  consumeItem(itemId);
+  log(`¡Lanzas un ${it.name}!`);
+  b.card = { x: POS.player.x, y: POS.player.y - 80, rot: 0, gold: itemId === 'cromoOro' };
+  const sx = b.card.x, sy = b.card.y, tx = POS.enemy.x, ty = POS.enemy.y - 60;
+  await tween(550, k => { b.card.x = sx + (tx - sx) * k; b.card.y = sy + (ty - sy) * k - Math.sin(k * Math.PI) * 90; b.card.rot = k * 12; });
+  b.flashScreen = 6;
+  await tween(300, k => { b.appear.enemy = k; });
+  b.show.enemyMon = false;
+  await tween(250, k => { b.card.y = ty + k * 50; b.card.rot = 0; });
+  const hpRatio = e.hp / e.stats.hp;
+  const chance = Math.min(0.97, (0.85 - hpRatio * 0.6 + 0.05) * it.rate * (e.level > 12 ? 0.8 : 1));
+  const caught = Math.random() < chance;
+  const shakes = caught ? 3 : Math.floor(Math.random() * 3);
+  for (let i = 0; i < shakes; i++) {
+    await bwait(250);
+    await tween(300, k => { b.card.rot = Math.sin(k * Math.PI * 2) * 0.5; });
+  }
+  await bwait(300);
+  if (caught) {
+    spawnHitFx('enemy', '#fff59d', 20);
+    await say2(`¡Ya está! ¡Has capturado a ${SPECIES[e.species].name}!`, 1300);
+    game.caught[e.species] = true;
+    const mon = Object.assign({}, e, { moves: e.moves.map(m => ({ ...m })) });
+    if (game.team.length < 6) { game.team.push(mon); await say2(`${SPECIES[e.species].name} se une a tu equipo.`, 900); }
+    else { game.box.push(mon); await say2(`Tu equipo está lleno: ${SPECIES[e.species].name} va a las taquillas del vestíbulo.`, 1300); }
+    b.card = null;
+    await endBattle('capture');
+  } else {
+    b.card = null;
+    b.show.enemyMon = true;
+    await tween(300, k => { b.appear.enemy = 1 - k; });
+    await say2(['¡Oh, no! ¡Se ha escapado!', '¡Casi lo tenías!', '¡Uf, por poco!'][shakes] || '¡Se ha escapado!', 900);
+    await enemyOnlyTurn(false);
+  }
+}
+
+function openBattleBag() {
+  if (!battle || battle.busy) return;
+  openBag({
+    battle: true,
+    onCapture: id => {
+      if (battle.kind !== 'wild') { log('¡No puedes capturar el Coremon de otra persona!'); showMainMenu(); return; }
+      throwCard(id);
+    },
+    onUsed: async msg => {
+      showTouch('battle');
+      battle.busy = true; hideMenus();
+      renderBattle();
+      spawnHitFx('player', '#a5d6a7', 12);
+      await say2(msg, 900);
+      await enemyOnlyTurn(false);
+    },
+    onCancel: () => { showTouch('battle'); showMainMenu(); }
   });
 }
 
-function endBattleVictory() {
-  battle.over = true;
-  battle.busy = false;
-  grantExp(battle.playerTeam);
-  if (battle.kind === 'trainer') {
-    const t = battle.trainer;
-    if (!game.badges.includes(t.id)) game.badges.push(t.id);
-    game.coins += t.prize;
-    log(`¡Has ganado a ${t.name}! Consigues la ${t.reward} y ${t.prize} monedas.`);
-  } else {
-    log('¡Has ganado el combate!');
-  }
-  renderBattle();
-  saveGame();
-  setTimeout(() => {
-    closeBattle();
-    checkWinCondition();
-  }, 1600);
-}
-
-function endBattleDefeat() {
-  battle.over = true;
-  battle.busy = false;
-  log('Todos tus Coremon se han debilitado... Vuelves a la enfermería.');
-  game.team.forEach(p => { p.hp = p.stats.hp; p.moves.forEach(m => m.pp = m.maxPp); });
-  setTimeout(() => {
-    closeBattle();
-    game.room = 'planta_baja';
-    game.pos = MAPS.planta_baja.spawn;
-    saveGame();
-  }, 1800);
-}
-
-function tryCapture() {
-  if (battle.busy) return;
-  if (battle.kind !== 'wild') { log('¡Solo puedes capturar Coremon salvajes!'); return; }
-  if (game.stickers <= 0) { log('No te quedan cromos de captura.'); return; }
-  game.stickers--;
-  const e = activeEnemy();
-  const hpRatio = e.hp / e.stats.hp;
-  const chance = Math.min(0.95, 0.9 - hpRatio*0.6);
-  battleMenu.classList.add('hidden');
+async function tryRun() {
+  const b = battle;
+  if (!b || b.busy) return;
+  if (b.kind === 'trainer') { log('¡No puedes huir de un combate contra un entrenador!'); return; }
+  b.busy = true; hideMenus();
+  const chance = activePlayer().stats.spd >= activeEnemy().stats.spd ? 1 : 0.6;
   if (Math.random() < chance) {
-    log(`¡Cromo lanzado... y capturaste a ${SPECIES[e.species].name}!`);
-    if (game.team.length < 6) game.team.push({...e, moves: e.moves.map(m => ({...m}))});
-    battle.over = true;
-    saveGame();
-    setTimeout(closeBattle, 1400);
+    await say2('¡Escapas sin problemas!', 800);
+    await endBattle('run');
   } else {
-    log('¡El Coremon se ha escapado del cromo!');
-    showMainMenu();
+    await say2('¡No puedes escapar!', 800);
+    await enemyOnlyTurn(false);
   }
 }
 
-function tryRun() {
-  if (battle.busy) return;
-  if (battle.kind === 'trainer') { log('¡No puedes huir de un combate de profesor!'); return; }
-  log('Huyes del combate.');
-  battle.over = true;
-  setTimeout(closeBattle, 700);
-}
-
-function closeBattle() {
+// ---------------- FIN ----------------
+async function endBattle(result) {
+  const b = battle;
+  b.over = true; b.busy = true;
+  hideMenus();
+  const info = { result, trainer: b.trainer, evolutions: [] };
+  if (result === 'win' && b.kind === 'trainer') {
+    const t = b.trainer;
+    game.coins += t.prize;
+    await say2(`¡Has ganado a ${t.name}!`, 1000);
+    await say2(`Recibes ${t.prize} monedas.`, 900);
+    if (t.student) game.beaten[t.id] = true;
+    else if (!game.badges.includes(t.id)) { game.badges.push(t.id); info.newBadge = true; }
+  }
+  if (result === 'win' && b.kind === 'wild') {
+    const found = Math.floor(activeEnemy().level * 4 + Math.random() * 20);
+    game.coins += found;
+    await say2(`Encuentras ${found} monedas tiradas en el suelo.`, 900);
+  }
+  game.team.forEach(p => { if (p.pendingEvo) { info.evolutions.push(Object.assign({ mon: p }, p.pendingEvo)); delete p.pendingEvo; } });
+  if (result !== 'lose') await bwait(300);
+  await fadeTo(1, 300);
   battleScreen.classList.add('hidden');
   battle = null;
-  STATE = 'OVERWORLD';
+  showTouch('main');
+  refreshTouch();
+  STATE = 'CUTSCENE';
+  await fadeTo(0, 300);
+  saveGame();
+  afterBattle(info);
 }
 
 window.addEventListener('load', () => {
   document.getElementById('btn-fight').addEventListener('click', showMoveMenu);
   document.getElementById('btn-defend').addEventListener('click', playerDefend);
-  document.getElementById('btn-team').addEventListener('click', showTeamMenu);
-  document.getElementById('btn-capture').addEventListener('click', tryCapture);
+  document.getElementById('btn-team').addEventListener('click', () => showTeamMenu(false));
+  document.getElementById('btn-bag').addEventListener('click', openBattleBag);
   document.getElementById('btn-run').addEventListener('click', tryRun);
 });
