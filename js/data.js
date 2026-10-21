@@ -93,6 +93,9 @@ const SPECIES = {
   naturalux: { name: 'Naturalux',  type: 'naturaleza', stage:2, archetype:'leaf', baseStats: {hp:64,atk:56,def:58,spd:46}, evolvesTo:null, learn:{1:['fotosintesis','raiz','ecosistema']} },
   lingualord:{ name: 'Lingualord', type: 'idioma', stage:2, archetype:'speech', baseStats: {hp:60,atk:60,def:50,spd:54}, evolvesTo:null, learn:{1:['vocabulario','acento','fluidez']} },
   directorex:{ name: 'Directorex', type: 'logica', stage:3, archetype:'block', baseStats: {hp:82,atk:68,def:64,spd:58}, evolvesTo:null, learn:{1:['axioma','logicaplas','placaje']} },
+  // --- Taller de Tecnología: nació de un circuito que funcionó a la primera ---
+  chispin:   { name: 'Chispín',    type: 'logica', stage:0, archetype:'gear', color:'#90a4ae', accent:'#ffca28', baseStats: {hp:44,atk:46,def:42,spd:44}, evolvesTo:'circuitron', evolveLevel:22, learn:{1:['placaje','calculo'],12:['axioma'],20:['logicaplas']} },
+  circuitron:{ name: 'Circuitrón', type: 'logica', stage:1, archetype:'gear', color:'#78909c', accent:'#ffca28', baseStats: {hp:66,atk:68,def:62,spd:60}, evolvesTo:null, learn:{22:['logicaplas']} },
   // --- Legendario del Fundador: el Sagrado Corazón ---
   corazonix: { name: 'Corazonix', type: 'naturaleza', stage:3, archetype:'heart', color:'#d32f2f', accent:'#ffd54f',
     baseStats: {hp:90,atk:72,def:68,spd:62}, evolvesTo:null, learn:{1:['ecosistema','redaccion','fluidez','logicaplas']} }
@@ -223,7 +226,12 @@ const TRAINERS = {
       'En 1821 fundé los Hermanos del Sagrado Corazón. Doscientos años después, este colegio de Vitoria es la casa corazonista con más alumnos de España.',
       'Has demostrado saber. Ahora demuéstrame que tienes corazón.'
     ],
-    win:'Tienes el corazón de un verdadero Corazonista. Cuida de los demás como yo cuidé de aquellas niñas. Esta casa es tuya.' }
+    win:['Tienes el corazón de un verdadero Corazonista. Cuida de los demás como yo cuidé de aquellas niñas. Esta casa es tuya.',
+      'Pero escúchame bien, joven Cora, porque esto no acaba aquí.',
+      'Yo solo era el guardián. Bajo los cimientos de este colegio duerme algo mucho más grande que yo... más grande que todos los Coremon juntos.',
+      'Los Hermanos lo sellaron hace generaciones, debajo del gimnasio. Pero los sellos no duran para siempre. Y hoy, con tu combate, algo ha empezado a despertar.',
+      'Cuando llegue el momento, lo sabrás. Prepárate, entrena, completa tu Coredex...',
+      'Nos vemos en la Segunda Edición.'] }
 };
 
 // Alumnos que retan a combate (opcionales, dan dinero y experiencia).
@@ -239,8 +247,26 @@ const STUDENT_TRAINERS = {
   lector:     { name:'Lectora de la biblioteca', team:[['librillo',10],['acuarelix',11]], prize:300, intro:'Shhh... Si pierdes, en silencio.', win:'Shhh... vale, has ganado. Pero en silencio.' },
   bachi1:     { name:'Alumno de 2º de Bachillerato', team:[['libratomo',14],['gomigante',15]], prize:450, intro:'Estoy de exámenes de selectividad. Esto será rápido.', win:'Vuelvo a estudiar... con la moral por los suelos.' },
   bachi2:     { name:'Delegada de Bachillerato', team:[['acuaremaster',15],['hojarbol',15],['vocabulemperor',16]], prize:520, intro:'Como delegada, debo comprobar que estás preparado para subir.', win:'Aprobado. Puedes pasar.' },
+  base:       { name:'Base del equipo de baloncesto', team:[['pelotroncho',7],['gomitas',7]], prize:240, intro:'¡Yo reparto el juego en esta cancha! A ver cómo defiendes.', win:'Me has robado el balón... y el combate.' },
+  lateral:    { name:'Lateral de balonmano', team:[['mochiloide',8],['pelotroncho',9]], prize:280, intro:'¡Lateral izquierdo, el que más lanza del cole! ¡Prepárate para el siete metros!', win:'¡Parada del portero! Bueno, del tuyo. Bien jugado.' },
+  comba:      { name:'Campeona de comba', team:[['acuarelix',9],['hojalata',9]], prize:260, intro:'¡Llevo 200 saltos sin fallar! Si me ganas, te dejo saltar. Si no, a dar la comba.', win:'¡Me he enredado! Vale, vale, te toca saltar.' },
+  misterioso: { name:'Alumno misterioso', team:[['circuitron',44],['naturalux',46],['lingualord',46],['corazonix',50]], prize:4000,
+    intro:'¿Tú eres el que venció al Fundador? Yo vengo de... digamos que de más adelante. De la Segunda Edición. Quiero ver si estás preparado para lo que viene.',
+    win:'Increíble. Sí, estás preparado. Cuando se abra la trampilla del gimnasio, acuérdate de mí.' },
   castigado:  { name:'Alumno castigado', team:[['pelotitan',16],['gomigante',16]], prize:600, intro:'Llevo aquí desde 3º de la ESO por colarme en la sala de profesores. Me aburro. ¡Pelea conmigo!', win:'Bueno, al menos ha sido entretenido. Me quedo aquí otro rato...' }
 };
+
+// Diario perdido de 1971: 8 páginas repartidas por el colegio (el lore)
+const DIARY = [
+  { title:'Página 1 — Cesta y Puntos', text:['«Diario de Txema, alumno de los Coras. Marzo de 1971.»', '«Hoy hemos ganado Cesta y Puntos en la tele. Al volver al cole todos gritaban en el vestíbulo.»', '«Entonces vi algo moverse dentro de la vitrina de trofeos. Parecía... una tiza con patas. Me miró y salió corriendo.»'] },
+  { title:'Página 2 — Los libros murmuran', text:['«El Hermano bibliotecario dice que los libros viejos murmuran por la noche.»', '«Hoy he visto uno abrirse solo y enseñar los dientes. Él lo llama Librillo y dice que no le dé de comer después de las doce.»'] },
+  { title:'Página 3 — De dónde vienen', text:['«El Hermano jardinero me ha contado el secreto: los Coremon nacen cuando alguien aprende algo de verdad.»', '«Una tabla de multiplicar bien sabida, un poema entendido, una canasta después de mil intentos... Por eso este colegio está lleno de ellos.»'] },
+  { title:'Página 4 — El cuadro', text:['«En la capilla hay un cuadro del Padre Coindre. Juraría que hoy me ha guiñado un ojo.»', '«Detrás se oye un zumbido, como de máquinas. ¿Qué habrá ahí detrás? Si lo empujas un poco...»'] },
+  { title:'Página 5 — El circuito', text:['«En el taller he montado mi primer circuito. ¡Ha funcionado a la primera!»', '«Y de la placa ha salido un bichito de tornillos que echa chispas. El profe dice que eso solo pasa una vez en la vida.»', '«Lo he llamado Chispín.»'] },
+  { title:'Página 6 — Los Seis Grandes', text:['«Cada asignatura tiene su Coremon legendario: los Seis Grandes.»', '«Teoremorfo, Bibliomante, Atletisaurio, Musarte, Naturalux y Lingualord.»', '«Duermen en la hierba oscura del patio y solo despiertan ante alumnos fuertes. Cuanto más fuerte es tu equipo, más salen.»'] },
+  { title:'Página 7 — Una luz roja', text:['«Me han castigado otra vez en el quinto piso. Desde la ventana se ve todo Vitoria.»', '«Y abajo, en el patio, a veces brilla algo rojo, como un corazón que late. Dicen que es Corazonix, el corazón del colegio.»', '«Solo se deja ver por quien ha vencido al Fundador.»'] },
+  { title:'Página 8 — La trampilla', text:['«Última página. Bajo el gimnasio hay una trampilla que no aparece en ningún plano.»', '«Bajé las escaleras con una linterna. Abajo hay algo enorme, dormido. Más grande que todos los Coremon juntos. Respiraba.»', '«No pienso volver a bajar. Si encuentras este diario... prepárate. Algún día despertará.»', '«— Txema, 1971»'] }
+];
 
 function academicBadgeCount(badges) {
   return badges.filter(b => b !== 'director' && b !== 'coindre').length;

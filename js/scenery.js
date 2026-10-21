@@ -396,6 +396,15 @@ function drawDoor(ctx, x, y, T, door, color, t, map) {
     ctx.beginPath(); ctx.moveTo(x + T / 2, y + T - 2); ctx.lineTo(x + T / 2 - 5, y + T - 8); ctx.lineTo(x + T / 2 + 5, y + T - 8); ctx.fill();
     return;
   }
+  if (door.exit && door.style === 'stairsSide') {
+    // hueco en la pared derecha con la escalera que sube al patio
+    box(ctx, x, y, T, T, '#3a3d44');
+    for (let i = 0; i < 5; i++) { ctx.fillStyle = i % 2 ? '#c9b48c' : '#d9c7a3'; ctx.fillRect(x + 3 + i * 6, y + 3, 5, T - 6); }
+    ctx.fillStyle = '#8d6e63'; ctx.fillRect(x, y + 2, T, 3); ctx.fillRect(x, y + T - 5, T, 3);
+    ctx.fillStyle = '#ffe082';
+    ctx.beginPath(); ctx.moveTo(x + T - 3, y + T / 2); ctx.lineTo(x + T - 10, y + T / 2 - 6); ctx.lineTo(x + T - 10, y + T / 2 + 6); ctx.fill();
+    return;
+  }
   if (!door.exit && !door.elevator && map.doorStyle === 'wood' && !door.locked) {
     box(ctx, x + 1, y, T - 2, T, '#b8894c', OUT);
     box(ctx, x + 4, y + 3, T - 8, T - 3, '#ddb172', OUT);
@@ -949,6 +958,49 @@ const DECOR = {
       }
     }
   }},
+  // pilar cuadrado del vestíbulo: travertino beige con zócalo de granito negro
+  pillar: { tall: true, draw(c, x, y, T) {
+    box(c, x + 5, y - 30, T - 10, T + 26, '#d9c7a3', OUT);
+    c.fillStyle = '#c9b48c'; c.fillRect(x + 7, y - 28, 3, T + 18);
+    c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(x + T - 12, y - 28, 2, T + 18);
+    c.fillStyle = '#b8a27a'; for (let i = 0; i < 4; i++) c.fillRect(x + 7, y - 20 + i * 12, T - 14, 1);
+    box(c, x + 3, y + T - 9, T - 6, 8, '#24232a', OUT);
+    c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(x + 5, y + T - 7, T - 10, 2);
+  }},
+  trapdoor: { solid: false, draw(c, x, y, T) {
+    box(c, x + 2, y + 3, T - 4, T - 6, '#5f6368', OUT);
+    c.fillStyle = '#4a4e52'; for (let i = 0; i < 4; i++) c.fillRect(x + 5, y + 7 + i * 5, T - 10, 2);
+    c.fillStyle = '#8d6e63'; c.fillRect(x + 6, y + 12, 5, 6); c.fillRect(x + 14, y + 12, 5, 6); c.fillRect(x + 22, y + 12, 5, 6);
+    c.fillStyle = '#fdd835'; c.fillRect(x + 2, y + 3, T - 4, 2); c.fillRect(x + 2, y + T - 5, T - 4, 2);
+  }},
+  toolWall: { wall: true, solid: false, draw(c, x, y, T, d) {
+    const w = (d.w || 3) * T;
+    box(c, x + 2, y + 2, w - 4, T - 6, '#c8a165', OUT);
+    c.fillStyle = '#a8834f';
+    for (let i = 6; i < w - 6; i += 6) for (let j = 6; j < T - 8; j += 6) c.fillRect(x + i, y + j, 1, 1);
+    for (let i = 0; i < (d.w || 3) * 2; i++) {
+      const tx = x + 8 + i * 15;
+      if (i % 3 === 0) { c.fillStyle = '#6d4c41'; c.fillRect(tx + 2, y + 8, 3, 14); c.fillStyle = '#90a4ae'; c.fillRect(tx - 1, y + 6, 9, 4); }
+      else if (i % 3 === 1) { c.fillStyle = '#e53935'; c.fillRect(tx + 1, y + 14, 4, 8); c.fillStyle = '#b0bec5'; c.fillRect(tx + 2, y + 6, 2, 8); }
+      else { c.fillStyle = '#b0bec5'; c.fillRect(tx, y + 7, 9, 3); c.fillRect(tx + 2, y + 10, 2, 10); c.fillStyle = '#fbc02d'; c.fillRect(tx, y + 18, 7, 4); }
+    }
+  }},
+  fuseBox: { wall: true, solid: false, anim: true, draw(c, x, y, T, d, t) {
+    box(c, x + 7, y + 3, T - 14, T - 10, '#9e9e9e', OUT);
+    c.fillStyle = '#fdd835'; c.beginPath(); c.moveTo(x + T / 2, y + 6); c.lineTo(x + T / 2 - 5, y + 14); c.lineTo(x + T / 2 + 5, y + 14); c.fill();
+    c.fillStyle = Math.floor(t / 180) % 7 === 0 ? '#ff1744' : '#4a0b0b'; c.fillRect(x + 11, y + 17, 3, 3);
+    c.fillStyle = '#212121'; c.fillRect(x + 17, y + 16, 4, 5);
+  }},
+  workbench: { draw(c, x, y, T, d) {
+    const w = (d.w || 2) * T;
+    box(c, x + 1, y + 6, w - 2, T - 10, '#8d6e63', OUT);
+    box(c, x + 1, y + 2, w - 2, 8, '#c8a165', OUT);
+    c.fillStyle = '#5d4037'; c.fillRect(x + 4, y + T - 6, 4, 5); c.fillRect(x + w - 8, y + T - 6, 4, 5);
+    box(c, x + w - 16, y - 4, 12, 8, '#546e7a', OUT);
+    box(c, x + 8, y - 1, 14, 5, '#2e7d32', OUT);
+    c.fillStyle = '#ffca28'; c.fillRect(x + 10, y, 2, 2); c.fillRect(x + 16, y, 2, 2);
+    c.fillStyle = '#e53935'; c.fillRect(x + w / 2, y + 1, 6, 2);
+  }},
   rug: { solid: false, draw(c, x, y, T, d) {
     const w = d.w * T, h = d.h * T;
     box(c, x + 2, y + 2, w - 4, h - 4, d.color || '#8e2b3a', OUT);
@@ -961,6 +1013,18 @@ function decorDef(type) { return DECOR[type] || { draw(){} }; }
 // Huella (tiles) que ocupa una decoración
 function decorCovers(d, x, y) {
   return x >= d.x && x < d.x + (d.w || 1) && y >= d.y && y < d.y + (d.h || 1);
+}
+
+// Página suelta del diario de 1971
+function drawPage(ctx, x, y, T, t) {
+  const b = Math.sin(t / 300) * 1.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(x + T / 2, y + T - 7, 8, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(x + T / 2, y + T / 2 + b); ctx.rotate(-0.15);
+  box(ctx, -7, -9, 14, 17, '#f3e5c0', OUT);
+  ctx.fillStyle = '#8d6e63'; for (let i = 0; i < 4; i++) ctx.fillRect(-4, -5 + i * 4, 8, 1);
+  ctx.restore();
+  if (Math.floor(t / 400) % 3 === 0) { ctx.fillStyle = '#fff'; ctx.fillRect(x + T / 2 + 6, y + 6 + b, 2, 2); }
 }
 
 // Pequeño objeto recogible en el suelo (estilo "objeto brillante")

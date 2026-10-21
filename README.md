@@ -21,8 +21,10 @@ ni compilación.
 | Hablar / usar (A) | Enter, Espacio o Z | Botón A |
 | Atrás (B) | Esc, X o Retroceso | Botón B |
 
-La pantalla de abajo tiene el equipo, la mochila, la Coredex y el guardado.
-La partida también se guarda sola al cambiar de sala.
+La pantalla de abajo tiene el equipo, la mochila, la Coredex, el guardado y
+el **objetivo actual** (📍), para saber siempre adónde ir. La partida también
+se guarda sola al cambiar de sala. El botón 🔊 quita o pone el sonido (música y
+efectos chiptune generados en el propio navegador, sin archivos de audio).
 
 ## Historia
 
@@ -34,7 +36,17 @@ alumnos de España.
 
 Cada asignatura es un gimnasio. Consigue las 6 insignias, supera la prueba del
 Director y enfréntate al jefe final: el Padre Andrés Coindre, en la Sala del
-Fundador.
+Fundador. Al vencerle te avisa de que bajo el colegio duerme algo mucho más
+grande... nos vemos en la Segunda Edición.
+
+Por el colegio hay 8 páginas perdidas del **diario de Txema**, un alumno de
+1971 que descubrió de dónde salen los Coremon. Se leen desde la mochila y, si
+las juntas todas, hay premio.
+
+**Después del final:** la hierba del patio y del jardín se revuelve (Coremon
+de más nivel y muchos más legendarios, Corazonix incluido), aparece un alumno
+misterioso muy fuerte en la zona salvaje y la trampilla del gimnasio...
+respira.
 
 ## El colegio
 
@@ -45,16 +57,22 @@ Los espacios están recreados a partir de fotos reales del colegio.
 - **Planta Baja:** vestíbulo de granito negro con pasillo central de granito
   beige, paredes de travertino y puertas de madera clara (secretaría,
   enfermería, máquinas expendedoras, taquillas, vitrina de trofeos). Puerta
-  de cristal a la entrada principal y puertas dobles con la escalera que sube
-  al Patio. Gimnasio (suelo azul, rocódromo y colchonetas azules), Salón de Actos (butacas de madera con
-  cojines de colores, escenario con cortinas rojas y pantalla), Capilla y
-  Sala de Conferencias. Del Patio (cancha de baloncesto) se pasa al Jardín.
+  de cristal a la entrada principal y, al fondo del pasillo a la derecha, la
+  escalera que sube al Patio. Pilares cuadrados de travertino con zócalo de
+  granito. Gimnasio (suelo azul, rocódromo y colchonetas azules), Salón de
+  Actos (butacas de madera con cojines de colores, escenario con cortinas
+  rojas y pantalla), Capilla y Sala de Conferencias.
+- **Patio:** se recorre hacia la derecha. Cancha de baloncesto y balonmano,
+  fuente, bancos, profe de guardia, alumnos jugando (y el único futbolista,
+  chutando contra la pared), la zona salvaje de hierba oscura y, al final del
+  camino, el Jardín.
 - **Pasillos de las plantas:** ladrillo naranja con mampara de cristal,
   terrazo azul-gris, murales y dibujos. Puertas con marco azul marino y ojo
   de buey: amarillas en 1ª y 3ª planta, azules en 2ª y 4ª.
 - **1ª planta (Primaria):** Matemáticas y Lengua.
-- **2ª planta (5º-6º):** Ciencias (laboratorio), Inglés y Sala de Apoyo y
-  Tecnología (ordenadores, Coremon salvajes). Requiere 2 insignias.
+- **2ª planta (5º-6º):** Ciencias (laboratorio), Inglés, Sala de Apoyo
+  (ordenadores, Coremon salvajes) y el **Taller de Tecnología**. Requiere 2
+  insignias.
 - **3ª planta (ESO):** Arte (caballetes) y Biblioteca. Requiere 4 insignias.
 - **4ª planta (Bachillerato):** zona de entrenamiento con Coremon fuertes.
   Requiere 5 insignias.
@@ -64,6 +82,21 @@ Los espacios están recreados a partir de fotos reales del colegio.
 Solo hay personal donde tiene sentido: cada profe en su aula, la enfermera, la
 secretaria, la bibliotecaria, el conserje... Además hay alumnos paseando por
 los pasillos y alumnos que te retan a combate.
+
+## Misión del Taller: examen práctico
+
+Un minijuego distinto, en primera persona. Tienes que hacer tres montajes
+(matriz de LEDs, cableado y código) antes de que se acabe el tiempo. Los
+esquemas solo los tienes en el móvil (A o el botón de abajo para mirarlo):
+
+- Míralo solo cuando el profe esté de espaldas escribiendo en la pizarra. Si
+  deja de escribir y carraspea (**¡EJEM!**), escóndelo: se va a dar la vuelta.
+- Cuando se acaba el tiempo, salta el cuadro eléctrico y la clase se queda a
+  oscuras unos segundos. A oscuras, la pantalla del móvil te delata: si lo
+  enciendes, sus gafas brillan cada vez más cerca. Y si te vibra, siléncialo
+  rápido.
+- Si te pilla con el móvil, castigo en el quinto piso. Si apruebas: 1000
+  monedas y un Coremon de nivel 18 que sale de tu placa.
 
 ## Combate
 
@@ -91,6 +124,8 @@ los pasillos y alumnos que te retan a combate.
 - `js/game.js`: mundo, movimiento, diálogos y cinemáticas.
 - `js/ui.js`: pantalla inferior (menús, mochila, tienda, taquillas, Coredex).
 - `js/battle.js`: combate.
+- `js/taller.js`: minijuego del Taller de Tecnología.
+- `js/audio.js`: música y efectos de sonido (WebAudio).
 
 Para cambiar el aspecto de un profesor, edita su `look` en `TRAINERS`
 (`js/data.js`): peinado (`short`, `long`, `bald`, `spiky`, `bun`, `cap`),

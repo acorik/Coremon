@@ -233,3 +233,27 @@ button:disabled { cursor: not-allowed; }
 .dev-btn.big { font-size: 16px; padding: 12px; }
 .dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .dev-grid .ds-btn { font-size: 11px; }
+
+/* ---------- Objetivo actual y sonido ---------- */
+#objective { font-size: 11px; background: #fff8e1; border: 2px solid #c9a26b; border-radius: 6px; padding: 3px 6px; color: #4e342e; }
+#objective:empty { display: none; }
+.mini-btn { border: none; background: none; font-size: 15px; cursor: pointer; padding: 0 2px; }
+
+/* ---------- Taller: examen práctico ---------- */
+#touch-taller { background: #11161a; color: #eceff1; transition: background .2s; }
+#touch-taller.dark { background: #000; }
+.tl-head { display: flex; align-items: center; gap: 8px; font-family: monospace; font-size: 13px; color: #ffd54f; }
+.tl-bar { flex: 1; height: 10px; background: #37474f; border: 2px solid #000; border-radius: 4px; overflow: hidden; }
+#tl-time { height: 100%; width: 100%; background: #76ff03; }
+#tl-time.low { background: #ff1744; }
+#tl-canvas { width: 100%; height: auto; aspect-ratio: 480 / 230; image-rendering: pixelated; border-radius: 6px; touch-action: none; cursor: pointer; }
+#tl-phone { background: linear-gradient(180deg, #37474f, #1b1b1f); color: #fafafa; }
+#tl-phone.alarm { background: linear-gradient(180deg, #ff1744, #b71c1c); animation: pulse .35s infinite alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.04); } }
+
+/* ---------- Diario ---------- */
+.diary-page { background: #f3e5c0; border: 2px solid #8d6e63; border-radius: 4px; padding: 6px 8px; color: #3e2723; font-family: Georgia, serif; font-size: 12px; }
+.diary-page b { font-family: monospace; }
+.diary-page.missing { background: #d7ccc8; color: #8d6e63; font-style: italic; }
+.yesno { display: flex; gap: 8px; }
+.yesno .ds-btn { flex: 1; }

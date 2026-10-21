@@ -6,7 +6,8 @@ const touch = {
   title: document.getElementById('touch-title'),
   main: document.getElementById('touch-main'),
   panel: document.getElementById('touch-panel'),
-  battle: document.getElementById('touch-battle')
+  battle: document.getElementById('touch-battle'),
+  taller: document.getElementById('touch-taller')
 };
 const panelTitle = document.getElementById('panel-title');
 const panelBody = document.getElementById('panel-body');
@@ -53,6 +54,7 @@ function refreshTouch() {
   document.getElementById('loc-name').textContent = map ? map.name : '';
   document.getElementById('coins').textContent = game.coins;
   document.getElementById('menu-dev').classList.toggle('hidden', !game.flags.dev);
+  document.getElementById('objective').textContent = game.team.length ? '📍 ' + currentObjective() : '';
   const bc = document.getElementById('badge-canvas');
   const g = bc.getContext('2d');
   g.clearRect(0, 0, bc.width, bc.height);
@@ -73,6 +75,55 @@ function refreshTouch() {
     }
     strip.appendChild(slot);
   }
+}
+
+// Siguiente paso de la historia (se muestra en la pantalla de abajo)
+const GYM_ORDER = [
+  ['efisica', 'Alfonsín', 'el Gimnasio (planta baja)'], ['mates', 'Gema', 'Matemáticas (1ª planta)'],
+  ['lengua', 'Iñigo San Juan', 'Lengua (1ª planta)'], ['ciencias', 'Jun Arrieta', 'Ciencias (2ª planta)'],
+  ['ingles', 'Mr. Shakespeare', 'Inglés (2ª planta)'], ['arte', 'Robertiño', 'Arte (3ª planta)']
+];
+function currentObjective() {
+  const b = game.badges;
+  const next = GYM_ORDER.find(o => !b.includes(o[0]));
+  if (next) return `Vence a ${next[1]} en ${next[2]}.`;
+  if (!b.includes('director')) return 'Sube a la 5ª planta y vence al Director.';
+  if (!b.includes('coindre')) return 'La puerta dorada está abierta: entra en la Sala del Fundador.';
+  if (!game.beaten.misterioso) return 'Alguien te espera en la zona salvaje del patio...';
+  if (!game.flags.tallerDone) return 'Extra: aprueba el examen práctico del Taller (2ª planta).';
+  if (pagesFound() < 8) return `Extra: encuentra las páginas del diario de 1971 (${pagesFound()}/8).`;
+  const ids = Object.keys(SPECIES);
+  const caught = ids.filter(i => game.caught[i]).length;
+  if (caught < ids.length) return `Extra: completa la Coredex (${caught}/${ids.length}).`;
+  return '¡Lo tienes todo! Nos vemos en la Segunda Edición.';
+}
+
+// Pregunta de sí/no en la pantalla de abajo
+function askYesNo(question, yesText, noText) {
+  return new Promise(res => {
+    openPanel(question, body => {
+      const row = el('div', 'yesno');
+      const y = el('button', 'ds-btn big', yesText || 'Sí');
+      const n = el('button', 'ds-btn big alt', noText || 'No');
+      y.onclick = () => { panelStack.onClose = null; closePanel(); res(true); };
+      n.onclick = () => { panelStack.onClose = null; closePanel(); res(false); };
+      row.appendChild(y); row.appendChild(n);
+      body.appendChild(row);
+    }, { closable: false });
+  });
+}
+
+// Diario de 1971: las páginas encontradas
+function openDiary() {
+  openPanel(`Diario de 1971 (${pagesFound()}/8)`, body => {
+    DIARY.forEach((pg, i) => {
+      const found = game.flags['page' + (i + 1)];
+      const d = el('div', 'diary-page' + (found ? '' : ' missing'));
+      if (found) { d.appendChild(el('b', null, pg.title)); pg.text.forEach(t => d.appendChild(el('p', null, t))); }
+      else d.textContent = `Página ${i + 1}: todavía no la has encontrado.`;
+      body.appendChild(d);
+    });
+  });
 }
 
 // ---------------- PANELES ----------------
@@ -213,6 +264,16 @@ function openBag(ctxOpts) {
   ctxOpts = ctxOpts || {};
   openPanel('Mochila', body => {
     const ids = Object.keys(game.bag).filter(k => game.bag[k] > 0);
+    if (!ctxOpts.battle && pagesFound() > 0) {
+      const row = el('div', 'item-row');
+      const ic = el('span', 'item-icon'); ic.style.background = '#f3e5c0'; row.appendChild(ic);
+      const info = el('div', 'mon-info');
+      const top = el('div', 'mon-top'); top.appendChild(el('b', null, '📖 Diario de 1971')); top.appendChild(el('span', 'qty', pagesFound() + '/8'));
+      info.appendChild(top); info.appendChild(el('div', 'muted small', 'Páginas perdidas del diario de Txema. Toca para leerlas.'));
+      row.appendChild(info);
+      row.addEventListener('click', openDiary);
+      body.appendChild(row);
+    }
     if (!ids.length) body.appendChild(el('p', 'muted', 'La mochila está vacía. Compra cosas en las máquinas del vestíbulo.'));
     ids.forEach(id => {
       const it = ITEMS[id];
@@ -395,6 +456,8 @@ function initTouch() {
   cont.disabled = !hasSave();
   cont.onclick = () => continueGame();
   document.getElementById('panel-back').onclick = () => closePanel();
+  document.querySelectorAll('.audio-btn').forEach(b => { b.onclick = () => { audioInit(); setAudio(!audioOn); }; });
+  setAudio(audioOn);
   document.getElementById('menu-team').onclick = () => { if (STATE === 'OVERWORLD') openTeam(); };
   document.getElementById('menu-bag').onclick = () => { if (STATE === 'OVERWORLD') openBag(); };
   document.getElementById('menu-dex').onclick = () => { if (STATE === 'OVERWORLD') openDex(); };

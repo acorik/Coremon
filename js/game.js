@@ -10,7 +10,7 @@ const SAVE_KEY = 'corazonistasvitoria_save_v2';
 const OLD_SAVE_KEY = 'corazonistasvitoria_save_v1';
 const WALK_MS = 170, RUN_MS = 95;
 
-// TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE
+// TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE | MINIGAME
 let STATE = 'TITLE';
 let game = newGameState();
 let now = 0, lastFrame = 0;
@@ -96,7 +96,7 @@ function enterRoom(roomId, x, y, facing) {
   const map = MAPS[roomId];
   placeActor(player, x, y);
   if (facing) player.facing = facing;
-  actors = map.npcs.map(n => Object.assign({}, n, { home:{ x:n.x, y:n.y } }));
+  actors = map.npcs.filter(n => (!n.flag || game.flags[n.flag]) && !(n.notFlag && game.flags[n.notFlag])).map(n => Object.assign({}, n, { home:{ x:n.x, y:n.y } }));
   actors.forEach(a => placeActor(a, a.x, a.y));
   map.wanderers.forEach((w, i) => {
     const a = { id:'w' + i, kind:'wander', look: randomStudentLook(w.seed), lines: w.lines, facing:'down',
@@ -105,6 +105,7 @@ function enterRoom(roomId, x, y, facing) {
     actors.push(a);
   });
   buildStaticLayer(map);
+  music(roomTrack(roomId));
   banner = { text: map.name, t0: now };
   refreshTouch();
 }
@@ -112,6 +113,7 @@ function enterRoom(roomId, x, y, facing) {
 async function transitionTo(roomId, x, y, facing) {
   const prev = STATE;
   STATE = 'CUTSCENE';
+  sfx('door');
   await fadeTo(1, 180);
   enterRoom(roomId, x, y, facing);
   saveGame();
@@ -179,7 +181,16 @@ async function caughtInProfRoom() {
 async function endCastigo() {
   STATE = 'CUTSCENE';
   game.castigoUntil = 0;
+  const fromTaller = game.castigoReason === 'taller';
+  game.castigoReason = null;
   refreshTouch();
+  if (fromTaller) {
+    await say(['Jefa de Estudios: Se acabó el castigo. Toma tu móvil. Y en el taller, el móvil en la mochila, ¿estamos?',
+      'La Jefa de Estudios te acompaña de vuelta a la 2ª planta.']);
+    await transitionTo('piso2', 16, 2, 'down');
+    STATE = 'OVERWORLD';
+    return;
+  }
   await say(['Jefa de Estudios: Se acabó el castigo. Y que no te vuelva a pillar en la sala de profesores, ¿estamos?',
     'La Jefa de Estudios te acompaña de vuelta a la 1ª planta.']);
   await transitionTo('piso1', 12, 2, 'down');
@@ -311,6 +322,7 @@ function heldDir() {
 function running() { return keysDown['shift'] || keysDown['virtualb']; }
 
 function pressA() {
+  if (STATE === 'MINIGAME') { tallerPhone(); return; }
   if (STATE === 'DIALOGUE') { advanceDialog(); return; }
   if (STATE === 'TITLE') { titleStart(); return; }
   if (cine && cine.skippable) { cine.skip = true; return; }
@@ -347,6 +359,7 @@ function nextLine() {
   else dialogName.classList.add('hidden');
   dlg.full = line; dlg.shown = 0;
   dialogText.textContent = '';
+  sfx('blip');
 }
 function advanceDialog() {
   if (!dlg) return;
@@ -399,6 +412,7 @@ function decorText(d) {
 }
 
 function pickItem(it) {
+  if (it.page) { pickPage(it); return; }
   game.picked[it.id] = true;
   game.bag[it.item] = (game.bag[it.item] || 0) + it.qty;
   const name = ITEMS[it.item].name;
@@ -406,14 +420,40 @@ function pickItem(it) {
   saveGame(); refreshTouch();
 }
 
+// Páginas del diario de 1971 (lore)
+function pagesFound() { return DIARY.filter((p, i) => game.flags['page' + (i + 1)]).length; }
+async function pickPage(it) {
+  game.picked[it.id] = true;
+  await givePage(it.page);
+}
+async function givePage(n) {
+  const prev = STATE;
+  STATE = 'CUTSCENE';
+  game.flags['page' + n] = true;
+  sfx('item');
+  const pg = DIARY[n - 1];
+  await say([`¡Has encontrado una página del diario de 1971! (${pagesFound()}/8)`, pg.title + '.', ...pg.text]);
+  if (pagesFound() === 8 && !game.flags.diaryDone) {
+    game.flags.diaryDone = true;
+    game.bag.cromoOro = (game.bag.cromoOro || 0) + 5;
+    game.bag.caramelo = (game.bag.caramelo || 0) + 3;
+    await say(['¡Has completado el diario de Txema!', 'Entre las tapas había un sobre: ¡5 x Cromo dorado y 3 x Caramelo raro!',
+      'En la contraportada pone, con letra temblorosa: «Lo que duerme bajo el gimnasio despertará cuando un alumno venza al Fundador».']);
+  }
+  STATE = prev === 'CUTSCENE' ? 'CUTSCENE' : 'OVERWORLD';
+  saveGame(); refreshTouch();
+}
+
 async function talkTo(a) {
   faceTowards(a, player);
   if (a.kind === 'wander') { await say(a.lines[Math.floor(Math.random() * a.lines.length)]); return; }
   if (a.kind === 'talk') { await say(a.lines); return; }
+  if (a.kind === 'taller') { tallerTalk(a); return; }
   if (a.kind === 'nurse') {
     STATE = 'CUTSCENE';
     await say('Enfermera: ¡Hola! Deja que eche un vistazo a tu equipo...');
     healTeam();
+    sfx('heal');
     cine = { type:'heal', t0: now };
     await wait(1200);
     cine = null;
@@ -511,6 +551,7 @@ function update(dt) {
   updateDialog(dt);
   updateActorMotion(player);
   actors.forEach(updateActorMotion);
+  if (STATE === 'MINIGAME') updateTaller(dt);
   if (STATE === 'OVERWORLD') {
     updatePlayerInput();
     updateWanderers();
@@ -559,7 +600,7 @@ function onPlayerArrive(door) {
   const map = currentMap();
   if (door && door.to) {
     const dest = MAPS[door.to];
-    transitionTo(door.to, door.tx, door.ty, door.ty <= (dest.tallWall ? 2 : 1) ? 'down' : player.facing);
+    transitionTo(door.to, door.tx, door.ty, door.face || (door.ty <= (dest.tallWall ? 2 : 1) ? 'down' : player.facing));
     return;
   }
   const t = tileAt(map, player.x, player.y);
@@ -600,6 +641,12 @@ function camera(map) {
 function render() {
   ctx.imageSmoothingEnabled = false;
   if (STATE === 'TITLE') { drawTitle(); return; }
+  if (taller && taller.active) {
+    drawTaller();
+    if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, VIEW_W, VIEW_H); }
+    drawCine();
+    return;
+  }
   const map = currentMap();
   if (!map || !staticLayer) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H); drawCine(); return; }
   const cam = camera(map);
@@ -621,7 +668,7 @@ function render() {
     const def = decorDef(d.type);
     if (def.wall && def.anim) def.draw(ctx, d.x * TILE, d.y * TILE, TILE, d, now);
   }
-  for (const it of map.items) if (!game.picked[it.id]) drawItemBall(ctx, it.x * TILE, it.y * TILE, TILE, now);
+  for (const it of map.items) if (!game.picked[it.id]) (it.page ? drawPage : drawItemBall)(ctx, it.x * TILE, it.y * TILE, TILE, now);
 
   // objetos altos y personajes ordenados por profundidad
   const list = [];
@@ -771,6 +818,41 @@ function drawCine() {
     drawCreature(ctx, sp, VIEW_W / 2 - 64, VIEW_H / 2 - 90, 128, { white: white, silhouette: false });
     ctx.fillStyle = '#fafafa'; ctx.textAlign = 'center'; ctx.font = 'bold 16px monospace';
     ctx.fillText(k < 1 ? `¡${SPECIES[cine.from].name} está evolucionando!` : `¡${SPECIES[cine.from].name} evolucionó a ${SPECIES[cine.to].name}!`, VIEW_W / 2, VIEW_H - 60);
+  } else if (cine.type === 'gift') {
+    ctx.fillStyle = '#0b0b1e'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const k = Math.min(1, t / 1600);
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24 * Math.PI * 2 + t / 400, d = 40 + ((t / 6 + i * 13) % 120);
+      ctx.fillStyle = i % 2 ? '#ffca28' : '#80d8ff';
+      ctx.fillRect(VIEW_W / 2 + Math.cos(a) * d - 2, VIEW_H / 2 - 30 + Math.sin(a) * d - 2, 4, 4);
+    }
+    box(ctx, VIEW_W / 2 - 70, VIEW_H / 2 + 40, 140, 26, '#1b5e20', OUT);
+    drawCreature(ctx, cine.species, VIEW_W / 2 - 56, VIEW_H / 2 - 90 + (1 - k) * 60, 112, { white: 1 - k, alpha: k });
+    ctx.fillStyle = '#fafafa'; ctx.textAlign = 'center'; ctx.font = 'bold 16px monospace';
+    ctx.fillText(`¡${SPECIES[cine.species].name} ha salido de la placa!`, VIEW_W / 2, VIEW_H - 40);
+  } else if (cine.type === 'teaser') {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    const k = Math.min(1, t / 3000);
+    // ojos enormes que se abren en la oscuridad
+    const open = Math.max(0, Math.min(1, (t - 1500) / 1200)) * (Math.floor(t / 2600) % 3 === 2 && t > 5000 ? 0.1 : 1);
+    ctx.fillStyle = `rgba(${120 + 80 * Math.sin(t / 200)},0,30,${0.25 * k})`;
+    ctx.beginPath(); ctx.ellipse(VIEW_W / 2, VIEW_H / 2 + 40, 260, 140, 0, 0, Math.PI * 2); ctx.fill();
+    [-90, 90].forEach(dx => {
+      ctx.fillStyle = '#ff1744';
+      ctx.beginPath(); ctx.ellipse(VIEW_W / 2 + dx, VIEW_H / 2 - 20, 46, 22 * open + 0.5, dx < 0 ? 0.15 : -0.15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffeb3b';
+      ctx.fillRect(VIEW_W / 2 + dx - 4, VIEW_H / 2 - 20 - 14 * open, 8, 28 * open);
+    });
+    const a = Math.max(0, Math.min(1, (t - 4200) / 800));
+    ctx.globalAlpha = a; ctx.textAlign = 'center';
+    ctx.font = 'bold 34px monospace'; ctx.lineWidth = 6; ctx.strokeStyle = '#000';
+    ctx.strokeText('COREMON', VIEW_W / 2, VIEW_H - 92); ctx.fillStyle = '#ffd54f'; ctx.fillText('COREMON', VIEW_W / 2, VIEW_H - 92);
+    ctx.font = 'bold 18px monospace';
+    ctx.strokeText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62); ctx.fillStyle = '#ff5252'; ctx.fillText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62);
+    ctx.font = '13px monospace'; ctx.fillStyle = '#bdbdbd';
+    ctx.fillText('«Lo que duerme bajo el gimnasio... ha despertado.»', VIEW_W / 2, VIEW_H - 34);
+    ctx.fillText('PRÓXIMAMENTE', VIEW_W / 2, VIEW_H - 14);
+    ctx.globalAlpha = 1;
   } else if (cine.type === 'credits') {
     ctx.fillStyle = '#100a14'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     drawHeartIcon(VIEW_W / 2, 60, 22 + Math.sin(t / 300) * 2);
@@ -798,11 +880,13 @@ const CREDITS = [
   'Has demostrado saber... y tener corazón.', '',
   '#Inspirado en la historia real', 'Padre Andrés Coindre (1787-1826)', 'Fundó en Lyon, en 1821,', 'los Hermanos del Sagrado Corazón', 'para educar a niños sin hogar.', '',
   'Doscientos años después,', 'el colegio de Vitoria-Gasteiz', 'es la casa corazonista', 'con más alumnos de España.', '',
-  '#Profesores', 'Alfonsín (¡feliz jubilación!) · Gema', 'Iñigo San Juan · Jun Arrieta', 'Mr. Shakespeare · Robertiño', 'El Director', '',
+  '#Profesores', 'Alfonsín (¡feliz jubilación!) · Gema', 'Iñigo San Juan · Jun Arrieta', 'Mr. Shakespeare · Robertiño', 'El profe de Tecnología', 'El Director', '',
+  '#Agradecimientos', 'Txema y su diario de 1971', 'El último futbolista del cole', 'La pared del patio (invicta)', '',
   '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!'
 ];
 
 function battleIntro() {
+  music(null); sfx('encounter');
   cine = { type:'battleIntro', t0: now, dur: 900 };
   return wait(900).then(() => { cine = null; });
 }
@@ -895,7 +979,7 @@ async function startNewGame() {
     `Conserje: ¡${SPECIES[starter].name}! Buena elección. Se nota que os vais a llevar bien.`,
     'Conserje: Toma, para el camino: 5 cromos para capturar Coremon salvajes y 3 bocadillos.',
     '¡Has recibido 5 x Cromo y 3 x Bocadillo!',
-    'Conserje: Un consejo: antes de retar a un profesor, entrena en el Patio. Se sube por las escaleras de abajo a la derecha.',
+    'Conserje: Un consejo: antes de retar a un profesor, entrena en el Patio. Sigue el pasillo hacia la derecha y sube las escaleras.',
     'Conserje: La enfermera de la derecha te cura gratis, y en las máquinas venden de todo.',
     'Conserje: ¡Ánimo, Cora!'
   ]);
@@ -938,7 +1022,9 @@ async function afterBattle(info) {
     return;
   }
   for (const evo of (info.evolutions || [])) {
+    sfx('rumble');
     await cinematic({ type:'evo', from: evo.from, to: evo.to }, 4400);
+    sfx('levelup');
     evo.mon.species = evo.to;
     evo.mon.moves = relearnMoveSlots(evo.mon.moves, evo.to, evo.mon.level);
     game.seen[evo.to] = true; game.caught[evo.to] = true;
@@ -952,6 +1038,7 @@ async function afterBattle(info) {
       await say([].concat(t.win).map(l => `${t.name}: ${l}`));
       if (t.id === 'coindre') { await endingScene(); return; }
       if (info.newBadge) {
+        sfx('badge');
         await cinematic({ type:'badge', color: t.badgeColor, title: t.reward }, 2800);
         await say(`¡Has conseguido: ${t.reward}!`);
       }
@@ -972,13 +1059,27 @@ async function afterBattle(info) {
 }
 
 async function endingScene() {
+  const first = !game.flags.champion;
   game.flags.champion = true;
   saveGame();
+  // el Fundador se desvanece y algo tiembla bajo el colegio
+  const c = actors.find(x => x.id === 'coindre');
+  cine = { type:'heal', t0: now };
+  await wait(1200);
+  cine = null;
+  if (c) actors = actors.filter(x => x !== c);
+  shake = 1; sfx('rumble'); await wait(1400); shake = 0;
+  await say(['El Padre Andrés Coindre sonríe y se desvanece en una luz cálida...',
+    'De repente, todo el colegio tiembla. Algo muy profundo, bajo el gimnasio, se ha movido.']);
+  music('ending');
   await cinematic({ type:'credits', skippable:true }, 30000);
+  await cinematic({ type:'teaser' }, 9000);
+  music(null);
   await say(['¡Has completado Coremon: Edición Corazonistas Vitoria!',
-    'Puedes seguir explorando el colegio, completar tu Coredex y retar de nuevo a los alumnos.']);
+    first ? 'Desde ahora, la hierba del patio y del jardín está revuelta: Coremon de más nivel y muchos más legendarios. Corazonix ronda la hierba oscura.' : 'La hierba del patio sigue revuelta. Los legendarios te esperan.',
+    'En el patio te espera alguien que dice venir de la Segunda Edición. Y en el gimnasio, la trampilla sellada... respira.']);
   STATE = 'OVERWORLD';
-  refreshTouch();
+  saveGame(); refreshTouch();
 }
 
 window.addEventListener('load', () => {

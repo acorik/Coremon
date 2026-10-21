@@ -39,13 +39,16 @@ function wildEncounter(zone, high) {
   const base = { patio:3, jardin:4, apoyo:7, biblioteca_eso:10, bachillerato:14 }[zone] || 3;
   const avg = Math.round(teamAvgLevel());
   const r = n => Math.floor(Math.random() * n);
+  // tras vencer al Fundador, el patio y el jardín se revuelven: más nivel y más legendarios
+  const post = game.flags.champion && (zone === 'patio' || zone === 'jardin');
   let lvl = high ? Math.max(base + 4, avg + 2 + r(4)) : Math.max(base + r(4), avg - 3 + r(4));
+  if (post) lvl += high ? 6 : 4;
   lvl = Math.min(60, Math.max(2, lvl));
-  const legendChance = high ? 0.08 : 0.035;
+  const legendChance = post ? (high ? 0.2 : 0.08) : (high ? 0.08 : 0.035);
   if (Math.random() < legendChance) {
-    const rare = high && Math.random() < 0.15;
+    const rare = high && Math.random() < (post ? 0.3 : 0.15);
     const sp = rare ? 'corazonix' : WILD_LEGENDARIES[r(WILD_LEGENDARIES.length)];
-    return { species: sp, level: Math.min(60, avg + 3 + r(3)), legendary: true };
+    return { species: sp, level: Math.min(60, avg + (post ? 6 : 3) + r(3)), legendary: true };
   }
   const sp = pool[r(pool.length)];
   return { species: evolveForLevel(sp, lvl), level: lvl };
@@ -80,6 +83,7 @@ function openBattle(opts) {
     participants: new Set(), evolutions: []
   };
   game.seen[opts.enemyTeam[0].species] = true;
+  music('battle');
   battleScreen.classList.remove('hidden');
   showTouch('battle');
   hideMenus();
@@ -100,6 +104,7 @@ async function introSequence() {
     b.show.enemyMon = true;
     if (activeEnemy().legendary) {
       b.flashScreen = 10; b.shake = 20;
+      sfx('rumble');
       spawnHitFx('enemy', '#ffd54f', 30);
       await say2('¡¡Un Coremon LEGENDARIO!!', 1200);
       await say2(`¡${SPECIES[activeEnemy().species].name} salvaje aparece envuelto en un brillo dorado!`);
@@ -494,6 +499,7 @@ async function performAttack(side, attacker, mv, defender, guarding) {
   defender.hp = Math.max(0, defender.hp - dmg);
   if (mv === STRUGGLE) attacker.hp = Math.max(0, attacker.hp - Math.max(1, Math.floor(attacker.stats.hp * 0.1)));
   b.flash[other] = 14;
+  sfx(blocked || guarding ? 'guard' : r.crit || r.eff > 1 ? 'crit' : 'hit');
   spawnHitFx(other, r.eff > 1 ? '#ffca28' : '#fafafa', r.eff > 1 ? 20 : 10);
   if (r.eff > 1 || r.crit) { b.shake = 14; b.flashScreen = 4; }
   floatText(other, '-' + dmg, blocked || guarding ? '#90caf9' : r.eff > 1 ? '#ffca28' : '#ff5252', r.eff > 1);
@@ -560,6 +566,7 @@ async function checkFaints() {
   const b = battle;
   const e = activeEnemy(), p = activePlayer();
   if (e.hp <= 0) {
+    sfx('faint');
     await tween(500, k => { b.faint.enemy = k; });
     await say2(`¡${SPECIES[e.species].name} se ha debilitado!`, 800);
     await giveExp(e);
@@ -575,6 +582,7 @@ async function checkFaints() {
     return true;
   }
   if (p.hp <= 0) {
+    sfx('faint');
     await tween(500, k => { b.faint.player = k; });
     await say2(`¡${SPECIES[p.species].name} se ha debilitado!`, 800);
     b.participants.delete(p);
@@ -590,6 +598,7 @@ async function checkFaints() {
 // ---------------- EXPERIENCIA ----------------
 function levelUp(p) {
   p.level++;
+  sfx('levelup');
   const sp = SPECIES[p.species];
   const oldMax = p.stats.hp;
   p.stats = {
@@ -650,11 +659,13 @@ async function throwCard(itemId) {
   const shakes = caught ? 3 : Math.floor(Math.random() * 3);
   for (let i = 0; i < shakes; i++) {
     await bwait(250);
+    sfx('capture');
     await tween(300, k => { b.card.rot = Math.sin(k * Math.PI * 2) * 0.5; });
   }
   await bwait(300);
   if (caught) {
     spawnHitFx('enemy', '#fff59d', 20);
+    sfx('win');
     await say2(`¡Ya está! ¡Has capturado a ${SPECIES[e.species].name}!`, 1300);
     game.caught[e.species] = true;
     const mon = Object.assign({}, e, { moves: e.moves.map(m => ({ ...m })) });
@@ -715,6 +726,7 @@ async function endBattle(result) {
   if (result === 'win' && b.kind === 'trainer') {
     const t = b.trainer;
     game.coins += t.prize;
+    music(null); sfx('win');
     await say2(`¡Has ganado a ${t.name}!`, 1000);
     await say2(`Recibes ${t.prize} monedas.`, 900);
     if (t.student) game.beaten[t.id] = true;
@@ -730,6 +742,7 @@ async function endBattle(result) {
   await fadeTo(1, 300);
   battleScreen.classList.add('hidden');
   battle = null;
+  music(roomTrack(game.room));
   showTouch('main');
   refreshTouch();
   STATE = 'CUTSCENE';

@@ -113,7 +113,8 @@ const ARCHETYPES = {
   drip:   { torsoRadii:[7,7,6,5,3,2,1,1,2,3,4], eyeRowIndex:6, legMode:'feet',  legRadii:[2,2,2] },
   speech: { torsoRadii:[6,5,4,3,2,2,2,2,3,4,5], eyeRowIndex:5, legMode:'point', legRadii:[6,7,-1] },
   leaf:   { torsoRadii:[7,6,4,3,2,2,2,2,3,4,5], eyeRowIndex:6, legMode:'feet',  legRadii:[3,3,2] },
-  heart:  { torsoRadii:[2,1,1,1,1,1,2,3,4,5,6], eyeRowIndex:3, legMode:'point', legRadii:[7,-1,-1] }
+  heart:  { torsoRadii:[2,1,1,1,1,1,2,3,4,5,6], eyeRowIndex:3, legMode:'point', legRadii:[7,-1,-1] },
+  gear:   { torsoRadii:[3,2,2,2,5,1,0,1,1,1,2], eyeRowIndex:2, legMode:'feet',  legRadii:[3,3,2] }
 };
 
 function genHalfBody(arch) {
