@@ -1,6 +1,6 @@
 // ============================================================
 // COREMON - Datos del juego (tipos, movimientos, especies, mapas)
-// Todo lo visual aquí es sustituible: ver assets/README.md
+// Creado por acorik.
 // ============================================================
 
 const TYPES = ['logica', 'letras', 'arte', 'idioma', 'naturaleza', 'fisico'];

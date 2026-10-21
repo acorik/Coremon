@@ -9,6 +9,7 @@ const VIEW_W = canvas.width, VIEW_H = canvas.height;
 const SAVE_KEY = 'corazonistasvitoria_save_v2';
 const OLD_SAVE_KEY = 'corazonistasvitoria_save_v1';
 const WALK_MS = 170, RUN_MS = 95;
+const GAME_VERSION = '1.0.0';
 
 // TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE | MINIGAME
 let STATE = 'TITLE';
@@ -333,6 +334,22 @@ function pressB() {
   if (STATE === 'MENU') { closePanel(); return; }
 }
 
+// Botón "atrás" del móvil (app de Android): cierra menús y diálogos;
+// en el mapa hay que pulsarlo dos veces para salir (y se guarda antes).
+let backPressedAt = 0;
+function androidBack() {
+  if (STATE === 'TITLE') return 'exit';
+  if (STATE === 'MENU' && !(panelStack && document.getElementById('panel-back').classList.contains('hidden'))) { closePanel(); return 'ok'; }
+  if (STATE === 'DIALOGUE') { advanceDialog(); return 'ok'; }
+  if (Date.now() - backPressedAt < 2000) {
+    if (game.team.length && STATE === 'OVERWORLD') saveGame();
+    return 'exit';
+  }
+  backPressedAt = Date.now();
+  toast('Pulsa atrás otra vez para salir.');
+  return 'ok';
+}
+
 // ---------------- DIÁLOGO (texto progresivo) ----------------
 const dialogBox = document.getElementById('dialog-box');
 const dialogName = document.getElementById('dialog-name');
@@ -640,6 +657,7 @@ function camera(map) {
 
 function render() {
   ctx.imageSmoothingEnabled = false;
+  ctx.lineJoin = 'round'; // sin picos en el contorno de los textos
   if (STATE === 'TITLE') { drawTitle(); return; }
   if (taller && taller.active) {
     drawTaller();
@@ -730,8 +748,10 @@ function drawDoorLabels(map) {
   ctx.textAlign = 'center';
   for (const d of map.doors) {
     if (!d.short || (d.exit && !d.style)) continue;
-    const cx = d.x * TILE + TILE / 2, y = d.y * TILE + (map.tallWall && d.y === 1 ? -14 : 2);
     const w = ctx.measureText(d.short).width + 6;
+    // puertas en las paredes laterales: la etiqueta se mete hacia dentro de la sala
+    const side = d.x === 0 ? 1 : d.x === map.grid[0].length - 1 ? -1 : 0;
+    const cx = d.x * TILE + TILE / 2 + side * (w / 2 - TILE / 2 + 2), y = d.y * TILE + (map.tallWall && d.y === 1 ? -14 : side ? -12 : 2);
     box(ctx, cx - w / 2, y, w, 11, d.locked && !doorOpen(d) ? '#4a148c' : '#263238', OUT);
     ctx.fillStyle = '#ffd54f';
     ctx.fillText(d.short, cx, y + 8);
@@ -877,12 +897,14 @@ function drawHeartIcon(cx, cy, s) {
 
 const CREDITS = [
   '#COREMON', 'Edición Corazonistas Vitoria', '',
+  '#Un juego de', 'acorik', '',
   'Has demostrado saber... y tener corazón.', '',
   '#Inspirado en la historia real', 'Padre Andrés Coindre (1787-1826)', 'Fundó en Lyon, en 1821,', 'los Hermanos del Sagrado Corazón', 'para educar a niños sin hogar.', '',
   'Doscientos años después,', 'el colegio de Vitoria-Gasteiz', 'es la casa corazonista', 'con más alumnos de España.', '',
   '#Profesores', 'Alfonsín (¡feliz jubilación!) · Gema', 'Iñigo San Juan · Jun Arrieta', 'Mr. Shakespeare · Robertiño', 'El profe de Tecnología', 'El Director', '',
   '#Agradecimientos', 'Txema y su diario de 1971', 'El último futbolista del cole', 'La pared del patio (invicta)', '',
-  '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!'
+  '#Idea, diseño y desarrollo', 'acorik', '',
+  '#Y tú', 'Un Cora de verdad.', '', '¡Gracias por jugar!', '', '© acorik'
 ];
 
 function battleIntro() {
@@ -937,6 +959,8 @@ function drawTitle() {
     ctx.fillStyle = '#ffd54f'; ctx.font = 'bold 12px monospace';
     ctx.fillText('▼ Elige una opción abajo ▼', 256, 20);
   }
+  ctx.font = 'bold 11px monospace'; ctx.lineWidth = 3; ctx.strokeStyle = '#1d1a26';
+  ctx.strokeText('un juego de acorik · v' + GAME_VERSION, 256, 376); ctx.fillStyle = '#fff59d'; ctx.fillText('un juego de acorik · v' + GAME_VERSION, 256, 376);
 }
 
 function titleStart() {

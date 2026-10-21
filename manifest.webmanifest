@@ -1,0 +1,17 @@
+{
+  "name": "Coremon: Edición Corazonistas Vitoria",
+  "short_name": "Coremon",
+  "description": "RPG de criaturas estilo Nintendo DS ambientado en el colegio Corazonistas de Vitoria-Gasteiz. Un juego de acorik.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#14151f",
+  "theme_color": "#c62828",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

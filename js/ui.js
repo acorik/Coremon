@@ -44,6 +44,18 @@ function typeChip(type) {
   return s;
 }
 
+// Escala la pantalla táctil (diseñada a 516 px) al tamaño real de la consola
+function fitTouch() {
+  const bs = document.getElementById('bottom-screen');
+  const k = bs.clientWidth / 516;
+  bs.style.setProperty('--k', k);
+  bs.style.setProperty('--bh', bs.clientHeight / k);
+  bs.classList.toggle('tall', bs.clientHeight / k > 470); // móvil en vertical: controles más grandes
+}
+window.addEventListener('resize', fitTouch);
+if (window.ResizeObserver) new ResizeObserver(fitTouch).observe(document.getElementById('bottom-screen'));
+fitTouch();
+
 function showTouch(mode) {
   Object.entries(touch).forEach(([k, v]) => v.classList.toggle('hidden', k !== mode));
 }

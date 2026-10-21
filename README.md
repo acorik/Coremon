@@ -1,16 +1,52 @@
-# Coremon: Edición Corazonistas Vitoria
+<p align="center"><img src="launch/banner-960x320.png" alt="Coremon: Edición Corazonistas Vitoria" width="760"></p>
 
-Un juego tipo Pokémon con aspecto de Nintendo DS (dos pantallas), ambientado en
-el colegio Corazonistas de Vitoria-Gasteiz. HTML/CSS/JS puro: sin dependencias
-ni compilación.
+<h1 align="center">Coremon: Edición Corazonistas Vitoria</h1>
+
+<p align="center"><b>Un juego de acorik</b> · versión 1.0.0</p>
+
+<p align="center">
+  <a href="https://acorik.github.io/Coremon/"><b>▶ Jugar en el navegador</b></a> ·
+  <a href="https://acorik.itch.io/coremon">itch.io</a> ·
+  <a href="https://github.com/acorik/Coremon/releases/latest">Descargas (Android · Windows · Linux · macOS)</a>
+</p>
+
+Un RPG de captura de criaturas con aspecto de Nintendo DS (dos pantallas)
+ambientado en un colegio de verdad: el Colegio Sagrado Corazón – Corazonistas
+de Vitoria-Gasteiz. Cada asignatura es un gimnasio, cada profe un rival y el
+jefe final lleva esperando desde 1821.
+
+<p align="center">
+  <img src="launch/screenshots/03-patio.png" width="49%" alt="El patio">
+  <img src="launch/screenshots/05-legendario.png" width="49%" alt="Combate contra un legendario">
+  <img src="launch/screenshots/06-taller.png" width="49%" alt="El examen del Taller">
+  <img src="launch/screenshots/07-apagon.png" width="49%" alt="Apagón en el Taller">
+</p>
 
 ## Jugar
 
-- **Online (GitHub Pages):** activa Pages en el repo (Settings → Pages →
-  Deploy from branch) y abre la URL.
-- **Descargado:** baja el repo entero (botón "Code" → "Download ZIP"),
-  descomprime y abre `index.html`. Necesitas toda la carpeta (`css/`, `js/`),
-  no solo el HTML.
+**En el navegador (PC o móvil):** <https://acorik.github.io/Coremon/> o en
+itch.io. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
+funciona sin conexión.
+
+**Android:** descarga `Coremon-x.y.z.apk` de las
+[Releases](https://github.com/acorik/Coremon/releases/latest) y ábrelo (el móvil
+pedirá permiso para "instalar apps de origen desconocido"). La app no pide
+ningún permiso, no tiene anuncios y funciona sin internet. Se adapta al móvil en
+vertical (consola a pantalla completa) y en horizontal (pantallas de lado), y el
+botón "atrás" cierra menús (en el mapa, dos veces para salir).
+
+**PC:**
+
+| Sistema | Archivo | Notas |
+|---|---|---|
+| Windows | `Coremon-Setup-x.y.z.exe` o `Coremon-x.y.z-portable.exe` | El portable no necesita instalación |
+| Linux | `Coremon-x.y.z.AppImage` | `chmod +x` y doble clic |
+| macOS | `Coremon-x.y.z-mac.dmg` | No está firmado: clic derecho → Abrir |
+
+F11 activa la pantalla completa.
+
+**Sin instalar nada:** descarga el repositorio (Code → Download ZIP),
+descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTML.
 
 ## Controles
 
@@ -22,9 +58,9 @@ ni compilación.
 | Atrás (B) | Esc, X o Retroceso | Botón B |
 
 La pantalla de abajo tiene el equipo, la mochila, la Coredex, el guardado y
-el **objetivo actual** (📍), para saber siempre adónde ir. La partida también
-se guarda sola al cambiar de sala. El botón 🔊 quita o pone el sonido (música y
-efectos chiptune generados en el propio navegador, sin archivos de audio).
+el **objetivo actual** (📍), para saber siempre adónde ir. La partida se guarda
+sola al cambiar de sala. El botón 🔊 quita o pone el sonido (música y efectos
+chiptune generados en el propio navegador, sin archivos de audio).
 
 ## Historia
 
@@ -114,19 +150,69 @@ esquemas solo los tienes en el móvil (A o el botón de abajo para mirarlo):
   nivel, ya evolucionados, y el doble de probabilidad de **legendarios** (★).
 - Dicen que en la capilla el retrato del fundador esconde algo...
 
-## Archivos
+## Compilar
 
-- `js/data.js`: tipos, movimientos, especies, objetos, profesores y alumnos.
-- `js/sprites.js`: sprites pixel-art de Coremon (una silueta por línea
-  evolutiva) y de personas (cada profe con su aspecto).
-- `js/scenery.js`: suelos, paredes, puertas y decoración (con animaciones).
-- `js/maps.js`: todas las salas del colegio.
-- `js/game.js`: mundo, movimiento, diálogos y cinemáticas.
-- `js/ui.js`: pantalla inferior (menús, mochila, tienda, taquillas, Coredex).
-- `js/battle.js`: combate.
-- `js/taller.js`: minijuego del Taller de Tecnología.
-- `js/audio.js`: música y efectos de sonido (WebAudio).
+Todo el juego es HTML, CSS y JavaScript sin dependencias. Las versiones
+instalables solo lo empaquetan:
+
+| Versión | Cómo | Resultado |
+|---|---|---|
+| Web / itch.io | `tools/build-web.sh` | `dist/Coremon-x.y.z-web.zip` (sube este zip a itch.io como HTML) |
+| Android | `cd android && ./gradlew assembleRelease` (necesita JDK 17+ y el SDK de Android) | `android/app/build/outputs/apk/release/app-release.apk` |
+| PC | `cd desktop && npm install && npm run dist` | `desktop/release/` (instalador según tu sistema) |
+
+**GitHub Actions** lo hace todo solo:
+
+- `Builds` compila web, APK, Windows, Linux y macOS en cada cambio. Los
+  archivos salen en la pestaña Actions → Artifacts. Al publicar una release con
+  una etiqueta `v1.0.0`, se adjuntan a la release automáticamente.
+- `GitHub Pages` publica la versión web. Para activarlo, ve a Settings → Pages
+  → Source: **GitHub Actions**.
+- Firma del APK: guarda la clave en los secretos del repositorio
+  `COREMON_KEYSTORE_BASE64` (`base64 -w0 coremon-release.jks`) y
+  `COREMON_KEYSTORE_PASSWORD`. Sin ellos, el APK se firma con una clave de
+  depuración. Instala bien, pero no se puede actualizar por encima de la
+  versión oficial.
+
+Para sacar una versión nueva, sube `GAME_VERSION` en `js/game.js`, `version`
+en `desktop/package.json`, y `versionName` y `versionCode` en
+`android/app/build.gradle.kts`.
+
+Los textos, la portada y las capturas para itch.io están en
+[`launch/`](launch/ITCHIO.md).
+
+## Estructura
+
+- `index.html`, `css/`, `js/`: el juego.
+  - `js/data.js`: tipos, movimientos, especies, objetos, profesores, alumnos y
+    el diario de 1971.
+  - `js/sprites.js`: sprites pixel-art de Coremon (una silueta por línea
+    evolutiva) y de personas (cada profe con su aspecto).
+  - `js/scenery.js`: suelos, paredes, puertas y decoración (con animaciones).
+  - `js/maps.js`: todas las salas del colegio.
+  - `js/game.js`: mundo, movimiento, diálogos, cinemáticas y final.
+  - `js/ui.js`: pantalla inferior (menús, mochila, tienda, taquillas, Coredex).
+  - `js/battle.js`: combate.
+  - `js/taller.js`: minijuego del Taller de Tecnología.
+  - `js/audio.js`: música y efectos de sonido (WebAudio).
+- `icons/`, `manifest.webmanifest`, `sw.js`: iconos y versión instalable (PWA).
+- `android/`: app de Android (WebView a pantalla completa, sin permisos).
+- `desktop/`: app de PC (Electron).
+- `launch/`: portada, banner, capturas y textos para itch.io.
+- `tools/`: scripts de compilación.
 
 Para cambiar el aspecto de un profesor, edita su `look` en `TRAINERS`
-(`js/data.js`): peinado (`short`, `long`, `bald`, `spiky`, `bun`, `cap`),
-colores de pelo, piel, camisa y pantalón, gafas, barba, falda o sotana.
+(`js/data.js`): peinado (`short`, `long`, `bald`, `spiky`, `curly`, `crest`,
+`bun`, `cap`), colores de pelo, piel, camisa y pantalón, gafas, barba, bata,
+sudadera, falda o sotana.
+
+## Créditos
+
+**Idea, diseño y desarrollo: acorik.**
+
+Proyecto de fans, hecho por y para la comunidad del Colegio Sagrado Corazón –
+Corazonistas de Vitoria-Gasteiz. La historia del Padre Andrés Coindre
+(1787-1826) y de los Hermanos del Sagrado Corazón está basada en hechos reales.
+Lo de los Coremon, no (o eso dicen).
+
+© acorik. Todos los derechos reservados.

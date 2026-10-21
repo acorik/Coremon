@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="coremon_bg">#FF14151F</color>
+    <color name="coremon_red">#FFC62828</color>
+    <style name="CoremonTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/coremon_bg</item>
+        <item name="android:statusBarColor">@color/coremon_bg</item>
+        <item name="android:navigationBarColor">@color/coremon_bg</item>
+    </style>
+</resources>

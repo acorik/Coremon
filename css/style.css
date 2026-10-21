@@ -4,17 +4,21 @@ body {
   font-family: 'Trebuchet MS', 'Segoe UI', Roboto, Arial, sans-serif;
   background: radial-gradient(circle at 50% 20%, #3a3f5c, #14151f 70%);
   color: #222;
-  display: flex; justify-content: center; align-items: flex-start;
-  min-height: 100vh; padding: 10px 0;
-  user-select: none;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; min-height: 100dvh;
+  padding: max(10px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom));
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  overscroll-behavior: none; touch-action: manipulation;
 }
 .hidden { display: none !important; }
 button { font-family: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
 /* ---------- Consola ---------- */
+/* la consola entera cabe siempre en pantalla: alto total ≈ 1,5 × ancho + 24px */
 #ds {
-  width: min(560px, 100vw - 12px);
+  width: min(560px, 100vw - 12px, (100vh - 48px) / 1.5);
+  width: min(560px, 100vw - 12px, (100dvh - 48px) / 1.5);
   background: linear-gradient(180deg, #e9ebf0, #c5c9d3);
   border-radius: 22px;
   padding: 14px 14px 18px;
@@ -98,7 +102,10 @@ button:disabled { cursor: not-allowed; }
 
 /* ---------- Pantalla inferior ---------- */
 #bottom-screen { background: #e8e4d4; }
-.touch { position: absolute; inset: 0; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+/* La pantalla táctil se diseña a 516 px de ancho y se escala entera (--k) para
+   que botones y cruceta quepan siempre, también en móviles pequeños. */
+.touch { position: absolute; left: 0; top: 0; width: 516px; height: calc(var(--bh, 387) * 1px);
+  transform: scale(var(--k, 1)); transform-origin: 0 0; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
   background: repeating-linear-gradient(45deg, #efe9d6, #efe9d6 10px, #e8e1cb 10px, #e8e1cb 20px); }
 .muted { color: #777; }
 .small { font-size: 0.78em; }
@@ -257,3 +264,36 @@ button:disabled { cursor: not-allowed; }
 .diary-page.missing { background: #d7ccc8; color: #8d6e63; font-style: italic; }
 .yesno { display: flex; gap: 8px; }
 .yesno .ds-btn { flex: 1; }
+
+/* ---------- Horizontal (móvil tumbado, iframe de itch.io, ventanas bajas) ----------
+   Las dos pantallas se ponen una al lado de la otra, como una DS abierta de lado. */
+@media (min-aspect-ratio: 5/4) and (max-height: 760px) {
+  #ds {
+    --scr: min((100vw - 96px) / 2, (100vh - 60px) * 4 / 3);
+    --scr: min((100vw - 96px) / 2, (100dvh - 60px) * 4 / 3);
+    width: auto; display: flex; align-items: center; gap: 0;
+    padding: 12px 14px;
+  }
+  #ds > .screen { width: var(--scr); flex: none; }
+  #hinge { flex-direction: column; height: auto; align-self: stretch; width: 22px; margin: -12px 8px; padding: 30px 0; }
+  #hinge span { width: 8px; height: 46px; }
+}
+
+/* ---------- Móvil en vertical: la consola ocupa toda la pantalla ---------- */
+@media (max-aspect-ratio: 13/20) {
+  body { padding: 0; align-items: stretch; }
+  #ds {
+    width: 100vw; height: 100vh; height: 100dvh; border-radius: 0;
+    display: flex; flex-direction: column;
+    padding: max(6px, env(safe-area-inset-top)) 6px max(8px, env(safe-area-inset-bottom));
+  }
+  #top-screen { flex: none; }
+  #bottom-screen { flex: 1; aspect-ratio: auto; min-height: 0; }
+  #hinge { margin: 5px -6px; height: 14px; flex: none; }
+}
+#bottom-screen.tall .dpad { width: 156px; height: 156px; }
+#bottom-screen.tall .dpad .d { width: 52px; height: 52px; font-size: 20px; }
+#bottom-screen.tall .dpad .up, #bottom-screen.tall .dpad .down { left: 52px; }
+#bottom-screen.tall .dpad .left, #bottom-screen.tall .dpad .right { top: 52px; }
+#bottom-screen.tall .round { width: 76px; height: 76px; font-size: 24px; }
+#bottom-screen.tall .pad { padding: 0 10px 10px; }

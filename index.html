@@ -2,8 +2,21 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Coremon: Corazonistas Vitoria</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Coremon: Edición Corazonistas Vitoria</title>
+<meta name="description" content="Un RPG de criaturas estilo Nintendo DS ambientado en el colegio Corazonistas de Vitoria-Gasteiz. Un juego de acorik.">
+<meta name="author" content="acorik">
+<meta name="theme-color" content="#c62828">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coremon">
+<meta property="og:title" content="Coremon: Edición Corazonistas Vitoria">
+<meta property="og:description" content="Captura Coremon, vence a los profes y descubre qué duerme bajo el gimnasio. Un juego de acorik.">
+<meta property="og:image" content="launch/cover-630x500.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -118,5 +131,11 @@
 <script src="js/ui.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/taller.js"></script>
+<script>
+  // Juego instalable y jugable sin conexión (solo cuando se sirve por web)
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !/CoremonApp/.test(navigator.userAgent) && !/itch\.(io|zone)$/.test(location.hostname)) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
 </body>
 </html>
