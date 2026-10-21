@@ -177,8 +177,9 @@ instalables solo lo empaquetan:
 **GitHub Actions** lo hace todo solo:
 
 - `Builds` compila web, APK, Windows, Linux y macOS en cada cambio. Los
-  archivos salen en la pestaña Actions → Artifacts. Al publicar una release con
-  una etiqueta `v1.0.0`, se adjuntan a la release automáticamente.
+  archivos salen en la pestaña Actions → Artifacts. Para publicar una versión:
+  Actions → Builds → Run workflow → escribe la etiqueta (p. ej. `v1.1.0`). Se
+  crea la release con todos los archivos adjuntos.
 - `GitHub Pages` publica la versión web. Para activarlo, ve a Settings → Pages
   → Source: **GitHub Actions**.
 - Firma del APK: guarda la clave en los secretos del repositorio
