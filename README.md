@@ -2,7 +2,7 @@
 
 <h1 align="center">Coremon: Edición Corazonistas Vitoria</h1>
 
-<p align="center"><b>Un juego de acorik</b> · versión 1.0.0</p>
+<p align="center"><b>Un juego de acorik</b> · versión 1.0.1</p>
 
 <p align="center">
   <a href="https://acorik.itch.io/coremon"><b>🎮 Página oficial en itch.io: acorik.itch.io/coremon</b></a><br>
@@ -14,13 +14,13 @@
 
 | Plataforma | Descarga directa |
 |---|---|
-| 🤖 **Android** | [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) |
-| 🪟 **Windows** (instalador) | [Coremon-Setup-1.0.0.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-Setup-1.0.0.exe) |
-| 🪟 **Windows** (portable, sin instalar) | [Coremon-1.0.0-portable.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-portable.exe) |
-| 🐧 **Linux** | [Coremon-1.0.0.AppImage](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.AppImage) |
-| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-1.0.0-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-arm64.dmg) |
-| 🍎 **macOS** (Intel) | [Coremon-1.0.0-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-x64.dmg) |
-| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-1.0.0-web.zip](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-web.zip) |
+| 🤖 **Android** | [Coremon-1.0.1.apk](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1.apk) |
+| 🪟 **Windows** (instalador) | [Coremon-Setup-1.0.1.exe](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-Setup-1.0.1.exe) |
+| 🪟 **Windows** (portable, sin instalar) | [Coremon-1.0.1-portable.exe](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1-portable.exe) |
+| 🐧 **Linux** | [Coremon-1.0.1.AppImage](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1.AppImage) |
+| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-1.0.1-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1-mac-arm64.dmg) |
+| 🍎 **macOS** (Intel) | [Coremon-1.0.1-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1-mac-x64.dmg) |
+| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-1.0.1-web.zip](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1-web.zip) |
 | 🎮 **itch.io** | [acorik.itch.io/coremon](https://acorik.itch.io/coremon) |
 
 Un RPG de captura de criaturas con aspecto de Nintendo DS (dos pantallas)
@@ -41,7 +41,7 @@ jefe final lleva esperando desde 1821.
 o en <https://acorik.github.io/Coremon/>. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
 funciona sin conexión.
 
-**Android:** descarga [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) (o desde
+**Android:** descarga [Coremon-1.0.1.apk](https://github.com/acorik/Coremon/releases/download/v1.0.1/Coremon-1.0.1.apk) (o desde
 [itch.io](https://acorik.itch.io/coremon)) y ábrelo (el móvil
 pedirá permiso para "instalar apps de origen desconocido"). La app no pide
 ningún permiso, no tiene anuncios y funciona sin internet. Se adapta al móvil en
@@ -65,8 +65,8 @@ descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTM
 
 | Acción | Teclado | Pantalla táctil |
 |---|---|---|
-| Moverse | Flechas / WASD | Cruceta |
-| Correr | Mantener Shift | Mantener B |
+| Moverse | Flechas / WASD | Joystick (hasta el borde para correr) |
+| Correr | Mantener Shift | Joystick hasta el borde o mantener B |
 | Hablar / usar (A) | Enter, Espacio o Z | Botón A |
 | Atrás (B) | Esc, X o Retroceso | Botón B |
 
@@ -182,6 +182,10 @@ instalables solo lo empaquetan:
   crea la release con todos los archivos adjuntos.
 - `GitHub Pages` publica la versión web. Para activarlo, ve a Settings → Pages
   → Source: **GitHub Actions**.
+- **Cloudflare Pages** (`coremon.pages.dev`): Workers & Pages → Create → Pages →
+  Connect to Git → este repositorio. Framework preset: *None*; Build command:
+  `bash tools/build-web.sh`; Build output directory: `dist/web`. Se actualiza solo
+  con cada cambio en la rama de producción.
 - Firma del APK: guarda la clave en los secretos del repositorio
   `COREMON_KEYSTORE_BASE64` (`base64 -w0 coremon-release.jks`) y
   `COREMON_KEYSTORE_PASSWORD`. Sin ellos, la release usa el APK oficial ya
