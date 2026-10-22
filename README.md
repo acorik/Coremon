@@ -182,6 +182,10 @@ instalables solo lo empaquetan:
   crea la release con todos los archivos adjuntos.
 - `GitHub Pages` publica la versión web. Para activarlo, ve a Settings → Pages
   → Source: **GitHub Actions**.
+- **Cloudflare Pages** (`coremon.pages.dev`): Workers & Pages → Create → Pages →
+  Connect to Git → este repositorio. Framework preset: *None*; Build command:
+  `bash tools/build-web.sh`; Build output directory: `dist/web`. Se actualiza solo
+  con cada cambio en la rama de producción.
 - Firma del APK: guarda la clave en los secretos del repositorio
   `COREMON_KEYSTORE_BASE64` (`base64 -w0 coremon-release.jks`) y
   `COREMON_KEYSTORE_PASSWORD`. Sin ellos, la release usa el APK oficial ya

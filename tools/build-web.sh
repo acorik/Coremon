@@ -6,7 +6,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" js/game.js)
 rm -rf dist/web && mkdir -p dist/web
-cp -r index.html manifest.webmanifest sw.js css js icons dist/web/
-rm -f "dist/Coremon-${VERSION}-web.zip"
-(cd dist/web && zip -qr "../Coremon-${VERSION}-web.zip" .)
-echo "dist/Coremon-${VERSION}-web.zip"
+cp -r index.html manifest.webmanifest sw.js _headers css js icons dist/web/
+# el zip es para itch.io; en Cloudflare Pages / Netlify basta con la carpeta
+if command -v zip >/dev/null; then
+  rm -f "dist/Coremon-${VERSION}-web.zip"
+  (cd dist/web && zip -qr "../Coremon-${VERSION}-web.zip" .)
+  echo "dist/Coremon-${VERSION}-web.zip"
+else
+  echo "dist/web (sin zip: no hay comando zip)"
+fi
