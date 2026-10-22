@@ -1,7 +1,7 @@
 {
   "name": "coremon",
   "productName": "Coremon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Coremon: Edición Corazonistas Vitoria. Un juego de acorik.",
   "author": "acorik",
   "private": true,

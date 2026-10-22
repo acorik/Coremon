@@ -60,7 +60,7 @@
         <button id="btn-new" class="ds-btn big alt">Nueva partida</button>
         <button class="ds-btn small alt audio-btn">🔊</button>
         <a class="itch-link" href="https://acorik.itch.io/coremon" target="_blank" rel="noopener">🎮 acorik.itch.io/coremon</a>
-        <p class="muted small">Flechas/WASD: mover · Shift: correr · Enter/Z: hablar (A) · Esc/X: atrás (B)<br>En móvil usa la cruceta y los botones A/B.</p>
+        <p class="muted small">Flechas/WASD: mover · Shift: correr · Enter/Z: hablar (A) · Esc/X: atrás (B)<br>En móvil arrastra el joystick (hasta el borde para correr) y usa A/B.</p>
       </div>
     </div>
 
@@ -82,11 +82,10 @@
       </div>
       <button id="menu-dev" class="ds-btn dev-btn hidden">🛠 DEVTOOLS</button>
       <div class="pad">
-        <div class="dpad">
-          <button data-dir="up" class="d up">▲</button>
-          <button data-dir="left" class="d left">◀</button>
-          <button data-dir="right" class="d right">▶</button>
-          <button data-dir="down" class="d down">▼</button>
+        <div id="joystick" class="joystick">
+          <span class="joy-mark up">▲</span><span class="joy-mark down">▼</span>
+          <span class="joy-mark left">◀</span><span class="joy-mark right">▶</span>
+          <div id="joy-knob" class="joy-knob"></div>
         </div>
         <div class="ab">
           <button id="pad-b" class="round b">B</button>

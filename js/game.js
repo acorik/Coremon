@@ -9,7 +9,7 @@ const VIEW_W = canvas.width, VIEW_H = canvas.height;
 const SAVE_KEY = 'corazonistasvitoria_save_v2';
 const OLD_SAVE_KEY = 'corazonistasvitoria_save_v1';
 const WALK_MS = 170, RUN_MS = 95;
-const GAME_VERSION = '1.0.0';
+const GAME_VERSION = '1.0.1';
 
 // TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE | MINIGAME
 let STATE = 'TITLE';
@@ -320,7 +320,7 @@ function heldDir() {
   for (const k of ['arrowup','w','arrowdown','s','arrowleft','a','arrowright','d']) if (keysDown[k]) return KEYMAP[k];
   return null;
 }
-function running() { return keysDown['shift'] || keysDown['virtualb']; }
+function running() { return keysDown['shift'] || keysDown['virtualb'] || keysDown['virtualrun']; }
 
 function pressA() {
   if (STATE === 'MINIGAME') { tallerPhone(); return; }
