@@ -84,6 +84,25 @@ Duración estimada:
   piden subir de nivel.
 - Completar la Coredex y los legendarios: bastante más.
 
+## Coremon 1 en 3D
+
+`../coremon1/js/r3d1.js` levanta cada sala del colegio en 3D a partir del mismo
+dibujo 2D:
+- las paredes y la fachada usan su pixel-art como cara delantera;
+- los muebles son bloques con su dibujo encima;
+- los decorados altos son recortables de pie;
+- la hierba alta es 3D;
+- hay luz con sombras;
+- en la pantalla de título se ve el colegio girando.
+
+Los combates tienen fondo 3D (exterior con árboles o el aula de la sala) y los
+sprites 2D encima, como en la DS. El minijuego del Taller sigue en 2D. Usa el
+mismo `lib/three.min.js` de Coremon 2. Con `?2d` se fuerza el modo 2D.
+
+Al vencer a Coindre, `goToCoremon2()` carga `coremon2/index.html?desde=coremon1`,
+que empieza directamente, sin título: crea una partida nueva importando la de
+Coremon 1 o continúa la de Coremon 2 si ya existe.
+
 ## Mapa del código (`js/`, en orden de carga; `lib/three.min.js` es Three.js r159, licencia MIT)
 
 | Archivo | Qué contiene |

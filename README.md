@@ -41,12 +41,20 @@ Este repositorio ya es **Coremon 2.0**: los dos juegos van juntos y comparten pa
 
 ```
 index.html      → lanzador: abre Coremon 2 si ya tienes partida allí, si no, Coremon 1
-coremon1/       → el juego del colegio, tal cual (Edición Corazonistas Vitoria)
+coremon1/       → el juego del colegio (Edición Corazonistas Vitoria), ahora en 3D
 coremon2/       → Coremon 2: el mundo abierto de Iberión
 ```
 
+**Los dos juegos son 3D** (estilo HD-2D: escenario 3D con luces y sombras,
+personajes pixel-art de pie). En Coremon 1 cada sala del colegio es un diorama:
+las paredes conservan su pixel-art (carteles, ventanas, puertas), los muebles
+tienen volumen, la hierba alta se mueve y los combates tienen fondo 3D con los
+sprites de siempre, como en la DS. Sin WebGL, o con `?2d` en la dirección, se
+juega con los gráficos 2D originales.
+
 Al vencer al Padre Andrés Coindre (o al bajar por la trampilla del gimnasio
-siendo campeón) el colegio se queda atrás y empieza **Coremon 2**: ya no es una
+siendo campeón) el colegio se queda atrás y empieza **Coremon 2** directamente,
+sin pantallas de por medio y con todo tu progreso: ya no es una
 consola, es un mundo abierto **en 3D** (estilo HD-2D: escenario 3D con luces y
 sombras, personajes pixel-art) con movimiento libre, día y noche, clima, bici, 9 ciudades, 8 gimnasios con laberinto, la Liga Coremon y
 **CoraCorp, la Empresa Corazonista**, que quiere controlar a Cimientor, el

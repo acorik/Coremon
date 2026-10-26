@@ -668,6 +668,15 @@ function render() {
   }
   const map = currentMap();
   if (!map || !staticLayer) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H); drawCine(); return; }
+  if (R1.ok) {
+    // mundo en 3D (o fondo 3D del combate); el lienzo 2D queda encima para carteles y efectos
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    if (typeof battle !== 'undefined' && battle) battleBg3D(battle);
+    else { render3D1(map); drawBanner(); }
+    if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, VIEW_W, VIEW_H); }
+    drawCine();
+    return;
+  }
   const cam = camera(map);
   const sx = Math.round(-cam.x + (shake ? (Math.random() * 4 - 2) : 0)), sy = Math.round(-cam.y);
   ctx.fillStyle = '#0d0b14';
@@ -924,6 +933,15 @@ async function cinematic(obj, ms) {
 // ---------------- PANTALLA DE TÍTULO ----------------
 function drawTitle() {
   const t = now;
+  if (R1.ok) {
+    // el colegio en 3D de fondo
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    render3DTitle1();
+    const vg = ctx.createLinearGradient(0, 0, 0, VIEW_H); vg.addColorStop(0, 'rgba(20,10,40,0.35)'); vg.addColorStop(0.5, 'rgba(20,10,40,0)'); vg.addColorStop(0.7, 'rgba(10,8,20,0.2)'); vg.addColorStop(1, 'rgba(10,8,20,0.75)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawTitleText(t);
+    return;
+  }
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, '#4fa3e0'); g.addColorStop(0.6, '#bfe3f7'); g.addColorStop(0.61, '#7cc35a'); g.addColorStop(1, '#5aa13f');
   ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -945,6 +963,10 @@ function drawTitle() {
   ctx.fillStyle = '#8e2b3a'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
   ctx.fillText('CORAZONISTAS', 256, 126);
   drawHeartIcon(256, 76, 10);
+  drawTitleText(t);
+}
+function drawTitleText(t) {
+  ctx.textAlign = 'center';
   // logo
   ctx.font = 'bold 54px monospace';
   ctx.lineWidth = 8; ctx.strokeStyle = '#1d1a26'; ctx.strokeText('COREMON', 256, 290);
@@ -1131,6 +1153,7 @@ async function trapdoorScene(d) {
 }
 
 window.addEventListener('load', () => {
+  init3D1();
   initTouch();
   requestAnimationFrame(gameLoop);
 });

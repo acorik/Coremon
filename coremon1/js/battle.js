@@ -218,7 +218,7 @@ function drawBattleScene(t) {
   bctx.save();
   bctx.imageSmoothingEnabled = false;
   if (b.shake > 0) { bctx.translate(Math.random() * 8 - 4, Math.random() * 6 - 3); b.shake--; }
-  drawBattleBg(t);
+  if (R1.ok) bctx.clearRect(0, 0, BW, BH); else drawBattleBg(t);
   const bob = Math.sin(t / 260) * 3;
 
   // lanzamiento/embestida

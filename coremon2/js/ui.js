@@ -400,7 +400,13 @@ function showTitle() {
   onA = () => { if (save) continueGame(); else startNewGame(); };
   onB = null;
   // si se llega desde el colegio, empieza directamente
-  if (/desde=coremon1/.test(location.search) && !save) { history.replaceState(null, '', location.pathname); setTimeout(() => startNewGame(), 400); }
+  // si se llega desde el colegio, se sigue jugando sin pasar por el título:
+  // partida nueva con el progreso de Coremon 1, o la que ya hubiera en Coremon 2
+  if (/desde=coremon1/.test(location.search)) {
+    history.replaceState(null, '', location.pathname);
+    $('title').classList.add('hidden');
+    setTimeout(() => { if (save) continueGame(); else startNewGame(); }, 60);
+  }
 }
 function hideTitle() { $('title').classList.add('hidden'); }
 
