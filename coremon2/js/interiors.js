@@ -61,15 +61,18 @@ function buildInterior(id) {
       O('plant', 1, 2); O('plant', 13, 2); O('bench', 3, 6); O('bench', 11, 6); O('shelf', 2, 3); O('shelf', 12, 3);
       break;
     case 'gym': {
-      const ty = CITY[b.city].gym;
-      m.carpet = shade(TYPE_COLOR[ty], -10); m.mat = TYPE_COLOR[ty];
-      for (let y = 3; y < m.h - 1; y++) m.set(8, y, T.CARPET);
+      const ty = CITY[b.city].gym, col = TYPE_COLOR[ty];
+      m.carpet = shade(col, -10); m.mat = col;
       for (let x = 6; x < 11; x++) m.set(x, 3, T.CARPET);
-      // decoración temática
+      for (let y = 15; y < m.h - 1; y++) m.set(8, y, T.CARPET);
+      // laberinto: tres hileras de bloques con el hueco alternando de lado
+      const gaps = { 14: [2, 3], 10: [13, 14], 6: [2, 3] };
+      for (const ry in gaps) for (let x = 1; x < m.w - 1; x++) if (!gaps[ry].includes(x))
+        m.addObj({ type: 'gymblock', color: col, x: x * TS + 16, y: +ry * TS + 28, col: [-16, -14, 32, 14] });
       const deco = { naturaleza: 'bush', agua: 'fountain', sombra: 'torch', roca: 'bigrock', fuego: 'torch', electrico: 'machine', aire: 'flowers', hielo: 'crystal' }[ty] || 'plant';
-      [[2, 5], [14, 5], [2, 11], [14, 11], [2, 16], [14, 16]].forEach(([x, y]) => O(deco, x, y));
-      O('statue', 6, 17, { text: [`GIMNASIO DE ${CITY[b.city].name.toUpperCase()}`, `Tipo ${TYPE_LABEL[ty]}. Líder: ${GYMS[b.city] ? GYMS[b.city].name : '???'}.`] });
-      O('statue', 10, 17, { text: ['Entrenadores que han vencido aquí:', G && G.badges.includes(b.city) ? G.name + ' (¡tú!)' : '... todavía nadie este año.'] });
+      [[1, 4], [15, 4], [1, 17], [15, 17], [15, 12], [1, 8]].forEach(([x, y]) => O(deco, x, y));
+      O('statue', 5, 17, { text: [`GIMNASIO DE ${CITY[b.city].name.toUpperCase()}`, `Tipo ${TYPE_LABEL[ty]}. Líder: ${GYMS[b.city] ? GYMS[b.city].name : '???'}.`] });
+      O('statue', 11, 17, { text: ['Entrenadores que han vencido aquí:', G && G.badges.includes(b.city) ? G.name + ' (¡tú!)' : '... todavía nadie este año.'] });
       break;
     }
     case 'corp':

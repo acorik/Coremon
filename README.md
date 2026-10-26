@@ -35,6 +35,29 @@ jefe final lleva esperando desde 1821.
   <img src="launch/screenshots/07-apagon.png" width="49%" alt="Apagón en el Taller">
 </p>
 
+## Coremon 2.0: el mundo (en desarrollo)
+
+Este repositorio ya es **Coremon 2.0**: los dos juegos van juntos y comparten partida.
+
+```
+index.html      → lanzador: abre Coremon 2 si ya tienes partida allí, si no, Coremon 1
+coremon1/       → el juego del colegio, tal cual (Edición Corazonistas Vitoria)
+coremon2/       → Coremon 2: el mundo abierto de Iberión
+```
+
+Al vencer al Padre Andrés Coindre (o al bajar por la trampilla del gimnasio
+siendo campeón) el colegio se queda atrás y empieza **Coremon 2**: ya no es una
+consola, es un mundo abierto a pantalla completa con movimiento libre, día y
+noche, clima, bici, 9 ciudades, 8 gimnasios con laberinto, la Liga Coremon y
+**CoraCorp, la Empresa Corazonista**, que quiere controlar a Cimientor, el
+gigante que dormía bajo el colegio. Hay **190 Coremon** (los 31 del colegio y
+159 nuevos), 14 tipos y 9 legendarios. Tu equipo, tus cromos y tu dinero del
+colegio vienen contigo.
+
+Estado, mapa del código y lo que falta: [`coremon2/PROGRESO.md`](coremon2/PROGRESO.md).
+Las texturas de los personajes se pueden cambiar dejando un PNG en
+[`coremon2/assets/personajes/`](coremon2/assets/personajes/LEEME.md).
+
 ## Jugar
 
 **En el navegador (PC o móvil):** en [acorik.itch.io/coremon](https://acorik.itch.io/coremon)
@@ -59,9 +82,12 @@ botón "atrás" cierra menús (en el mapa, dos veces para salir).
 F11 activa la pantalla completa.
 
 **Sin instalar nada:** descarga el repositorio (Code → Download ZIP),
-descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTML.
+descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTML
+(`coremon1/index.html` abre directamente el colegio y `coremon2/index.html`, el mundo).
 
 ## Controles
+
+Coremon 1 (el colegio):
 
 | Acción | Teclado | Pantalla táctil |
 |---|---|---|
@@ -74,6 +100,10 @@ La pantalla de abajo tiene el equipo, la mochila, la Coredex, el guardado y
 el **objetivo actual** (📍), para saber siempre adónde ir. La partida se guarda
 sola al cambiar de sala. El botón 🔊 quita o pone el sonido (música y efectos
 chiptune generados en el propio navegador, sin archivos de audio).
+
+Coremon 2 (el mundo): igual, más **M / Tab** (o el botón ☰) para el menú,
+mando de consola compatible y bici desde la mochila. El minimapa de la esquina
+y la línea 📍 indican siempre adónde ir.
 
 ## Historia
 
@@ -191,7 +221,7 @@ instalables solo lo empaquetan:
   `COREMON_KEYSTORE_PASSWORD`. Sin ellos, la release usa el APK oficial ya
   firmado que hay en `android/release/` para esa versión.
 
-Para sacar una versión nueva, sube `GAME_VERSION` en `js/game.js`, `version`
+Para sacar una versión nueva, sube `GAME_VERSION` en `coremon1/js/game.js` (y `C2_VERSION` en `coremon2/js/core.js`), `version`
 en `desktop/package.json`, y `versionName` y `versionCode` en
 `android/app/build.gradle.kts`.
 

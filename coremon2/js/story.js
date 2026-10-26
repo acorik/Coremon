@@ -124,7 +124,7 @@ function rivalTeam(stage) {
   const counter = { chispazo: 'gotin', gotin: 'brotin', brotin: 'chispazo' }[G.starter2] || 'gotin';
   const evo = (id, lv) => evolveForLevel(id, lv);
   if (stage === 1) return [['plumin', 15], [counter, 16]];
-  return [['vendavalin', 40], ['glaciolobo', 40], [evo(counter, 42), 42], ['gigatron', 41], ['lingualord', 43]];
+  return [[evo('vendavalin', 43), 43], [evo('glaciolobo', 43), 43], [evo('gigatron', 44), 44], [evo('lingualord', 45), 45], [evo(counter, 46), 46]];
 }
 
 // ---------------- OBJETIVO ACTUAL ----------------
@@ -207,7 +207,7 @@ function setupStory(world) {
   world.roads.forEach((rd, ri) => {
     const p = rd.path, toCity = CITY[rd.b];
     let side = 1;
-    for (let k = 16; k < p.length - 16; k += 22) {
+    for (let k = 14; k < p.length - 14; k += 16) {
       const [x, y] = p[k];
       if (inCity(world, x * TS, y * TS)) continue;
       if (world.gates.some(g => Math.abs(g.x - x) + Math.abs(g.y - y) < 8)) continue;
@@ -247,6 +247,10 @@ function setupStory(world) {
   world.startPos = { x: sx * TS + 16, y: (sy) * TS + 20 };
   npcAt(world, { id: 'olaia', tx: sx + 2, ty: sy + 1, look: LOOKS2.olaia, custom: 'olaia', dir: 'left', script: olaiaScript, cond: () => !G.flags.starterGiven, marker: true });
   npcAt(world, { id: 'unai1', tx: sx - 3, ty: sy + 4, look: LOOKS2.rival, custom: 'unai', dir: 'right', script: rival1Script, cond: () => G.flags.starterGiven && !G.flags.rival1, marker: true });
+  // --- segundo combate con Unai: a la salida de Voltia hacia el Bosque (6 medallas) ---
+  { const rd = world.roads.find(r => r.a === 'voltia' && r.b === 'bosque') || world.roads.find(r => r.b === 'bosque');
+    const p = rd.path[Math.min(rd.path.length - 1, 28)], [x, y] = freeSpot(world, p[0], p[1]);
+    npcAt(world, { id: 'unai2', tx: x, ty: y, look: LOOKS2.rival, custom: 'unai', dir: 'down', sight: 5, ambush: true, script: rival2Script, cond: () => G.badges.length >= 6 && !G.flags.rival2, marker: true }); }
   // --- CoraCorp por las ciudades ---
   const ria = CITY.ria;
   [[-1, 0], [1, 0]].forEach(([d], i) => {
@@ -303,8 +307,8 @@ function populateInterior(b, m) {
     case 'gym': {
       const L = GYMS[b.city];
       N({ id: 'leader_' + b.city, tx: 8, ty: 3, look: L.look, custom: 'lider_' + b.city, dir: 'down', script: gymLeaderScript(b.city) });
-      gymTrainers(b.city).forEach((t, i) => N({ id: t.id, tx: i ? 11 : 5, ty: i ? 7 : 12, dir: i ? 'left' : 'right', sight: 4, trainer: t }));
-      N({ id: 'guide_' + b.city, tx: 10, ty: 17, kind: 'talk', lines: [`¡Hola, aspirante! Este es un gimnasio de tipo ${TYPE_LABEL[city.gym]}.`, `Los ataques de tipo ${TYPE_LABEL[Object.keys(TYPE_BEATS).find(t => TYPE_BEATS[t].includes(city.gym)) || 'fuego']} le hacen mucho daño. ¡Suerte!`] });
+      gymTrainers(b.city).forEach((t, i) => N({ id: t.id, tx: i ? 6 : 11, ty: i ? 8 : 12, dir: i ? 'right' : 'left', sight: 5, trainer: t }));
+      N({ id: 'guide_' + b.city, tx: 10, ty: 16, kind: 'talk', lines: [`¡Hola, aspirante! Este es un gimnasio de tipo ${TYPE_LABEL[city.gym]}.`, `Los ataques de tipo ${TYPE_LABEL[Object.keys(TYPE_BEATS).find(t => TYPE_BEATS[t].includes(city.gym)) || 'fuego']} le hacen mucho daño. ¡Suerte!`] });
       break;
     }
     case 'corp': {
@@ -392,7 +396,25 @@ async function rival1Script(n) {
   refreshNpcs();
   saveGame(true);
 }
+async function rival2Script(n) {
+  if (!G.team.some(m => m.hp > 0)) { await say('Unai: Tus Coremon están agotados. Cúralos y luego hablamos.'); return; }
+  await say(['Unai: ¡Por fin te encuentro! Me han contado que has entrado en la Torre CoraCorp tú solo.', 'Unai: Yo llevo seis medallas también. Y mi equipo ha crecido mucho desde el colegio.', 'Unai: Antes de la Cumbre, quiero saber quién de los dos es más fuerte. ¡Ahora!']);
+  const res = await startBattle({ kind: 'trainer', trainer: { name: 'Rival Unai', look: LOOKS2.rival, custom: 'unai', team: rivalTeam(2), prize: 5000, boss: true } });
+  if (res !== 'win') { await say('Unai: ¡Ja! Todavía no estás listo para la Cumbre. Vuelve cuando quieras la revancha.'); return; }
+  await say(['Unai: ...Otra vez. No sé cómo lo haces.', 'Unai: Me voy a la Liga a esperar. Yo llegaré primero a campeón... y tú tendrás que ganarme allí.', 'Unai: Toma, lo vas a necesitar más que yo.']);
+  G.bag.botiquin = (G.bag.botiquin || 0) + 3; sfx('item');
+  await say('¡Has recibido 3 × Botiquín!');
+  G.flags.rival2 = true;
+  n.walkTo = [n.x, n.y - 200]; n.speed = 120;
+  saveGame(true);
+}
 async function olaiaLabScript(n) {
+  if (G.badges.length >= 4 && !G.flags.olaiaMaster) {
+    await say(['Dra. Olaia: ¡Cuatro medallas! He estado investigando lo que me contaste de CoraCorp.', 'Dra. Olaia: Les robé esto antes de irme: un Cromo maestro. Captura cualquier Coremon sin fallar.', 'Dra. Olaia: Guárdalo para un legendario. Créeme.']);
+    G.bag.cromoMaestro = (G.bag.cromoMaestro || 0) + 1; G.flags.olaiaMaster = true; sfx('item');
+    await say('¡Has recibido un Cromo maestro! 👑');
+    return;
+  }
   if (G.badges.length >= 1 && !G.bag.bici) {
     await say(['Dra. Olaia: ¡Tu primera medalla! Te mereces esto.', 'Dra. Olaia: Es la bici que usaba para huir de las reuniones de CoraCorp. Úsala desde la mochila.']);
     G.bag.bici = 1; sfx('item');

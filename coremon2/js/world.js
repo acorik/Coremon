@@ -473,11 +473,21 @@ function drawObject(o) {
     return;
   }
   if (o.type === 'barrier') { drawBarrier(o); return; }
+  if (o.type === 'gymblock') { ctx.drawImage(gymBlockImage(o.color), Math.round(o.x - 16), Math.round(o.y - 36)); return; }
   const d = OBJ_DEF[o.type];
   if (!d) return;
   const img = objImage(o.type, o.v || 0);
   ctx.drawImage(img, Math.round(o.x - d.ax), Math.round(o.y - d.ay));
   if (o.item && !G.picked[o.item.id]) { /* objeto de suelo: se dibuja como bola en drawActor */ }
+}
+// bloque de los laberintos de gimnasio (color del tipo)
+function gymBlockImage(c) {
+  return objCanvas('gb:' + c, 32, 40, g => {
+    px(g, 1, 34, 30, 5, 'rgba(0,0,0,0.25)');
+    px(g, 0, 14, 32, 22, shade(c, -30)); px(g, 0, 14, 32, 2, shade(c, -45));
+    px(g, 0, 4, 32, 12, c); px(g, 0, 4, 32, 3, shade(c, 25));
+    px(g, 4, 20, 24, 2, shade(c, -15)); px(g, 4, 27, 24, 2, shade(c, -15));
+  });
 }
 function drawBarrier(o) {
   const x = Math.round(o.x - 16), y = Math.round(o.y - 30);

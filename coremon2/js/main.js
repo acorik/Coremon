@@ -158,7 +158,7 @@ function faceTo(a, b) { const dx = b.x - a.x, dy = b.y - a.y; a.dir = Math.abs(d
 // los entrenadores te ven si estás en su línea de visión
 function checkTrainerSight() {
   for (const n of MAP.npcs) {
-    if (!n.trainer || n.hidden || G.beaten[n.id] || !n.sight || n.walkTo) continue;
+    if (!(n.trainer || n.ambush) || n.hidden || G.beaten[n.id] || !n.sight || n.walkTo) continue;
     const dx = player.x - n.x, dy = player.y - n.y, range = n.sight * TS;
     let seen = false;
     if (n.dir === 'down') seen = Math.abs(dx) < 14 && dy > 0 && dy < range;

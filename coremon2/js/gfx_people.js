@@ -141,6 +141,7 @@ function drawPersonCell(g, L, dir, f, ox, oy) {
 
 // dibuja a una persona con los pies en (x, y) del mundo
 function drawPerson(g, look, x, y, dir, frame, customId) {
+  if (customId) loadCustomSheet(customId);
   const custom = customId && CUSTOM_SHEETS[customId];
   const row = DIRS4.indexOf(dir || 'down');
   g.fillStyle = 'rgba(0,0,0,0.28)';
