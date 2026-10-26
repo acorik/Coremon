@@ -537,6 +537,7 @@ function sceneCanvas(name) {
 }
 
 function battleLayout() {
+  if (R3.ok && R3.bl) return R3.bl;
   const portrait = VH > VW * 1.05;
   const ui = ($('battle-ui').getBoundingClientRect().height || 160) * DPR;
   if (portrait) {
@@ -547,11 +548,7 @@ function battleLayout() {
   return { portrait, ui, e: { x: VW * 0.7, y: VH * 0.44, s: se }, p: { x: VW * 0.28, y: Math.min(VH - ui - VH * 0.02, VH * 0.82), s: sp } };
 }
 
-function renderBattle() {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingEnabled = false;
-  if (evoAnim) { renderEvolution(); return; }
-  if (!B) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH); return; }
+function renderBattle2D() {
   const a = B.anim, L = battleLayout();
   const sh = a.shake > 0 ? (Math.random() - 0.5) * a.shake * DPR : 0;
   if (a.shake > 0) a.shake *= 0.86;
@@ -584,6 +581,21 @@ function renderBattle() {
     ctx.save(); ctx.translate(L.p.x - a.pOff * VW * 0.4, L.p.y); ctx.scale(s, s); drawPerson(ctx, LOOKS2.player, 0, 0, 'up', 0, 'jugador'); ctx.restore();
   }
   ['e', 'p'].forEach(k => { if (a.flash[k] > 0) a.flash[k] -= 0.6; });
+}
+
+function renderBattle() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  if (evoAnim) { renderEvolution(); return; }
+  if (!B) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VW, VH); return; }
+  const a = B.anim;
+  if (R3.ok) {
+    ctx.clearRect(0, 0, VW, VH);
+    render3DBattle();
+    if (a.shake > 0) a.shake *= 0.86;
+    ['e', 'p'].forEach(k => { if (a.flash[k] > 0) a.flash[k] -= 0.6; });
+  } else renderBattle2D();
+  const L = battleLayout();
   // cromo
   if (a.card) {
     ctx.save(); ctx.translate(a.card.x, a.card.y); ctx.rotate(a.card.rot);
@@ -610,7 +622,7 @@ function renderBattle() {
 function infoBox(m, side, L, mine) {
   const s = DPR, w = Math.min(VW * (L.portrait ? 0.56 : 0.34), 380 * s), h = (mine ? 74 : 60) * s;
   const x = mine ? VW - w - 14 * s : 14 * s;
-  const y = mine ? (L.portrait ? L.p.y - L.p.s - h - 6 * s : VH - L.ui - h - 14 * s) : (L.portrait ? 74 * s : 18 * s);
+  const y = mine ? (L.portrait ? Math.min(L.p.y + 14 * s, VH - L.ui - h - 8 * s) : VH - L.ui - h - 14 * s) : (L.portrait ? 74 * s : 18 * s);
   ctx.fillStyle = 'rgba(20,18,34,0.88)'; roundRect(ctx, x, y, w, h, 14 * s); ctx.fill();
   ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2.5 * s; ctx.stroke();
   const sp = SPECIES[m.species], st = monStats(m);

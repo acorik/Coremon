@@ -382,6 +382,13 @@ function drawItemBall(it) {
 
 function renderWorld() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (R3.ok) {
+    ctx.clearRect(0, 0, VW, VH);
+    render3DWorld(frameDt);
+    if (flashHeal && now - flashHeal < 1000) { ctx.fillStyle = `rgba(255,255,255,${0.5 * Math.abs(Math.sin((now - flashHeal) / 160))})`; ctx.fillRect(0, 0, VW, VH); }
+    drawBanner();
+    return;
+  }
   ctx.fillStyle = MAP.outdoor ? TILE_COLOR[T.DEEP] : '#0b0a12';
   ctx.fillRect(0, 0, VW, VH);
   cam = cameraFor(MAP, player.x, player.y - 16);
@@ -425,9 +432,10 @@ function showWorldUI(on) {
 }
 
 // ---------------- BUCLE ----------------
+let frameDt = 16;
 function frame(ts) {
   const dt = lastT ? Math.min(50, ts - lastT) : 16;
-  lastT = ts; now = ts;
+  lastT = ts; now = ts; frameDt = dt;
   if (STATE !== 'TITLE') update(dt);
   if (STATE === 'BATTLE') renderBattle();
   else if (STATE === 'TITLE') renderTitle();
@@ -446,6 +454,7 @@ function setWorldControls() {
 window.addEventListener('load', () => {
   WORLD = generateWorld();
   setupStory(WORLD);
+  init3D();
   initJoystick();
   initUI();
   showTitle();

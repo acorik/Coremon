@@ -408,6 +408,19 @@ function renderTitle() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingEnabled = false;
   const t = now / 1000;
+  if (R3.ok && WORLD) {
+    // el mundo en 3D de fondo, con la cámara girando sobre Gasteiz
+    ctx.clearRect(0, 0, VW, VH);
+    render3DTitle(frameDt);
+    const vg = ctx.createLinearGradient(0, 0, 0, VH); vg.addColorStop(0, 'rgba(20,10,40,0.75)'); vg.addColorStop(0.4, 'rgba(20,10,40,0.05)'); vg.addColorStop(0.62, 'rgba(10,8,20,0.1)'); vg.addColorStop(1, 'rgba(10,8,20,0.85)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+    const big = Math.min(VW, VH) * 0.2;
+    ['chispazo', 'cimientor', 'gotin'].forEach((id, i) => {
+      const x = VW * (0.2 + i * 0.3) - big / 2, y = VH * 0.14 + Math.sin(t * 1.4 + i) * big * 0.05 + (i === 1 ? -big * 0.2 : 0);
+      drawCreature(ctx, id, x, y, i === 1 ? big * 1.3 : big, { flip: i === 2 });
+    });
+    return;
+  }
   const g = ctx.createLinearGradient(0, 0, 0, VH);
   g.addColorStop(0, '#2a1f4a'); g.addColorStop(0.55, '#c0506a'); g.addColorStop(1, '#ffb36b');
   ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);

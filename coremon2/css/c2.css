@@ -10,7 +10,8 @@ body {
 }
 button { font-family: inherit; cursor: pointer; }
 .hidden { display: none !important; }
-#cv { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; image-rendering: pixelated; }
+#cv { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; image-rendering: pixelated; z-index: 1; }
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; z-index: 0; }
 
 :root {
   --glass: rgba(18, 17, 30, 0.82);

@@ -47,8 +47,8 @@ coremon2/       → Coremon 2: el mundo abierto de Iberión
 
 Al vencer al Padre Andrés Coindre (o al bajar por la trampilla del gimnasio
 siendo campeón) el colegio se queda atrás y empieza **Coremon 2**: ya no es una
-consola, es un mundo abierto a pantalla completa con movimiento libre, día y
-noche, clima, bici, 9 ciudades, 8 gimnasios con laberinto, la Liga Coremon y
+consola, es un mundo abierto **en 3D** (estilo HD-2D: escenario 3D con luces y
+sombras, personajes pixel-art) con movimiento libre, día y noche, clima, bici, 9 ciudades, 8 gimnasios con laberinto, la Liga Coremon y
 **CoraCorp, la Empresa Corazonista**, que quiere controlar a Cimientor, el
 gigante que dormía bajo el colegio. Hay **190 Coremon** (los 31 del colegio y
 159 nuevos), 14 tipos y 9 legendarios. Tu equipo, tus cromos y tu dinero del

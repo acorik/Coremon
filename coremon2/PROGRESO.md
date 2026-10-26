@@ -19,6 +19,26 @@ y no se toca, salvo el enlace hacia aquí.
   - Cumbre Corazón / Liga
 - **Caminos y barreras.** Hay caminos con puentes y pasos de montaña. Las
   barreras de CoraCorp se abren según las medallas.
+- **Gráficos 3D (Three.js, estilo HD-2D).** Es un diorama 3D de verdad:
+  - terreno con relieve (colinas, dunas);
+  - montañas de bloques;
+  - agua transparente animada y lava que brilla;
+  - árboles, rocas, farolas, bancos y fuentes en 3D low-poly;
+  - edificios con fachada pixel-art, tejados a dos aguas y ventanas que se
+    encienden de noche;
+  - hierba alta en 3D que se mueve con el viento;
+  - personajes pixel-art de pie, con sombra;
+  - sol con sombras en tiempo real, cielo y niebla por región y hora,
+    atardeceres;
+  - farolas y antorchas que iluminan de verdad;
+  - lluvia, nieve, arena, ceniza y hojas en 3D;
+  - silueta del jugador al pasar detrás de algo;
+  - combates en arena 3D con cámara cinematográfica y título con vuelo sobre
+    Gasteiz.
+
+  Los objetos sin modelo 3D se ven como recortables de pie. La calidad es
+  adaptativa: si el móvil va justo, baja la resolución y luego las sombras.
+  Sin WebGL (o con `?2d` en la dirección) se usa el motor 2D original.
 - **Motor:**
   - movimiento libre en 8 direcciones, con correr y bici;
   - día y noche con luces;
@@ -64,7 +84,7 @@ Duración estimada:
   piden subir de nivel.
 - Completar la Coredex y los legendarios: bastante más.
 
-## Mapa del código (`js/`, en orden de carga)
+## Mapa del código (`js/`, en orden de carga; `lib/three.min.js` es Three.js r159, licencia MIT)
 
 | Archivo | Qué contiene |
 |---|---|
@@ -75,7 +95,8 @@ Duración estimada:
 | `gfx_creatures.js` | Generador de sprites de Coremon |
 | `gfx_people.js` | Sprites de personas y texturas propias (`assets/personajes/`) |
 | `gfx_world.js` | Casillas, objetos decorativos y edificios |
-| `world.js` | Generación del mundo, ciudades, colisiones, render por trozos y minimapa |
+| `world.js` | Generación del mundo, ciudades, colisiones, render 2D por trozos y minimapa |
+| `r3d.js` | Motor 3D: relieve, trozos 3D, modelos, edificios, personajes, luces, clima, cámara, combate 3D |
 | `story.js` | Coremon salvajes, líderes, CoraCorp, Liga, NPC y guiones |
 | `interiors.js` | Interiores: centro, tienda, casas, laboratorio, colegio, gimnasios, torre y Liga |
 | `battle.js` | Motor de combate y escenas |
