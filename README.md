@@ -10,7 +10,24 @@
   <a href="https://github.com/acorik/Coremon/releases/latest">Todas las descargas</a>
 </p>
 
-## Descargar
+## 🧪 Beta 2.0 (Android)
+
+Versión de prueba de **Coremon 2.0**. Incluye Coremon 1 y Coremon 2, los dos en
+3D, y el paso directo del colegio al mundo abierto. Todavía no está publicada en
+itch.io ni como release.
+
+| Plataforma | Descarga | Versión |
+|---|---|---|
+| 🤖 **Android** | [Coremon-2.0.0-beta.apk](https://github.com/acorik/Coremon/raw/beta-2.0/android/release/Coremon-2.0.0-beta.apk) | 2.0.0-beta (versionCode 3) |
+
+- Se instala encima de la 1.0.1 sin perder la partida, porque está firmada con
+  la misma clave.
+- SHA-256: `b8891a2d71ea2428969730522436fe77a990a695d62fb6dffb4840a705b775dc`
+- Es una beta, así que puede haber fallos. Si el móvil no tiene WebGL, el juego
+  usa los gráficos 2D.
+- Está en la rama [`beta-2.0`](https://github.com/acorik/Coremon/tree/beta-2.0).
+
+## Descargar (versión estable 1.0.1)
 
 | Plataforma | Descarga directa |
 |---|---|

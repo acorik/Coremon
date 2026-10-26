@@ -9,7 +9,7 @@ const VIEW_W = canvas.width, VIEW_H = canvas.height;
 const SAVE_KEY = 'corazonistasvitoria_save_v2';
 const OLD_SAVE_KEY = 'corazonistasvitoria_save_v1';
 const WALK_MS = 170, RUN_MS = 95;
-const GAME_VERSION = '1.0.1';
+const GAME_VERSION = '2.0.0-beta';
 
 // TITLE | CUTSCENE | OVERWORLD | DIALOGUE | MENU | BATTLE | MINIGAME
 let STATE = 'TITLE';
