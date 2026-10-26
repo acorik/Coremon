@@ -243,7 +243,7 @@ MAPS.room_tatami = {
     { type:'clock', x:7, y:0 }, { type:'wallbars', x:8, y:0, w:4 },
     { type:'handballGoal', x:11, y:4, h:2, facing:'left' },
     { type:'mats', x:1, y:7, blue:true }, { type:'mats', x:2, y:7, blue:true },
-    { type:'trapdoor', x:10, y:7, text:['Una trampilla metálica en el suelo, cerrada con tres candados oxidados.', 'Se nota aire frío saliendo por las rendijas... y algo que suena como una respiración muy lenta.', 'Alguien ha rayado en la chapa: «PRÓXIMAMENTE — 2ª EDICIÓN».'] }
+    { type:'trapdoor', x:10, y:7, action:'trampilla', text:['Una trampilla metálica en el suelo, cerrada con tres candados oxidados.', 'Se nota aire frío saliendo por las rendijas... y algo que suena como una respiración muy lenta.', 'Alguien ha rayado en la chapa: «PRÓXIMAMENTE — 2ª EDICIÓN».'] }
   ],
   items: [ { id:'pagina8', x:11, y:7, page:8 } ],
   spawn: { x:6, y:7 }

@@ -4,7 +4,7 @@ name: GitHub Pages
 
 on:
   push:
-    paths: ['index.html', 'manifest.webmanifest', 'sw.js', 'css/**', 'js/**', 'icons/**', 'tools/build-web.sh']
+    paths: ['index.html', 'manifest.webmanifest', 'sw.js', 'coremon1/**', 'coremon2/**', 'icons/**', 'tools/build-web.sh']
   workflow_dispatch:
 
 permissions:

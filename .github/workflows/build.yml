@@ -8,7 +8,7 @@ on:
   push:
     branches: ['**']
     tags: ['v*']
-    paths: ['index.html', 'manifest.webmanifest', 'css/**', 'js/**', 'icons/**', 'android/**', 'desktop/**', 'tools/**', '.github/workflows/build.yml']
+    paths: ['index.html', 'manifest.webmanifest', 'coremon1/**', 'coremon2/**', 'icons/**', 'android/**', 'desktop/**', 'tools/**', '.github/workflows/build.yml']
   workflow_dispatch:
     inputs:
       release_tag:
@@ -57,7 +57,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
-          VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" ../js/game.js)
+          VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" ../coremon1/js/game.js)
           mkdir -p ../dist && cp app/build/outputs/apk/release/app-release.apk "../dist/Coremon-${VERSION}.apk"
           # Sin la clave oficial en los secretos, se publica el APK oficial ya firmado
           # que está en android/release/ (si existe para esta versión).

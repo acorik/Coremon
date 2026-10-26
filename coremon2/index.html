@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Coremon 2 — El Mundo</title>
+<meta name="description" content="Coremon 2: mundo abierto. Sal del colegio, recorre ocho ciudades, vence a CoraCorp y conquista la Liga Coremon. Un juego de acorik.">
+<meta name="author" content="acorik">
+<meta name="theme-color" content="#14151f">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/c2.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- HUD del mundo -->
+<div id="hud" class="hidden">
+  <div id="hud-loc"><b id="hud-place">-</b><span id="hud-time">08:00</span></div>
+  <div id="hud-quest"></div>
+  <canvas id="minimap" width="160" height="120"></canvas>
+  <button id="btn-menu" class="hud-btn" aria-label="Menú">☰</button>
+</div>
+
+<!-- Controles táctiles -->
+<div id="touch" class="hidden">
+  <div id="joy" class="joy"><div id="joy-knob" class="joy-knob"></div></div>
+  <div class="ab">
+    <button id="tb-b" class="rbtn b">B</button>
+    <button id="tb-a" class="rbtn a">A</button>
+  </div>
+</div>
+
+<!-- Diálogo -->
+<div id="dialog" class="hidden">
+  <div id="dlg-name" class="hidden"></div>
+  <div id="dlg-text"></div>
+  <div id="dlg-choices" class="hidden"></div>
+  <div id="dlg-arrow">▼</div>
+</div>
+
+<!-- Interfaz de combate -->
+<div id="battle-ui" class="hidden">
+  <div id="b-log"></div>
+  <div id="b-cmds" class="hidden">
+    <button class="bcmd fight" data-cmd="fight">LUCHAR</button>
+    <button class="bcmd bag" data-cmd="bag">MOCHILA</button>
+    <button class="bcmd team" data-cmd="team">EQUIPO</button>
+    <button class="bcmd run" data-cmd="run">HUIR</button>
+  </div>
+  <div id="b-moves" class="hidden"></div>
+</div>
+
+<!-- Menús y paneles -->
+<div id="panel" class="hidden">
+  <div class="panel-box">
+    <div class="panel-head"><b id="panel-title">Menú</b><button id="panel-close" class="pbtn">✕</button></div>
+    <div id="panel-body"></div>
+  </div>
+</div>
+
+<!-- Pantalla de título -->
+<div id="title" class="hidden">
+  <div class="title-box">
+    <div class="logo">COREMON <span>2</span></div>
+    <div class="sub">EL MUNDO</div>
+    <div id="title-info" class="tinfo"></div>
+    <div class="title-btns">
+      <button id="t-continue" class="tbtn">Continuar</button>
+      <button id="t-new" class="tbtn alt">Nueva aventura</button>
+    </div>
+    <div class="credit">un juego de acorik · <span id="t-ver"></span></div>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+<div id="fade"></div>
+
+<script src="js/audio.js"></script>
+<script src="js/core.js"></script>
+<script src="js/types.js"></script>
+<script src="js/species.js"></script>
+<script src="js/gfx_creatures.js"></script>
+<script src="js/gfx_people.js"></script>
+<script src="js/gfx_world.js"></script>
+<script src="js/world.js"></script>
+<script src="js/story.js"></script>
+<script src="js/interiors.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

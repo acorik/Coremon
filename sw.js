@@ -1,11 +1,12 @@
-// Coremon - service worker: primero la red (siempre la última versión) y,
-// sin conexión, lo guardado en caché.
-const CACHE = 'coremon-v1';
+// Coremon 2.0 - service worker: primero la red (siempre la última versión) y,
+// sin conexión, lo guardado en caché (se guarda todo lo que se va cargando).
+const CACHE = 'coremon-v2';
 const FILES = [
-  './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/audio.js', 'js/data.js', 'js/sprites.js', 'js/scenery.js', 'js/maps.js',
-  'js/game.js', 'js/ui.js', 'js/battle.js', 'js/taller.js',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png'
+  './', 'index.html', 'manifest.webmanifest',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png',
+  'coremon1/index.html', 'coremon1/css/style.css',
+  'coremon1/js/audio.js', 'coremon1/js/data.js', 'coremon1/js/sprites.js', 'coremon1/js/scenery.js', 'coremon1/js/maps.js',
+  'coremon1/js/game.js', 'coremon1/js/ui.js', 'coremon1/js/battle.js', 'coremon1/js/taller.js'
 ];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

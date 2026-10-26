@@ -4,9 +4,9 @@
 #   dist/Coremon-<versión>-web.zip -> zip con index.html en la raíz
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" js/game.js)
+VERSION=$(sed -n "s/^const GAME_VERSION = '\(.*\)';/\1/p" coremon1/js/game.js)
 rm -rf dist/web && mkdir -p dist/web
-cp -r index.html manifest.webmanifest sw.js _headers css js icons dist/web/
+cp -r index.html manifest.webmanifest sw.js _headers coremon1 coremon2 icons dist/web/
 # el zip es para itch.io; en Cloudflare Pages / Netlify basta con la carpeta
 if command -v zip >/dev/null; then
   rm -f "dist/Coremon-${VERSION}-web.zip"

@@ -416,6 +416,7 @@ function interact() {
     if (d.action === 'box') { openBox(); return; }
     if (d.action === 'altar') { altarScene(); return; }
     if (d.action === 'dev') { devButtonScene(); return; }
+    if (d.action === 'trampilla') { trapdoorScene(d); return; }
     const txt = decorText(d);
     if (txt) { showDialog(txt); return; }
   }
@@ -871,7 +872,7 @@ function drawCine() {
     ctx.strokeText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62); ctx.fillStyle = '#ff5252'; ctx.fillText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62);
     ctx.font = '13px monospace'; ctx.fillStyle = '#bdbdbd';
     ctx.fillText('«Lo que duerme bajo el gimnasio... ha despertado.»', VIEW_W / 2, VIEW_H - 34);
-    ctx.fillText('PRÓXIMAMENTE', VIEW_W / 2, VIEW_H - 14);
+    ctx.fillText('COMIENZA AHORA', VIEW_W / 2, VIEW_H - 14);
     ctx.globalAlpha = 1;
   } else if (cine.type === 'credits') {
     ctx.fillStyle = '#100a14'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -1100,10 +1101,33 @@ async function endingScene() {
   await cinematic({ type:'teaser' }, 9000);
   music(null);
   await say(['¡Has completado Coremon: Edición Corazonistas Vitoria!',
-    first ? 'Desde ahora, la hierba del patio y del jardín está revuelta: Coremon de más nivel y muchos más legendarios. Corazonix ronda la hierba oscura.' : 'La hierba del patio sigue revuelta. Los legendarios te esperan.',
-    'En el patio te espera alguien que dice venir de la Segunda Edición. Y en el gimnasio, la trampilla sellada... respira.']);
+    'Pero esto no acaba aquí. La trampilla del gimnasio ha reventado... y lo que dormía debajo ha salido al mundo.',
+    'Tu equipo, tus Coremon y tu Coredex vienen contigo. Es hora de salir del colegio.']);
   STATE = 'OVERWORLD';
   saveGame(); refreshTouch();
+  await goToCoremon2();
+}
+
+// ---------------- PASO A COREMON 2 ----------------
+// Coremon 2 (mundo abierto) está en ../coremon2 y lee esta misma partida
+// (mismo localStorage) para traerse el equipo, la Coredex y el dinero.
+async function goToCoremon2() {
+  STATE = 'CUTSCENE';
+  game.flags.toCoremon2 = true;
+  saveGame();
+  sfx('rumble'); shake = 1;
+  await fadeTo(1, 1200);
+  shake = 0;
+  location.href = '../coremon2/index.html?desde=coremon1';
+}
+
+async function trapdoorScene(d) {
+  if (!game.flags.champion) { await say(decorText(d)); return; }
+  STATE = 'CUTSCENE';
+  await say(['La trampilla está abierta de par en par. Los candados están en el suelo, partidos.',
+    'Desde abajo llega aire frío... y una luz que no es de este colegio.',
+    'Bajas por la escalera. Al fondo se ve un túnel que sale del colegio... hacia el mundo.']);
+  await goToCoremon2();
 }
 
 window.addEventListener('load', () => {
