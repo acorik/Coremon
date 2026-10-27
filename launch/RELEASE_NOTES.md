@@ -2,10 +2,7 @@
 
 **Un juego de acorik.** Página oficial: **[acorik.itch.io/coremon](https://acorik.itch.io/coremon)**
 
-Coremon 2.0 junta dos juegos en uno, y los dos son ahora **en 3D**:
-
-1. **Coremon 1, el colegio.** Es el RPG de siempre en el Colegio Sagrado Corazón – Corazonistas de Vitoria-Gasteiz, ahora en 3D.
-2. **Coremon 2, el mundo.** Al vencer al Padre Andrés Coindre sales del colegio directamente y con todo tu progreso, al mundo abierto de Iberión.
+Coremon es un solo juego, **en 3D**. Empiezas en el Colegio Sagrado Corazón – Corazonistas de Vitoria-Gasteiz... y, al vencer al Padre Andrés Coindre, descubres que todo aquello era el tutorial. Entonces sales al mundo abierto de Iberión con todo tu progreso.
 
 ### Descargas
 
