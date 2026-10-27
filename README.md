@@ -4,7 +4,7 @@
 
 <p align="center">El colegio Corazonistas de Vitoria (Coremon 1) y el mundo abierto de Iberión (Coremon 2), los dos en 3D.</p>
 
-<p align="center"><b>Un juego de acorik</b> · versión 2.0.0</p>
+<p align="center"><b>Un juego de acorik</b> · versión 2.0.1</p>
 
 <p align="center">
   <a href="https://acorik.itch.io/coremon"><b>🎮 Página oficial en itch.io: acorik.itch.io/coremon</b></a><br>
@@ -16,13 +16,13 @@
 
 | Plataforma | Descarga directa |
 |---|---|
-| 🤖 **Android** | [Coremon-2.0.0.apk](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0.apk) |
-| 🪟 **Windows** (instalador) | [Coremon-Setup-2.0.0.exe](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-Setup-2.0.0.exe) |
-| 🪟 **Windows** (portable, sin instalar) | [Coremon-2.0.0-portable.exe](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0-portable.exe) |
-| 🐧 **Linux** | [Coremon-2.0.0.AppImage](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0.AppImage) |
-| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-2.0.0-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0-mac-arm64.dmg) |
-| 🍎 **macOS** (Intel) | [Coremon-2.0.0-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0-mac-x64.dmg) |
-| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-2.0.0-web.zip](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0-web.zip) |
+| 🤖 **Android** | [Coremon-2.0.1.apk](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.apk) |
+| 🪟 **Windows** (instalador) | [Coremon-Setup-2.0.1.exe](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-Setup-2.0.1.exe) |
+| 🪟 **Windows** (portable, sin instalar) | [Coremon-2.0.1-portable.exe](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-portable.exe) |
+| 🐧 **Linux** | [Coremon-2.0.1.AppImage](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.AppImage) |
+| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-2.0.1-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-mac-arm64.dmg) |
+| 🍎 **macOS** (Intel) | [Coremon-2.0.1-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-mac-x64.dmg) |
+| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-2.0.1-web.zip](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-web.zip) |
 | 🎮 **itch.io** | [acorik.itch.io/coremon](https://acorik.itch.io/coremon) |
 
 Un RPG de captura de criaturas con aspecto de Nintendo DS (dos pantallas)
@@ -81,7 +81,7 @@ Más detalles en [`coremon2/PROGRESO.md`](coremon2/PROGRESO.md).
 o en <https://acorik.github.io/Coremon/>. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
 funciona sin conexión.
 
-**Android:** descarga [Coremon-2.0.0.apk](https://github.com/acorik/Coremon/releases/download/v2.0.0/Coremon-2.0.0.apk) (o desde
+**Android:** descarga [Coremon-2.0.1.apk](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.apk) (o desde
 [itch.io](https://acorik.itch.io/coremon)) y ábrelo (el móvil
 pedirá permiso para "instalar apps de origen desconocido"). La app no pide
 ningún permiso, no tiene anuncios y funciona sin internet. Se adapta al móvil en
