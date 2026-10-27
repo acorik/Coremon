@@ -397,7 +397,7 @@ function drawPerson(ctx, look, cx, footY, size, facing, frame) {
 
 // Uniforme de los Coras y aspectos fijos
 const LOOKS = {
-  player:   { hair:'short', hairColor:'#3b2416', shirt:'#1f3b73', pants:'#3a3a48', tie:'#b71c1c' },
+  player:   { hair:'short', hairColor:'#3b2416', shirt:'#1f3b73', pants:'#3a3a48', tie:'#b71c1c', backpack:'#e53935', eyes:'#3b6fb6' },
   conserje: { hair:'bald', hairColor:'#8d8d8d', shirt:'#6d4c41', pants:'#3e2723', beard:true, beardColor:'#9e9e9e' },
   enfermera:{ hair:'bun', hairColor:'#6d3b1f', shirt:'#ffffff', pants:'#ffffff', skirt:true, collar:'#e91e63' },
   secretaria:{ hair:'long', hairColor:'#2d1b12', shirt:'#7b1fa2', pants:'#37474f', skirt:true, glasses:true },

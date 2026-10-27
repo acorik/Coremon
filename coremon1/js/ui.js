@@ -107,7 +107,7 @@ function currentObjective() {
   const ids = Object.keys(SPECIES);
   const caught = ids.filter(i => game.caught[i]).length;
   if (caught < ids.length) return `Extra: completa la Coredex (${caught}/${ids.length}).`;
-  return '¡Lo tienes todo! Nos vemos en la Segunda Edición.';
+  return '¡Lo tienes todo! Ahí fuera te espera mucho más.';
 }
 
 // Pregunta de sí/no en la pantalla de abajo
@@ -458,6 +458,47 @@ function chooseStarter() {
 }
 
 // ---------------- CONTROLES TÁCTILES ----------------
+// Joystick: la dirección sale del ángulo del dedo respecto al centro. En el
+// centro hay una zona muerta; llevando el pomo hasta el borde se corre.
+function initJoystick() {
+  const base = document.getElementById('joystick'), knob = document.getElementById('joy-knob');
+  let pointer = null;
+  const release = () => {
+    pointer = null; virtualDir.dir = null; keysDown['virtualrun'] = false;
+    knob.style.transform = ''; base.classList.remove('active', 'run');
+  };
+  const move = e => {
+    const r = base.getBoundingClientRect();
+    const R = r.width / 2;
+    let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+    const d = Math.hypot(dx, dy), max = R * 0.58;
+    const k = d > max ? max / d : 1;
+    const toLocal = base.offsetWidth / r.width; // la pantalla táctil está escalada
+    knob.style.transform = `translate(${dx * k * toLocal}px, ${dy * k * toLocal}px)`;
+    if (d < R * 0.22) { virtualDir.dir = null; keysDown['virtualrun'] = false; base.classList.remove('run'); return; }
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    const cur = virtualDir.dir;
+    // un poco de histéresis en las diagonales para que no tiemble entre dos direcciones
+    const keepH = (cur === 'left' || cur === 'right') && ax > ay * 0.75;
+    const keepV = (cur === 'up' || cur === 'down') && ay > ax * 0.75;
+    const horizontal = keepH || (!keepV && ax > ay);
+    virtualDir.dir = horizontal ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    keysDown['virtualrun'] = d > R * 0.82;
+    base.classList.toggle('run', keysDown['virtualrun']);
+  };
+  base.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    pointer = e.pointerId;
+    try { base.setPointerCapture(pointer); } catch (err) {}
+    base.classList.add('active');
+    move(e);
+  });
+  base.addEventListener('pointermove', e => { if (e.pointerId === pointer) move(e); });
+  base.addEventListener('pointerup', e => { if (e.pointerId === pointer) release(); });
+  base.addEventListener('pointercancel', e => { if (e.pointerId === pointer) release(); });
+  base.addEventListener('lostpointercapture', e => { if (e.pointerId === pointer) release(); });
+}
+
 function initTouch() {
   document.getElementById('btn-new').onclick = () => {
     if (hasSave() && !confirm('Empezar una partida nueva borrará la anterior. ¿Seguro?')) return;
@@ -476,14 +517,7 @@ function initTouch() {
   document.getElementById('menu-save').onclick = () => { if (STATE === 'OVERWORLD') { saveGame(); toast('Partida guardada.'); } };
   document.getElementById('menu-dev').onclick = () => { if (STATE === 'OVERWORLD') openDev(); };
 
-  document.querySelectorAll('[data-dir]').forEach(b => {
-    const down = e => { e.preventDefault(); virtualDir.dir = b.dataset.dir; };
-    const up = e => { e.preventDefault(); if (virtualDir.dir === b.dataset.dir) virtualDir.dir = null; };
-    b.addEventListener('pointerdown', down);
-    b.addEventListener('pointerup', up);
-    b.addEventListener('pointerleave', up);
-    b.addEventListener('pointercancel', up);
-  });
+  initJoystick();
   const a = document.getElementById('pad-a');
   a.addEventListener('pointerdown', e => { e.preventDefault(); pressA(); });
   const b = document.getElementById('pad-b');

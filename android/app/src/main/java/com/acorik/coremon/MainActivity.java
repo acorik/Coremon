@@ -18,7 +18,7 @@ import android.webkit.WebViewClient;
 import androidx.webkit.WebViewAssetLoader;
 
 /**
- * Coremon: Edición Corazonistas Vitoria — un juego de acorik.
+ * Coremon — un juego de acorik.
  * Carga el juego HTML5 desde los assets del APK con un origen https local
  * (WebViewAssetLoader), así el guardado en localStorage funciona como en la web.
  */

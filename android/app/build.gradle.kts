@@ -1,5 +1,5 @@
 // Coremon para Android: una WebView a pantalla completa que carga el juego
-// (index.html, css/, js/, icons/ de la raíz del repo) desde los assets del APK.
+// (index.html, coremon1/, coremon2/, icons/ de la raíz del repo) desde los assets del APK.
 plugins {
     id("com.android.application")
 }
@@ -17,8 +17,8 @@ android {
         applicationId = "com.acorik.coremon"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 7
+        versionName = "2.1.0"
     }
 
     signingConfigs {
@@ -50,7 +50,7 @@ android {
 // Copia el juego web dentro de los assets en cada compilación
 val copyWeb by tasks.registering(Sync::class) {
     from(rootProject.file("..")) {
-        include("index.html", "manifest.webmanifest", "css/**", "js/**", "icons/**")
+        include("index.html", "manifest.webmanifest", "coremon1/**", "coremon2/**", "icons/**")
     }
     into(layout.buildDirectory.dir("generated/web/www"))
 }

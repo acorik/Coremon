@@ -218,7 +218,7 @@ function drawBattleScene(t) {
   bctx.save();
   bctx.imageSmoothingEnabled = false;
   if (b.shake > 0) { bctx.translate(Math.random() * 8 - 4, Math.random() * 6 - 3); b.shake--; }
-  drawBattleBg(t);
+  if (R1.ok) bctx.clearRect(0, 0, BW, BH); else drawBattleBg(t);
   const bob = Math.sin(t / 260) * 3;
 
   // lanzamiento/embestida
@@ -228,6 +228,10 @@ function drawBattleScene(t) {
     if (b.lunge.side === 'enemy') lE = -amt; else lP = amt;
   }
 
+  if (R1.ok) {
+    // en 3D los Coremon y los entrenadores los dibuja r3d1.js; aquí solo se gasta el parpadeo
+    ['enemy', 'player'].forEach(sd => { if (b.flash[sd] > 0) b.flash[sd]--; });
+  } else {
   if (b.show.enemyTrainer && b.trainer) {
     const look = b.trainer.look || randomStudentLook(b.trainer.name.length * 7);
     drawPerson(bctx, look, POS.enemy.x + 70 + b.off.enemyTrainer, POS.enemy.y + 10, 110, 'down', 0);
@@ -235,6 +239,7 @@ function drawBattleScene(t) {
   if (b.show.enemyMon) drawMon('enemy', activeEnemy(), POS.enemy.x + lE + b.off.enemy, POS.enemy.y, POS.enemy.size, bob, false);
   if (b.show.playerTrainer) drawPerson(bctx, LOOKS.player, POS.player.x - 40 + b.off.playerTrainer, POS.player.y + 24, 150, 'up', 0);
   if (b.show.playerMon) drawMon('player', activePlayer(), POS.player.x + lP + b.off.player, POS.player.y, POS.player.size, -bob, true);
+  }
 
   if (b.card) drawCard(b.card, t);
 

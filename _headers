@@ -1,0 +1,16 @@
+# Cabeceras para Cloudflare Pages (y Netlify): el juego siempre en su última
+# versión; los iconos pueden quedarse en caché.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/coremon1/*
+  Cache-Control: no-cache
+/coremon2/*
+  Cache-Control: no-cache
+/icons/*
+  Cache-Control: public, max-age=604800

@@ -3,140 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Coremon: Edición Corazonistas Vitoria</title>
-<meta name="description" content="Un RPG de criaturas estilo Nintendo DS ambientado en el colegio Corazonistas de Vitoria-Gasteiz. Un juego de acorik.">
+<title>Coremon — un juego de acorik</title>
+<meta name="description" content="Coremon: empieza en el colegio Corazonistas de Vitoria... y sal al mundo. Un juego de acorik.">
 <meta name="author" content="acorik">
 <meta name="theme-color" content="#c62828">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Coremon">
-<meta property="og:title" content="Coremon: Edición Corazonistas Vitoria">
-<meta property="og:description" content="Captura Coremon, vence a los profes y descubre qué duerme bajo el gimnasio. Un juego de acorik.">
-<meta property="og:image" content="launch/cover-630x500.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0b14; color: #ffd54f; font-family: monospace; }
+  body { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+  img { width: 96px; height: 96px; image-rendering: pixelated; }
+  a { color: #fafafa; }
+</style>
 </head>
 <body>
-<div id="ds">
-
-  <!-- ===== PANTALLA SUPERIOR ===== -->
-  <div id="top-screen" class="screen">
-    <canvas id="game-canvas" width="512" height="384"></canvas>
-
-    <div id="battle-screen" class="hidden">
-      <canvas id="battle-canvas" width="512" height="384"></canvas>
-      <div class="poke-panel enemy">
-        <div class="pp-head"><b id="enemy-poke-name">-</b><span id="enemy-poke-lv"></span></div>
-        <div class="pp-sub"><span id="enemy-poke-text"></span><span id="enemy-balls"></span></div>
-        <div class="hp-row"><span class="hp-label">PS</span><div class="hp-bar-bg"><div id="enemy-hp-bar" class="hp-bar-fill hp-high"></div></div></div>
-        <div id="enemy-hp-text" class="hidden"></div>
-      </div>
-      <div class="poke-panel player">
-        <div class="pp-head"><b id="player-poke-name">-</b><span id="player-poke-lv"></span></div>
-        <div class="hp-row"><span class="hp-label">PS</span><div class="hp-bar-bg"><div id="player-hp-bar" class="hp-bar-fill hp-high"></div></div></div>
-        <div id="player-hp-text" class="hp-num"></div>
-        <div class="exp-bg"><div id="player-exp-bar" class="exp-fill"></div></div>
-      </div>
-    </div>
-
-    <div id="dialog-box" class="hidden">
-      <div id="dialog-name" class="hidden"></div>
-      <div id="dialog-text"></div>
-      <div id="dialog-arrow">▼</div>
-    </div>
-  </div>
-
-  <div id="hinge"><span></span><span></span></div>
-
-  <!-- ===== PANTALLA INFERIOR (TÁCTIL) ===== -->
-  <div id="bottom-screen" class="screen">
-
-    <div id="touch-title" class="touch">
-      <div class="title-menu">
-        <button id="btn-continue" class="ds-btn big">Continuar</button>
-        <button id="btn-new" class="ds-btn big alt">Nueva partida</button>
-        <button class="ds-btn small alt audio-btn">🔊</button>
-        <a class="itch-link" href="https://acorik.itch.io/coremon" target="_blank" rel="noopener">🎮 acorik.itch.io/coremon</a>
-        <p class="muted small">Flechas/WASD: mover · Shift: correr · Enter/Z: hablar (A) · Esc/X: atrás (B)<br>En móvil usa la cruceta y los botones A/B.</p>
-      </div>
-    </div>
-
-    <div id="touch-main" class="touch hidden">
-      <div class="status-bar">
-        <span id="loc-name"></span>
-        <span class="coins">💰 <b id="coins">0</b></span>
-        <button class="audio-btn mini-btn">🔊</button>
-      </div>
-      <div id="objective"></div>
-      <div id="castigo-timer" class="hidden"></div>
-      <canvas id="badge-canvas" width="245" height="30"></canvas>
-      <div id="team-strip"></div>
-      <div class="menu-grid">
-        <button id="menu-team" class="ds-btn tile-btn c1">EQUIPO</button>
-        <button id="menu-bag" class="ds-btn tile-btn c2">MOCHILA</button>
-        <button id="menu-dex" class="ds-btn tile-btn c3">COREDEX</button>
-        <button id="menu-save" class="ds-btn tile-btn c4">GUARDAR</button>
-      </div>
-      <button id="menu-dev" class="ds-btn dev-btn hidden">🛠 DEVTOOLS</button>
-      <div class="pad">
-        <div class="dpad">
-          <button data-dir="up" class="d up">▲</button>
-          <button data-dir="left" class="d left">◀</button>
-          <button data-dir="right" class="d right">▶</button>
-          <button data-dir="down" class="d down">▼</button>
-        </div>
-        <div class="ab">
-          <button id="pad-b" class="round b">B</button>
-          <button id="pad-a" class="round a">A</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="touch-panel" class="touch hidden">
-      <div class="panel-head"><span id="panel-title"></span><button id="panel-back" class="ds-btn small alt">✕ Cerrar</button></div>
-      <div id="panel-body"></div>
-    </div>
-
-    <div id="touch-battle" class="touch hidden">
-      <div id="battle-log"></div>
-      <div id="battle-menu" class="hidden">
-        <button id="btn-fight" class="bat-btn fight">LUCHAR</button>
-        <button id="btn-defend" class="bat-btn defend">DEFENDER</button>
-        <button id="btn-bag" class="bat-btn bag">MOCHILA</button>
-        <button id="btn-team" class="bat-btn team">EQUIPO</button>
-        <button id="btn-run" class="bat-btn run">HUIR</button>
-      </div>
-      <div id="move-menu" class="hidden"></div>
-      <div id="team-menu" class="hidden"></div>
-    </div>
-
-    <div id="touch-taller" class="touch hidden">
-      <div class="tl-head"><b id="tl-round">MONTAJE 1/3</b><div class="tl-bar"><div id="tl-time"></div></div></div>
-      <canvas id="tl-canvas" width="480" height="230"></canvas>
-      <button id="tl-phone" class="ds-btn big">📱 MIRAR MÓVIL (A)</button>
-    </div>
-
-    <div id="toast" class="hidden"></div>
-  </div>
-</div>
-
-<script src="js/audio.js"></script>
-<script src="js/data.js"></script>
-<script src="js/sprites.js"></script>
-<script src="js/scenery.js"></script>
-<script src="js/maps.js"></script>
-<script src="js/game.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/taller.js"></script>
+<!-- Coremon 2.0 = Coremon 1 (coremon1/, el colegio) + Coremon 2 (coremon2/, el mundo abierto).
+     Se empieza en el colegio; al vencer al Padre Coindre se pasa al mundo. Con partida
+     de Coremon 2 empezada, este lanzador va directo al mundo abierto. -->
+<img src="icons/icon-192.png" alt="">
+<b>COREMON</b>
+<noscript><a href="coremon1/index.html">Jugar</a></noscript>
 <script>
-  // Juego instalable y jugable sin conexión (solo cuando se sirve por web)
-  if ('serviceWorker' in navigator && location.protocol === 'https:' && !/CoremonApp/.test(navigator.userAgent) && !/itch\.(io|zone)$/.test(location.hostname)) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  let target = 'coremon1/index.html';
+  try { if (localStorage.getItem('coremon2_save_v1')) target = 'coremon2/index.html'; } catch (e) {}
+  location.replace(target);
 </script>
 </body>
 </html>

@@ -1,8 +1,10 @@
 <p align="center"><img src="launch/banner-960x320.png" alt="Coremon: Edición Corazonistas Vitoria" width="760"></p>
 
-<h1 align="center">Coremon: Edición Corazonistas Vitoria</h1>
+<h1 align="center">Coremon 2.0</h1>
 
-<p align="center"><b>Un juego de acorik</b> · versión 1.0.0</p>
+<p align="center">El colegio Corazonistas de Vitoria (Coremon 1) y el mundo abierto de Iberión (Coremon 2), los dos en 3D.</p>
+
+<p align="center"><b>Un juego de acorik</b> · versión 2.0.1</p>
 
 <p align="center">
   <a href="https://acorik.itch.io/coremon"><b>🎮 Página oficial en itch.io: acorik.itch.io/coremon</b></a><br>
@@ -14,13 +16,13 @@
 
 | Plataforma | Descarga directa |
 |---|---|
-| 🤖 **Android** | [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) |
-| 🪟 **Windows** (instalador) | [Coremon-Setup-1.0.0.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-Setup-1.0.0.exe) |
-| 🪟 **Windows** (portable, sin instalar) | [Coremon-1.0.0-portable.exe](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-portable.exe) |
-| 🐧 **Linux** | [Coremon-1.0.0.AppImage](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.AppImage) |
-| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-1.0.0-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-arm64.dmg) |
-| 🍎 **macOS** (Intel) | [Coremon-1.0.0-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-mac-x64.dmg) |
-| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-1.0.0-web.zip](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0-web.zip) |
+| 🤖 **Android** | [Coremon-2.0.1.apk](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.apk) |
+| 🪟 **Windows** (instalador) | [Coremon-Setup-2.0.1.exe](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-Setup-2.0.1.exe) |
+| 🪟 **Windows** (portable, sin instalar) | [Coremon-2.0.1-portable.exe](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-portable.exe) |
+| 🐧 **Linux** | [Coremon-2.0.1.AppImage](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.AppImage) |
+| 🍎 **macOS** (Apple Silicon M1/M2/M3…) | [Coremon-2.0.1-mac-arm64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-mac-arm64.dmg) |
+| 🍎 **macOS** (Intel) | [Coremon-2.0.1-mac-x64.dmg](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-mac-x64.dmg) |
+| 🌐 **Web** (zip para jugar sin instalar o subir a itch.io) | [Coremon-2.0.1-web.zip](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1-web.zip) |
 | 🎮 **itch.io** | [acorik.itch.io/coremon](https://acorik.itch.io/coremon) |
 
 Un RPG de captura de criaturas con aspecto de Nintendo DS (dos pantallas)
@@ -35,13 +37,51 @@ jefe final lleva esperando desde 1821.
   <img src="launch/screenshots/07-apagon.png" width="49%" alt="Apagón en el Taller">
 </p>
 
+## Coremon 2.0: un solo juego
+
+Coremon es **un único juego**. Empiezas en el colegio Corazonistas de Vitoria
+y, al vencer al Padre Andrés Coindre, descubres que todo aquello... **era el
+tutorial**. La trampilla del gimnasio se abre y sales al mundo de Iberión con
+tu equipo, tus cromos y tu Coredex.
+
+```
+index.html      → lanzador (si ya saliste del colegio, va directo al mundo)
+coremon1/       → el colegio (el tutorial)
+coremon2/       → el mundo de Iberión
+```
+
+- **Todo en 3D:** personajes 3D de estilo chibi (como en los Pokémon modernos),
+  Coremon en 3D con sombreado cel y contorno en los combates, y tu primer
+  Coremon siguiéndote por el mundo. Los escenarios son 3D, con luces, sombras,
+  día y noche, y clima.
+- **Mapa 2,5 veces más grande.** Tiene 9 ciudades, 13 pueblos y aldeas, y la
+  misma historia: 8 gimnasios, CoraCorp, la Liga y 190 Coremon.
+- **Misiones libres:** cada ciudad y cada pueblo tiene un tablón 📋 con
+  encargos que haces cuando quieras. Hay 75 en total, de siete tipos:
+  - capturar;
+  - ganar combates;
+  - repartir paquetes;
+  - cazar reclutas fugados;
+  - buscar objetos perdidos;
+  - contrarrelojes;
+  - completar la Coredex.
+
+  La misión que sigues se marca con una columna de luz, en el minimapa y con
+  una flecha.
+- **En la tienda:**
+  - 🏍️ **Moto**: hay que conducirla, con aceleración, inercia y golpes.
+  - 🔫 **Pistola de dardos de espuma**: deja K.O. a la gente un rato. A los
+    importantes no les das, y si te pasas, la policía te multa.
+
+Más detalles en [`coremon2/PROGRESO.md`](coremon2/PROGRESO.md).
+
 ## Jugar
 
 **En el navegador (PC o móvil):** en [acorik.itch.io/coremon](https://acorik.itch.io/coremon)
 o en <https://acorik.github.io/Coremon/>. En el móvil, "Añadir a pantalla de inicio" lo instala como una app que
 funciona sin conexión.
 
-**Android:** descarga [Coremon-1.0.0.apk](https://github.com/acorik/Coremon/releases/download/v1.0.0/Coremon-1.0.0.apk) (o desde
+**Android:** descarga [Coremon-2.0.1.apk](https://github.com/acorik/Coremon/releases/download/v2.0.1/Coremon-2.0.1.apk) (o desde
 [itch.io](https://acorik.itch.io/coremon)) y ábrelo (el móvil
 pedirá permiso para "instalar apps de origen desconocido"). La app no pide
 ningún permiso, no tiene anuncios y funciona sin internet. Se adapta al móvil en
@@ -59,14 +99,17 @@ botón "atrás" cierra menús (en el mapa, dos veces para salir).
 F11 activa la pantalla completa.
 
 **Sin instalar nada:** descarga el repositorio (Code → Download ZIP),
-descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTML.
+descomprímelo y abre `index.html`. Hace falta la carpeta entera, no solo el HTML
+(`coremon1/index.html` abre directamente el colegio y `coremon2/index.html`, el mundo).
 
 ## Controles
 
+Coremon 1 (el colegio):
+
 | Acción | Teclado | Pantalla táctil |
 |---|---|---|
-| Moverse | Flechas / WASD | Cruceta |
-| Correr | Mantener Shift | Mantener B |
+| Moverse | Flechas / WASD | Joystick (hasta el borde para correr) |
+| Correr | Mantener Shift | Joystick hasta el borde o mantener B |
 | Hablar / usar (A) | Enter, Espacio o Z | Botón A |
 | Atrás (B) | Esc, X o Retroceso | Botón B |
 
@@ -74,6 +117,10 @@ La pantalla de abajo tiene el equipo, la mochila, la Coredex, el guardado y
 el **objetivo actual** (📍), para saber siempre adónde ir. La partida se guarda
 sola al cambiar de sala. El botón 🔊 quita o pone el sonido (música y efectos
 chiptune generados en el propio navegador, sin archivos de audio).
+
+Coremon 2 (el mundo): igual, más **M / Tab** (o el botón ☰) para el menú,
+mando de consola compatible y bici desde la mochila. El minimapa de la esquina
+y la línea 📍 indican siempre adónde ir.
 
 ## Historia
 
@@ -182,12 +229,16 @@ instalables solo lo empaquetan:
   crea la release con todos los archivos adjuntos.
 - `GitHub Pages` publica la versión web. Para activarlo, ve a Settings → Pages
   → Source: **GitHub Actions**.
+- **Cloudflare Pages** (`coremon.pages.dev`): Workers & Pages → Create → Pages →
+  Connect to Git → este repositorio. Framework preset: *None*; Build command:
+  `bash tools/build-web.sh`; Build output directory: `dist/web`. Se actualiza solo
+  con cada cambio en la rama de producción.
 - Firma del APK: guarda la clave en los secretos del repositorio
   `COREMON_KEYSTORE_BASE64` (`base64 -w0 coremon-release.jks`) y
   `COREMON_KEYSTORE_PASSWORD`. Sin ellos, la release usa el APK oficial ya
   firmado que hay en `android/release/` para esa versión.
 
-Para sacar una versión nueva, sube `GAME_VERSION` en `js/game.js`, `version`
+Para sacar una versión nueva, sube `GAME_VERSION` en `coremon1/js/game.js` (y `C2_VERSION` en `coremon2/js/core.js`), `version`
 en `desktop/package.json`, y `versionName` y `versionCode` en
 `android/app/build.gradle.kts`.
 
