@@ -7,7 +7,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1120, height: 720, minWidth: 420, minHeight: 480,
     backgroundColor: '#14151f',
-    title: 'Coremon: Edición Corazonistas Vitoria',
+    title: 'Coremon',
     icon: path.join(__dirname, 'game', 'icons', 'icon-512.png'),
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true }

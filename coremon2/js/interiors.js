@@ -25,7 +25,7 @@ function buildInterior(id) {
   m.floor = th.floor; m.floorStyle = th.floorStyle; m.wall = th.wall; m.windows = th.windows;
   m.music = th.music;
   m.building = b;
-  m.name = b.kind === 'gym' ? `Gimnasio de ${CITY[b.city].name}` : b.kind === 'house' ? `Casa de ${CITY[b.city].name}` : th.name;
+  m.name = b.kind === 'gym' ? `Gimnasio de ${CITY[b.city].name}` : b.kind === 'house' ? `Casa de ${placeById(b.city).name}` : th.name;
   m.battleScene = b.kind === 'gym' ? 'gym' : b.kind === 'corp' ? 'corp' : b.kind === 'liga' ? 'liga' : 'indoor';
   if (b.kind === 'gym') m.floor = GYM_FLOOR[CITY[b.city].gym] || th.floor;
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) m.set(x, y, (y < 2 || x === 0 || x === m.w - 1) ? T.WALL : T.FLOOR);

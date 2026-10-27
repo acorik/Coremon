@@ -199,6 +199,8 @@ function buildSharedAssets() {
   R3.markerMat = new THREE.SpriteMaterial({ map: tex3(mk, { mip: false }), depthTest: false });
   const bb = cnv(32, 32, g => { g.fillStyle = '#1d1a26'; g.fillRect(6, 2, 20, 28); g.fillStyle = '#fff'; g.fillRect(8, 4, 16, 24); g.fillStyle = '#e53935'; g.fillRect(14, 7, 4, 12); g.fillRect(14, 21, 4, 4); });
   R3.bubbleMat = new THREE.SpriteMaterial({ map: tex3(bb, { mip: false }), depthTest: false });
+  const ko = cnv(32, 32, g => { g.fillStyle = '#ffd54f'; for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2, x = 16 + Math.cos(a) * 10, y = 16 + Math.sin(a) * 6; g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 2 : 5, b = k / 10 * Math.PI * 2; g.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); } g.fill(); } });
+  R3.koMat = new THREE.SpriteMaterial({ map: tex3(ko, { mip: false }), depthTest: false });
 }
 function mergeGeosSimple(list) {
   let n = 0; list.forEach(g => n += (g.index ? g.index.count : g.attributes.position.count));
@@ -617,66 +619,169 @@ function actorSource(a) {
   if (a.custom) { loadCustomSheet(a.custom); const c = CUSTOM_SHEETS[a.custom]; if (c) return c; }
   return personSheet(a.look || LOOKS2.player);
 }
+// ---- modelos 3D de los personajes (o recortable si hay textura propia en assets/personajes) ----
+function c3dParts(id) { const P = creatureParts(id); return P.parts.map(p => Object.assign({}, p, { color: roleColor(p.role, P.col) })); }
+function creatureModel(id, size) { creatureParts(id); return makeCreature3D(id, c3dParts(id), PARTS_CACHE[id].outline, size); }
+function vehicleModel(kind) {
+  const G = m3g(), mat = m3toon(), parts = [];
+  const wheel = (z) => { parts.push(m3part(new THREE.TorusGeometry(0.2, 0.06, 6, 16), '#1d1a26', [0, 0.22, z], [1, 1, 1], [0, Math.PI / 2, 0])); parts.push(m3part(G.cyl, '#9e9e9e', [0, 0.22, z], [0.07, 0.06, 0.07], [0, 0, Math.PI / 2])); };
+  if (kind === 'moto') {
+    wheel(0.5); wheel(-0.5);
+    parts.push(m3part(G.cap, '#e53935', [0, 0.45, 0.05], [0.16, 0.3, 0.2], [Math.PI / 2, 0, 0]));
+    parts.push(m3part(G.box, '#1d1a26', [0, 0.58, -0.15], [0.26, 0.08, 0.42]));
+    parts.push(m3part(G.box, '#ffd54f', [0, 0.55, 0.52], [0.16, 0.12, 0.06]));
+    parts.push(m3part(G.cyl, '#424242', [0, 0.72, 0.42], [0.025, 0.5, 0.025], [0, 0, Math.PI / 2]));
+    parts.push(m3part(G.cyl, '#616161', [0, 0.52, 0.42], [0.03, 0.42, 0.03], [0.35, 0, 0]));
+    parts.push(m3part(G.cyl, '#9e9e9e', [0.12, 0.28, -0.35], [0.04, 0.4, 0.04], [Math.PI / 2, 0, 0]));
+  } else {
+    wheel(0.42); wheel(-0.42);
+    parts.push(m3part(G.cyl, '#1e88e5', [0, 0.42, 0], [0.03, 0.8, 0.03], [Math.PI / 2, 0, 0]));
+    parts.push(m3part(G.cyl, '#1e88e5', [0, 0.32, -0.2], [0.03, 0.35, 0.03], [0.6, 0, 0]));
+    parts.push(m3part(G.box, '#1d1a26', [0, 0.56, -0.18], [0.14, 0.05, 0.22]));
+    parts.push(m3part(G.cyl, '#424242', [0, 0.66, 0.36], [0.022, 0.42, 0.022], [0, 0, Math.PI / 2]));
+    parts.push(m3part(G.cyl, '#1e88e5', [0, 0.48, 0.38], [0.025, 0.36, 0.025], [0.25, 0, 0]));
+  }
+  const m = new THREE.Mesh(m3merge(parts), mat); m.castShadow = true;
+  return m;
+}
 function actorObj(a) {
   let o = R3.actors.get(a);
-  if (o) return o;
-  const mat = new THREE.MeshLambertMaterial({ alphaTest: 0.5, side: THREE.DoubleSide });
-  const m = new THREE.Mesh(R3.geoUnit, mat);
-  m.castShadow = true; m.rotation.x = -0.22;
-  m.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5 });
-  R3.dyn.add(m);
-  o = { m, mat, src: null, tex: null };
-  if (a.isPlayer) {
-    const sm = new THREE.MeshBasicMaterial({ color: 0x7fb4ff, transparent: true, opacity: 0.5, depthWrite: false, depthFunc: THREE.GreaterDepth, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    o.sil = new THREE.Mesh(R3.geoUnit, sm); o.sil.renderOrder = 10; o.sil.rotation.x = -0.22; o.silMat = sm;
-    R3.dyn.add(o.sil);
-  }
-  R3.actors.set(a, o);
+  if (!o) { o = { a }; R3.actors.set(a, o); }
   return o;
 }
 function disposeActor(o) {
-  R3.dyn.remove(o.m); if (o.sil) R3.dyn.remove(o.sil);
-  if (o.tex) o.tex.dispose(); o.mat.dispose(); o.m.customDepthMaterial.dispose();
-  if (o.silMat) o.silMat.dispose();
+  if (o.g) R3.dyn.remove(o.g);
+  if (o.sil) R3.dyn.remove(o.sil);
+  if (o.bb) { R3.dyn.remove(o.bb); if (o.tex) o.tex.dispose(); o.bb.material.dispose(); }
   if (o.marker) R3.dyn.remove(o.marker);
   if (o.bubble) R3.dyn.remove(o.bubble);
+  if (o.ko) R3.dyn.remove(o.ko);
 }
-function updateActor(a, map) {
-  const o = actorObj(a);
-  const src = actorSource(a);
-  if (src !== o.src) {
-    if (o.tex) o.tex.dispose();
-    o.tex = sheetTexture(src).clone(); o.tex.needsUpdate = true;
-    o.tex.repeat.set(0.25, 0.25);
-    o.mat.map = o.tex; o.mat.needsUpdate = true;
-    o.m.customDepthMaterial.map = o.tex; o.m.customDepthMaterial.needsUpdate = true;
-    if (o.silMat) { o.silMat.map = o.tex; o.silMat.needsUpdate = true; }
-    o.src = src;
-    const h = 1.32, w = h * (src.width / 4) / (src.height / 4);
-    o.m.scale.set(w, h, 1); if (o.sil) o.sil.scale.set(w, h, 1);
+const SIL_MAT = () => R3.silMat || (R3.silMat = new THREE.MeshBasicMaterial({ color: 0x6fa8ff, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false }));
+// ¿tapa algo al jugador? (un edificio o una montaña justo al sur, entre él y la cámara)
+function playerHidden(map) {
+  const tx = player.x / TS, ty = player.y / TS;
+  if (map.outdoor) for (const b of map.buildings || []) if (tx > b.tx - 0.3 && tx < b.tx + b.w + 0.3 && ty > b.ty - 4.5 && ty < b.ty + 0.6) return true;
+  const H = heights(map);
+  for (let d = 1; d <= 3; d++) { const x = Math.floor(tx), y = Math.floor(ty) + d; if (x >= 0 && y >= 0 && x < map.w && y < map.h && H.rh[y * map.w + x] > d * 0.9) return true; }
+  return false;
+}
+function buildActorModel(a, o) {
+  if (o.g) R3.dyn.remove(o.g); if (o.sil) R3.dyn.remove(o.sil); if (o.bb) R3.dyn.remove(o.bb);
+  o.g = o.sil = o.bb = null;
+  const custom = a.custom && CUSTOM_SHEETS[a.custom];
+  o.customState = a.custom ? CUSTOM_SHEETS[a.custom] : undefined;
+  if (custom) {
+    const mat = new THREE.MeshLambertMaterial({ alphaTest: 0.5, side: THREE.DoubleSide });
+    o.tex = sheetTexture(custom).clone(); o.tex.needsUpdate = true; o.tex.repeat.set(0.25, 0.25); mat.map = o.tex;
+    o.bb = new THREE.Mesh(R3.geoUnit, mat); o.bb.castShadow = true; o.bb.rotation.x = -0.22;
+    const h = 1.4; o.bb.scale.set(h * (custom.width / 4) / (custom.height / 4), h, 1);
+    R3.dyn.add(o.bb);
+  } else {
+    o.g = makePerson3D(a.look || LOOKS2.player, 1);
+    R3.dyn.add(o.g);
+    if (a.isPlayer) {
+      o.sil = makePerson3D(a.look || LOOKS2.player, 1);
+      o.sil.traverse(m => { if (m.isMesh) { m.material = SIL_MAT(); m.renderOrder = 10; m.castShadow = false; } });
+      R3.dyn.add(o.sil);
+    }
   }
-  const row = Math.max(0, DIRS4.indexOf(a.dir || 'down')), col = a.moving ? (a.frame || 0) % 4 : 0;
-  o.tex.offset.set(col * 0.25, 1 - (row + 1) * 0.25);
-  const y = groundY(map, a.x, a.y);
-  o.m.position.set(a.x * U3, y, a.y * U3 - 0.05);
-  o.m.visible = !a.hidden;
-  if (o.sil) { o.sil.position.copy(o.m.position); o.sil.visible = !a.hidden; }
-  // señal amarilla y bocadillo de "¡!"
-  const showMk = a.marker && !a.hidden;
-  if (showMk && !o.marker) { o.marker = new THREE.Sprite(R3.markerMat); o.marker.scale.set(0.42, 0.42, 1); o.marker.renderOrder = 20; R3.dyn.add(o.marker); }
-  if (o.marker) { o.marker.visible = showMk; o.marker.position.set(a.x * U3, y + 1.7 + Math.sin(now / 250) * 0.06, a.y * U3); }
-  if (a.bubble && !o.bubble) { o.bubble = new THREE.Sprite(R3.bubbleMat); o.bubble.scale.set(0.45, 0.45, 1); o.bubble.renderOrder = 21; R3.dyn.add(o.bubble); }
-  if (o.bubble) { o.bubble.visible = !!a.bubble; o.bubble.position.set(a.x * U3, y + 1.85, a.y * U3); }
+  o.look = a.look;
 }
-function updateActors(map) {
+function updateActor(a, map, dt) {
+  const o = actorObj(a);
+  const cx = R3.camT ? R3.camT.x : a.x * U3, cz = R3.camT ? R3.camT.z : a.y * U3;
+  const far = Math.abs(a.x * U3 - cx) > 30 || Math.abs(a.y * U3 - cz) > 30;
+  if (far && !o.g && !o.bb) return;
+  if ((!o.g && !o.bb) || o.look !== a.look || (a.custom && CUSTOM_SHEETS[a.custom] !== o.customState)) buildActorModel(a, o);
+  const ko = a.ko ? Math.min(1, (now - a.ko) / 400) : 0;
+  const vis = !a.hidden && !far && !(a.ko && now - a.ko > 1600);
+  const y = groundY(map, a.x, a.y);
+  if (o.g) {
+    o.g.visible = vis;
+    if (vis) {
+      const ride = a.isPlayer && G && G.ride && map.outdoor ? G.ride : null;
+      if (ride !== o.rideKind) { if (o.ride) o.g.remove(o.ride); o.ride = ride ? vehicleModel(ride) : null; if (o.ride) o.g.add(o.ride); o.rideKind = ride; }
+      const yaw = a.isPlayer && player.heading != null ? player.heading : DIR_YAW[a.dir || 'down'];
+      const phase = (a.dist || 0) / TS * Math.PI * 0.9;
+      animatePerson3D(o.g, a.moving && !ride, phase, yaw, dt, { run: a.isPlayer && inputRun(), seated: !!ride, aim: a.isPlayer && G && G.gunOut });
+      const an = o.g.userData.anim;
+      if (ride) { an.inner.position.y += ride === 'moto' ? 0.36 : 0.3; an.inner.position.z = -0.12; if (o.ride) o.ride.rotation.y = an.yaw; an.inner.position.x = 0; }
+      else an.inner.position.z = 0;
+      if (a.isPlayer) {
+        if (!o.gun) { o.gun = new THREE.Mesh(m3merge([m3part(m3g().box, '#263238', [-0.25, -0.36, 0.1], [0.06, 0.08, 0.2]), m3part(m3g().box, '#ff7043', [-0.25, -0.42, 0.04], [0.05, 0.1, 0.05]), m3part(m3g().box, '#ffeb3b', [-0.25, -0.36, 0.22], [0.03, 0.03, 0.04])]), m3toon()); an.armR.add(o.gun); }
+        o.gun.visible = !!(G && G.gunOut) && !ride;
+      }
+      // fuera de combate (pistola): cae de espaldas y desaparece
+      o.g.rotation.x = -ko * Math.PI / 2;
+      o.g.position.set(a.x * U3, y, a.y * U3);
+      if (o.sil) {
+        o.sil.visible = vis && playerHidden(map);
+        const sa = o.sil.userData.anim;
+        sa.inner.rotation.y = an.inner.rotation.y; sa.inner.position.copy(an.inner.position);
+        ['legL', 'legR', 'armL', 'armR'].forEach(k => sa[k].rotation.copy(an[k].rotation));
+        sa.ol.visible = false;
+        o.sil.position.copy(o.g.position);
+      }
+    }
+  }
+  if (o.bb) {
+    o.bb.visible = vis;
+    const row = Math.max(0, DIRS4.indexOf(a.dir || 'down')), col = a.moving ? (a.frame || 0) % 4 : 0;
+    o.tex.offset.set(col * 0.25, 1 - (row + 1) * 0.25);
+    o.bb.position.set(a.x * U3, y, a.y * U3 - 0.05);
+  }
+  // señal amarilla, bocadillo de "¡!" y estrellitas de K.O.
+  const showMk = a.marker && vis;
+  if (showMk && !o.marker) { o.marker = new THREE.Sprite(R3.markerMat); o.marker.scale.set(0.42, 0.42, 1); o.marker.renderOrder = 20; R3.dyn.add(o.marker); }
+  if (o.marker) { o.marker.visible = showMk; o.marker.position.set(a.x * U3, y + 1.75 + Math.sin(now / 250) * 0.06, a.y * U3); }
+  if (a.bubble && !o.bubble) { o.bubble = new THREE.Sprite(R3.bubbleMat); o.bubble.scale.set(0.45, 0.45, 1); o.bubble.renderOrder = 21; R3.dyn.add(o.bubble); }
+  if (o.bubble) { o.bubble.visible = !!a.bubble && vis; o.bubble.position.set(a.x * U3, y + 1.9, a.y * U3); }
+  if (a.ko && !o.ko) { o.ko = new THREE.Sprite(R3.koMat); o.ko.scale.set(0.7, 0.7, 1); o.ko.renderOrder = 22; R3.dyn.add(o.ko); }
+  if (o.ko) { o.ko.visible = !!a.ko && vis; o.ko.position.set(a.x * U3, y + 0.6 + ko * 0.3, a.y * U3); o.ko.material.rotation = now / 300; }
+}
+// tu primer Coremon te sigue por el mundo (como en Let's Go)
+const FOLLOW = { trail: [], g: null, id: null };
+function updateFollower(map, dt) {
+  const lead = G && G.team.find(m => m.hp > 0);
+  const want = lead && !(G.ride && map.outdoor) && STATE !== 'TITLE' ? lead.species : null;
+  if (want !== FOLLOW.id) {
+    if (FOLLOW.g) R3.dyn.remove(FOLLOW.g);
+    FOLLOW.g = want ? creatureModel(want, SPECIES[want].legendary ? 1.2 : 0.95) : null;
+    if (FOLLOW.g) { R3.dyn.add(FOLLOW.g); FOLLOW.pos = { x: player.x - 22, y: player.y - 18 }; FOLLOW.trail = [{ x: FOLLOW.pos.x, y: FOLLOW.pos.y }]; FOLLOW.yaw = 0; }
+    FOLLOW.id = want;
+  }
+  if (!FOLLOW.g) return;
+  const t = FOLLOW.trail;
+  if (map !== FOLLOW.map) { FOLLOW.map = map; FOLLOW.pos = { x: player.x - 22, y: player.y - 18 }; t.length = 0; t.push({ x: FOLLOW.pos.x, y: FOLLOW.pos.y }); }
+  if (!t.length || Math.hypot(t[t.length - 1].x - player.x, t[t.length - 1].y - player.y) > 4) t.push({ x: player.x, y: player.y });
+  if (t.length > 60) t.shift();
+  // punto del rastro a ~1 casilla por detrás
+  let target = t[0], acc = 0;
+  for (let i = t.length - 1; i > 0; i--) { acc += Math.hypot(t[i].x - t[i - 1].x, t[i].y - t[i - 1].y); if (acc > 34) { target = t[i - 1]; break; } }
+  const p = FOLLOW.pos, dx = target.x - p.x, dy = target.y - p.y, d = Math.hypot(dx, dy);
+  if (d > 160) { p.x = target.x; p.y = target.y; }
+  else if (Math.hypot(player.x - p.x, player.y - p.y) > 26) { const k = Math.min(1, dt / 120); p.x += dx * k; p.y += dy * k; }
+  const moving = d > 2;
+  if (moving) FOLLOW.yaw = Math.atan2(dx, dy);
+  const an = FOLLOW.g.userData.anim;
+  let dyaw = FOLLOW.yaw - an.inner.rotation.y; while (dyaw > Math.PI) dyaw -= Math.PI * 2; while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+  an.inner.rotation.y += dyaw * Math.min(1, dt / 100);
+  const hop = moving ? Math.abs(Math.sin(now / 110)) * 0.12 : Math.sin(now / 500) * 0.02;
+  FOLLOW.g.position.set(p.x * U3, groundY(map, p.x, p.y) + hop + (PARTS_CACHE[FOLLOW.id].float ? 0.25 : 0), p.y * U3);
+  FOLLOW.g.visible = true;
+}
+function updateActors(map, dt) {
+  dt = dt || 16;
   const seen = new Set();
   const list = map.npcs.concat(STATE !== 'TITLE' ? [player] : []);
-  for (const a of list) { updateActor(a, map); seen.add(a); }
+  for (const a of list) { updateActor(a, map, dt); seen.add(a); }
   for (const [a, o] of R3.actors) if (!seen.has(a)) { disposeActor(o); R3.actors.delete(a); }
+  if (G) updateFollower(map, dt);
   // objetos del suelo (cromos)
   const itSeen = new Set();
   for (const it of map.items) {
-    if (G && G.picked[it.id]) continue;
+    if (G ? !itemVisible(it) : it.mission) continue;
     itSeen.add(it.id);
     let m = R3.items.get(it.id);
     if (!m) { m = new THREE.Mesh(R3.ballGeo, R3.matStd); m.castShadow = true; R3.dyn.add(m); R3.items.set(it.id, m); }
@@ -797,12 +902,12 @@ function updateWeather3D(tx, ty, tz, dt) {
 // ---------------- CÁMARA ----------------
 function camDistance(map) {
   const asp = window.innerWidth / window.innerHeight, t = Math.tan(R3.cam.fov * Math.PI / 360);
-  let d = clamp(Math.max(10.5 / (2 * t * asp), 13.5 / (2 * t)), 14, 42);
+  let d = clamp(Math.max(9.5 / (2 * t * asp), 11.5 / (2 * t)), 12, 38);
   if (!map.outdoor) d *= 0.88;
-  else if (G && G.bike) d *= 1.1;
+  else if (G && G.ride) d *= G.ride === 'moto' ? 1.22 : 1.1;
   return d;
 }
-const PITCH = 0.9;   // ~52°
+const PITCH = 0.8;   // ~46°
 function updateCamera(map, tx, ty, tz, dt, snap) {
   const d = camDistance(map);
   R3.camDist = d;
@@ -837,14 +942,37 @@ function render3DWorld(dt) {
   }
   const first = !R3.camT || Math.abs(R3.camT.x - tx) + Math.abs(R3.camT.z - tz) > 12;
   updateChunks(map, tx, tz, first ? 99 : 2);
-  updateActors(map);
+  updateActors(map, dt);
   // barreras abiertas o cerradas
   for (const ch of R3.chunks.values()) if (ch.gateMeshes) { const open = ch.gates.every(gateOpen); ch.gateMeshes.forEach(m => m.visible = !open); }
   updateCamera(map, tx, ty + 0.55, tz, dt, first);
+  updateShots3D(map);
+  updateBeam3D(map);
   R3.water.position.set(Math.round(R3.camT.x), -0.1, Math.round(R3.camT.z)); R3.seabed.position.set(Math.round(R3.camT.x), -1.3, Math.round(R3.camT.z));
   updateEnv(map, R3.camT.x, R3.camT.z, G.time, dt);
   updateWeather3D(R3.camT.x, R3.camT.y, R3.camT.z, dt);
   R3.renderer.render(R3.scene, R3.cam);
+}
+// dardos de la pistola (estela que se desvanece)
+function updateShots3D(map) {
+  R3.shotObjs = R3.shotObjs || [];
+  while (shots.length) {
+    const s = shots.shift(), y = groundY(map, s.x0, s.y0) + 0.75;
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s.x0 * U3, y, s.y0 * U3), new THREE.Vector3(s.x1 * U3, y, s.y1 * U3)]);
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 1 }));
+    R3.dyn.add(l); R3.shotObjs.push({ l, t0: now });
+  }
+  R3.shotObjs = R3.shotObjs.filter(o => { const k = (now - o.t0) / 220; o.l.material.opacity = 1 - k; if (k >= 1) { R3.dyn.remove(o.l); o.l.geometry.dispose(); o.l.material.dispose(); return false; } return true; });
+}
+// columna de luz sobre el objetivo de la misión que sigues
+function updateBeam3D(map) {
+  if (!R3.beam) {
+    R3.beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 40, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    R3.dyn.add(R3.beam);
+  }
+  const tg = map.outdoor && typeof trackedMission === 'function' ? missionTarget(trackedMission()) : null;
+  R3.beam.visible = !!tg;
+  if (tg) { R3.beam.position.set(tg.x, groundY(map, tg.x * TS, tg.y * TS) + 20, tg.y); R3.beam.material.opacity = 0.22 + 0.08 * Math.sin(now / 300); }
 }
 // pantalla de título: vuelo lento sobre Gasteiz al atardecer
 function render3DTitle(dt) {
@@ -944,28 +1072,24 @@ function battleScene3D(name) {
   const cm = () => { const mat = new THREE.MeshLambertMaterial({ alphaTest: 0.5, side: THREE.DoubleSide, transparent: true, emissive: 0xffffff, emissiveIntensity: 0 }); const m = new THREE.Mesh(R3.geoUnit, mat); m.castShadow = true; m.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5 }); sc.add(m); return m; };
   const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex3(cnv(64, 64, g => { const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(255,230,120,0.9)'); gr.addColorStop(1, 'rgba(255,213,79,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }), { smooth: true, mip: false }), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   aura.scale.set(4, 4, 1); sc.add(aura);
-  const bs = { scene: sc, sun, hemi, e: cm(), p: cm(), tr: cm(), me: cm(), aura, srcs: {} };
+  const bs = { scene: sc, sun, hemi, e: null, p: null, tr: null, me: null, aura, srcs: {} };
   return (R3.bscenes[name] = bs);
 }
-function setCreatureTex(bs, k, id, flip) {
-  if (bs.srcs[k] === id) return;
+// Coremon y entrenadores del combate en 3D
+function setCreature3D(bs, k, id) {
+  if (bs.srcs[k] === id && bs[k]) return bs[k];
+  if (bs[k]) bs.scene.remove(bs[k]);
+  bs[k] = creatureModel(id, 1); bs.scene.add(bs[k]);
   bs.srcs[k] = id;
-  const m = bs[k], t = sheetTexture(creatureCanvas(id));
-  m.material.map = t; m.material.needsUpdate = true;
-  m.customDepthMaterial.map = t; m.customDepthMaterial.needsUpdate = true;
-  m.userData.flip = flip;
+  return bs[k];
 }
-function setPersonTex(bs, k, look, custom) {
-  const src = custom && CUSTOM_SHEETS[custom] ? CUSTOM_SHEETS[custom] : personSheet(look);
-  if (bs.srcs[k] === src) return;
-  bs.srcs[k] = src;
-  const m = bs[k];
-  const t = sheetTexture(src).clone(); t.needsUpdate = true; t.repeat.set(0.25, 0.25);
-  t.offset.set(0, k === 'me' ? 0 : 0.75);
-  if (m.material.map && m.material.map !== t) m.material.map.dispose();
-  m.material.map = t; m.material.needsUpdate = true;
-  m.customDepthMaterial.map = t; m.customDepthMaterial.needsUpdate = true;
-  const h = 2.6; m.scale.set(h * (src.width / 4) / (src.height / 4), h, 1);
+function setPerson3D(bs, k, look, custom) {
+  const key = JSON.stringify(look);
+  if (bs.srcs[k] === key && bs[k]) return bs[k];
+  if (bs[k]) bs.scene.remove(bs[k]);
+  bs[k] = makePerson3D(look, 1.9); bs.scene.add(bs[k]);
+  bs.srcs[k] = key;
+  return bs[k];
 }
 function render3DBattle() {
   const a = B.anim, bs = battleScene3D(B.scene);
@@ -986,21 +1110,23 @@ function render3DBattle() {
     cam.position.set(2.4 + sway - intro * 3 + sh, 2.9 + bob + intro * 1.6, 6.8 + intro * 5);
     cam.lookAt(1.9, 0.75, -2.8);
   }
-  // Coremon
+  // Coremon en 3D
   const SZ = 2.4;
   const place = (k, mon, show, off, faint, white, flash, lungeK) => {
-    const m = bs[k];
-    m.visible = !!(show && faint < 1 && !(flash > 0 && Math.floor(flash) % 4 < 2));
-    if (!mon) { m.visible = false; return; }
-    setCreatureTex(bs, k, mon.species, k === 'p');
+    if (!mon) { if (bs[k]) bs[k].visible = false; return; }
+    const g = setCreature3D(bs, k, mon.species);
+    g.visible = !!(show && faint < 1 && !(flash > 0 && Math.floor(flash) % 4 < 2));
     const base = BPOS[k], other = BPOS[k === 'p' ? 'e' : 'p'];
     const big = (SPECIES[mon.species].legendary ? 1.25 : 1) * (k === 'e' ? 1.25 : 1);
-    m.scale.set(SZ * big * (k === 'p' ? -1 : 1), SZ * big, 1);
-    m.position.set(base.x + off, 0.16 - faint * 1.4 + Math.sin(t * 2.2 + (k === 'p' ? 1 : 0)) * 0.04 - SZ * big * 0.04, base.z);
-    if (lungeK) m.position.lerp(new THREE.Vector3(other.x, m.position.y, other.z), lungeK * 0.32);
-    m.material.opacity = 1 - faint;
-    m.material.emissiveIntensity = white;
-    m.lookAt(cam.position.x, m.position.y, cam.position.z);
+    const fl = PARTS_CACHE[mon.species] && PARTS_CACHE[mon.species].float ? 0.35 : 0;
+    const breath = 1 + Math.sin(t * 2.2 + (k === 'p' ? 1 : 0)) * 0.02;
+    g.userData.anim.inner.scale.set(SZ * big, SZ * big * breath, SZ * big);
+    g.position.set(base.x + off, 0.16 - faint * 1.2 + fl + (fl ? Math.sin(t * 1.6) * 0.1 : 0), base.z);
+    if (lungeK) g.position.lerp(new THREE.Vector3(other.x, g.position.y, other.z), lungeK * 0.32);
+    // el rival mira hacia la cámara; el tuyo, hacia el rival
+    const tgt = k === 'e' ? new THREE.Vector3((cam.position.x + other.x) / 2, g.position.y, (cam.position.z + other.z) / 2) : new THREE.Vector3(other.x, g.position.y, other.z);
+    g.lookAt(tgt);
+    styleCreature3D(g, white, 1 - faint);
   };
   const lg = a.lunge;
   place('e', B.enemyTeam[B.ei], a.eShow, a.eOff * 12, a.faint.e, a.white.e, a.flash.e, lg && lg.side === 'e' ? lg.k : 0);
@@ -1009,11 +1135,13 @@ function render3DBattle() {
   bs.aura.visible = !!(leg && a.eShow && a.faint.e < 1);
   bs.aura.position.set(BPOS.e.x + a.eOff * 12, 1.4, BPOS.e.z - 0.3);
   bs.aura.material.opacity = 0.5 + 0.25 * Math.sin(t * 3);
-  // entrenadores
-  bs.tr.visible = !!(a.tShow && B.trainer);
-  if (bs.tr.visible) { setPersonTex(bs, 'tr', B.trainer.look || LOOKS2.grunt, B.trainer.custom); bs.tr.position.set(BPOS.e.x + 1.9 + a.tOff * 12, 0.16, BPOS.e.z - 0.8); bs.tr.lookAt(cam.position.x, 0.16, cam.position.z); }
-  bs.me.visible = !a.pShow && a.pOff > 0.01;
-  if (bs.me.visible) { setPersonTex(bs, 'me', LOOKS2.player, 'jugador'); bs.me.position.set(BPOS.p.x - 0.6 - a.pOff * 10, 0.16, BPOS.p.z + 0.4); bs.me.lookAt(cam.position.x, 0.16, cam.position.z); }
+  // entrenadores en 3D
+  const showTr = !!(a.tShow && B.trainer);
+  if (showTr) { const g = setPerson3D(bs, 'tr', B.trainer.look || LOOKS2.grunt); g.position.set(BPOS.e.x + 1.9 + a.tOff * 12, 0.16, BPOS.e.z - 0.8); animatePerson3D(g, false, 0, Math.atan2(cam.position.x - g.position.x, cam.position.z - g.position.z), 100); }
+  if (bs.tr) bs.tr.visible = showTr;
+  const showMe = !a.pShow && a.pOff > 0.01;
+  if (showMe) { const g = setPerson3D(bs, 'me', LOOKS2.player); g.position.set(BPOS.p.x - 0.6 - a.pOff * 10, 0.16, BPOS.p.z + 0.4); animatePerson3D(g, false, 0, Math.atan2(BPOS.e.x - g.position.x, BPOS.e.z - g.position.z), 100); }
+  if (bs.me) bs.me.visible = showMe;
   R3.waterTex.offset.set((now / 9000) % 1, (now / 13000) % 1);
   R3.renderer.render(bs.scene, cam);
   // posiciones en pantalla para los cuadros, números y partículas (en píxeles del lienzo 2D)

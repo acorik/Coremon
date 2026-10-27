@@ -107,7 +107,7 @@ function currentObjective() {
   const ids = Object.keys(SPECIES);
   const caught = ids.filter(i => game.caught[i]).length;
   if (caught < ids.length) return `Extra: completa la Coredex (${caught}/${ids.length}).`;
-  return '¡Lo tienes todo! Nos vemos en la Segunda Edición.';
+  return '¡Lo tienes todo! Ahí fuera te espera mucho más.';
 }
 
 // Pregunta de sí/no en la pantalla de abajo

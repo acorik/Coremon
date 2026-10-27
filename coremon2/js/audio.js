@@ -88,7 +88,13 @@ const SFX = {
   caught(t) { [880, 0, 698, 0, 523].forEach((f, i) => f && tone(f, t + i * 0.08, 0.2, 'sawtooth', 0.25)); noise(t, 0.4, 0.4, null, 3000); },
   win(t) { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, t + i * 0.1, 0.14, 'square', 0.2)); },
   ok(t) { tone(1047, t, 0.07, 'square', 0.15); tone(1568, t + 0.07, 0.12, 'square', 0.15); },
-  bad(t) { tone(200, t, 0.18, 'square', 0.2, null, 120); }
+  bad(t) { tone(200, t, 0.18, 'square', 0.2, null, 120); },
+  bump(t) { noise(t, 0.12, 0.5, null, 700); tone(80, t, 0.12, 'square', 0.25, null, 50); },
+  shot(t) { noise(t, 0.16, 0.7, null, 4000); tone(900, t, 0.08, 'square', 0.2, null, 120); },
+  engine(t) { tone(70, t, 0.6, 'sawtooth', 0.18, null, 140); noise(t, 0.6, 0.15, null, 400); },
+  ko(t) { [700, 500, 300].forEach((f, i) => tone(f, t + i * 0.08, 0.1, 'square', 0.18)); },
+  quest(t) { [659, 784, 988, 1319].forEach((f, i) => tone(f, t + i * 0.08, 0.14, 'triangle', 0.25)); },
+  siren(t) { for (let i = 0; i < 4; i++) tone(i % 2 ? 660 : 880, t + i * 0.22, 0.2, 'square', 0.12); }
 };
 
 function sfx(name) {

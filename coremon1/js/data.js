@@ -231,7 +231,7 @@ const TRAINERS = {
       'Yo solo era el guardián. Bajo los cimientos de este colegio duerme algo mucho más grande que yo... más grande que todos los Coremon juntos.',
       'Los Hermanos lo sellaron hace generaciones, debajo del gimnasio. Pero los sellos no duran para siempre. Y hoy, con tu combate, algo ha empezado a despertar.',
       'Cuando llegue el momento, lo sabrás. Prepárate, entrena, completa tu Coredex...',
-      'Nos vemos en la Segunda Edición.'] }
+      'Abre bien los ojos, joven Cora. Lo que has vivido aquí dentro... solo era el principio.'] }
 };
 
 // Alumnos que retan a combate (opcionales, dan dinero y experiencia).
@@ -251,7 +251,7 @@ const STUDENT_TRAINERS = {
   lateral:    { name:'Lateral de balonmano', team:[['mochiloide',8],['pelotroncho',9]], prize:280, intro:'¡Lateral izquierdo, el que más lanza del cole! ¡Prepárate para el siete metros!', win:'¡Parada del portero! Bueno, del tuyo. Bien jugado.' },
   comba:      { name:'Campeona de comba', team:[['acuarelix',9],['hojalata',9]], prize:260, intro:'¡Llevo 200 saltos sin fallar! Si me ganas, te dejo saltar. Si no, a dar la comba.', win:'¡Me he enredado! Vale, vale, te toca saltar.' },
   misterioso: { name:'Alumno misterioso', team:[['circuitron',44],['naturalux',46],['lingualord',46],['corazonix',50]], prize:4000,
-    intro:'¿Tú eres el que venció al Fundador? Yo vengo de... digamos que de más adelante. De la Segunda Edición. Quiero ver si estás preparado para lo que viene.',
+    intro:'¿Tú eres el que venció al Fundador? Yo vengo de... digamos que de fuera. De mucho más allá de este colegio. Quiero ver si estás preparado para lo que viene.',
     win:'Increíble. Sí, estás preparado. Cuando se abra la trampilla del gimnasio, acuérdate de mí.' },
   castigado:  { name:'Alumno castigado', team:[['pelotitan',16],['gomigante',16]], prize:600, intro:'Llevo aquí desde 3º de la ESO por colarme en la sala de profesores. Me aburro. ¡Pelea conmigo!', win:'Bueno, al menos ha sido entretenido. Me quedo aquí otro rato...' }
 };

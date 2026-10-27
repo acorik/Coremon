@@ -20,7 +20,7 @@ function startBattle(opts) {
       sleep: { p: 0, e: 0 },
       scene: battleScene(opts),
       anim: { eOff: 1, pOff: 1, eShow: false, pShow: false, tShow: opts.kind === 'trainer', tOff: 1, flash: { p: 0, e: 0 }, lunge: null, shake: 0, faint: { p: 0, e: 0 }, white: { p: 0, e: 0 }, card: null, hp: {}, exp: null },
-      fx: [], texts: [], busy: true, over: false, noRun: !!opts.noRun
+      fx: [], texts: [], busy: true, over: false, noRun: !!opts.noRun, region: opts.region
     };
     G.seen[enemyTeam[0].species] = true;
     STATE = 'BATTLE';
@@ -401,6 +401,7 @@ async function throwCard(id) {
     sfx('win');
     await bsay(`¡Ya está! ¡Has capturado a ${SPECIES[e.species].name}!`, 1400);
     G.caught[e.species] = true; G.seen[e.species] = true;
+    missionEvent('capture', { species: e.species });
     const mon = JSON.parse(JSON.stringify(e)); mon.status = null;
     if (G.team.length < 6) { G.team.push(mon); await bsay(`${SPECIES[e.species].name} se une a tu equipo.`, 1000); }
     else { G.box.push(mon); await bsay(`Tu equipo está lleno: ${SPECIES[e.species].name} va a la caja del Centro Coremon.`, 1400); }
@@ -432,6 +433,7 @@ async function endBattle(result) {
     const prize = tr.prize || 0;
     if (prize) { G.money += prize; await bsay(`Recibes ${prize} monedas.`, 1000); }
   }
+  if (result === 'win' && B.kind === 'wild' && B.region != null) missionEvent('wild', { region: B.region });
   if (result === 'win' && B.kind === 'wild') {
     const found = Math.floor(activeE().level * 5 + Math.random() * 30);
     G.money += found;

@@ -4,19 +4,21 @@
 // mapas, colisiones, dibujado por trozos y minimapa.
 // ============================================================
 
-const WORLD_W = 320, WORLD_H = 240, CHUNK = 16;
+// el continente es 1,6 veces más grande que en la primera versión (mismas ciudades, más mundo entre ellas)
+const WS = 1.6;
+const WORLD_W = Math.round(320 * WS), WORLD_H = Math.round(240 * WS), CHUNK = 16;
 
 // Ciudades (= regiones). order: orden de la aventura; req: medallas para entrar
 const CITIES = [
-  { id: 'gasteiz', name: 'Gasteiz', area: 'Pradera de Gasteiz', x: 64, y: 150, biome: 'meadow', gym: 'naturaleza', badge: 'Medalla Raíz', w: 34, h: 26, lv: [18, 23] },
-  { id: 'ria', name: 'Puerto de la Ría', area: 'Costa de la Ría', x: 46, y: 196, biome: 'coast', gym: 'agua', badge: 'Medalla Marea', w: 28, h: 22, lv: [22, 27] },
-  { id: 'umbria', name: 'Umbría', area: 'Ciénaga de Umbría', x: 122, y: 206, biome: 'swamp', gym: 'sombra', badge: 'Medalla Eclipse', w: 26, h: 20, lv: [26, 31] },
-  { id: 'almar', name: 'Dunas de Almar', area: 'Desierto de Almar', x: 232, y: 196, biome: 'desert', gym: 'roca', badge: 'Medalla Duna', w: 28, h: 22, lv: [30, 35] },
-  { id: 'ignea', name: 'Ignea', area: 'Laderas de Ignea', x: 282, y: 120, biome: 'volcano', gym: 'fuego', badge: 'Medalla Brasa', w: 26, h: 22, lv: [34, 39] },
-  { id: 'voltia', name: 'Voltia', area: 'Llanura de Voltia', x: 176, y: 138, biome: 'plains', gym: 'electrico', badge: 'Medalla Voltio', w: 36, h: 28, lv: [38, 43] },
-  { id: 'bosque', name: 'Bosque Olvido', area: 'Bosque Olvido', x: 92, y: 70, biome: 'forest', gym: 'aire', badge: 'Medalla Pluma', w: 26, h: 22, lv: [42, 47] },
-  { id: 'nevera', name: 'Nevera', area: 'Montes de Nevera', x: 182, y: 46, biome: 'snow', gym: 'hielo', badge: 'Medalla Escarcha', w: 26, h: 22, lv: [46, 51] },
-  { id: 'liga', name: 'Cumbre Corazón', area: 'Cumbre Corazón', x: 262, y: 48, biome: 'peak', gym: null, badge: null, w: 30, h: 24, lv: [50, 56] }
+  { id: 'gasteiz', name: 'Gasteiz', area: 'Pradera de Gasteiz', x: Math.round(64 * WS), y: Math.round(150 * WS), biome: 'meadow', gym: 'naturaleza', badge: 'Medalla Raíz', w: 34, h: 26, lv: [18, 23] },
+  { id: 'ria', name: 'Puerto de la Ría', area: 'Costa de la Ría', x: Math.round(46 * WS), y: Math.round(196 * WS), biome: 'coast', gym: 'agua', badge: 'Medalla Marea', w: 28, h: 22, lv: [22, 27] },
+  { id: 'umbria', name: 'Umbría', area: 'Ciénaga de Umbría', x: Math.round(122 * WS), y: Math.round(206 * WS), biome: 'swamp', gym: 'sombra', badge: 'Medalla Eclipse', w: 26, h: 20, lv: [26, 31] },
+  { id: 'almar', name: 'Dunas de Almar', area: 'Desierto de Almar', x: Math.round(232 * WS), y: Math.round(196 * WS), biome: 'desert', gym: 'roca', badge: 'Medalla Duna', w: 28, h: 22, lv: [30, 35] },
+  { id: 'ignea', name: 'Ignea', area: 'Laderas de Ignea', x: Math.round(282 * WS), y: Math.round(120 * WS), biome: 'volcano', gym: 'fuego', badge: 'Medalla Brasa', w: 26, h: 22, lv: [34, 39] },
+  { id: 'voltia', name: 'Voltia', area: 'Llanura de Voltia', x: Math.round(176 * WS), y: Math.round(138 * WS), biome: 'plains', gym: 'electrico', badge: 'Medalla Voltio', w: 36, h: 28, lv: [38, 43] },
+  { id: 'bosque', name: 'Bosque Olvido', area: 'Bosque Olvido', x: Math.round(92 * WS), y: Math.round(70 * WS), biome: 'forest', gym: 'aire', badge: 'Medalla Pluma', w: 26, h: 22, lv: [42, 47] },
+  { id: 'nevera', name: 'Nevera', area: 'Montes de Nevera', x: Math.round(182 * WS), y: Math.round(46 * WS), biome: 'snow', gym: 'hielo', badge: 'Medalla Escarcha', w: 26, h: 22, lv: [46, 51] },
+  { id: 'liga', name: 'Cumbre Corazón', area: 'Cumbre Corazón', x: Math.round(262 * WS), y: Math.round(48 * WS), biome: 'peak', gym: null, badge: null, w: 30, h: 24, lv: [50, 56] }
 ];
 const CITY = Object.fromEntries(CITIES.map(c => [c.id, c]));
 // caminos [a, b, medallas necesarias para cruzar la barrera]
@@ -74,8 +76,8 @@ function generateWorld() {
   // 1) regiones (Voronoi deformado con ruido) y tierra firme
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = y * W + x;
-    const wx = x + (fbm(x * 0.035, y * 0.035, SEED + 1, 3) - 0.5) * 26;
-    const wy = y + (fbm(x * 0.035, y * 0.035, SEED + 2, 3) - 0.5) * 26;
+    const wx = x + (fbm(x * 0.035 / WS, y * 0.035 / WS, SEED + 1, 3) - 0.5) * 26 * WS;
+    const wy = y + (fbm(x * 0.035 / WS, y * 0.035 / WS, SEED + 2, 3) - 0.5) * 26 * WS;
     let d1 = 1e9, d2 = 1e9, best = 0, cd = 1e9;
     CITIES.forEach((c, ci) => {
       const d = Math.hypot(wx - c.x, wy - c.y);
@@ -83,9 +85,9 @@ function generateWorld() {
       cd = Math.min(cd, Math.hypot(x - c.x, y - c.y));
     });
     m.reg[i] = best; cityDist[i] = cd;
-    const nx = (x - 160) / 152, ny = (y - 124) / 114;
+    const nx = (x - 160 * WS) / (152 * WS), ny = (y - 124 * WS) / (114 * WS);
     const sup = Math.pow(Math.pow(Math.abs(nx), 3.2) + Math.pow(Math.abs(ny), 3.2), 1 / 3.2);
-    const edge = sup + (fbm(x * 0.045, y * 0.045, SEED + 3, 4) - 0.5) * 0.28;
+    const edge = sup + (fbm(x * 0.045 / WS, y * 0.045 / WS, SEED + 3, 4) - 0.5) * 0.28;
     land[i] = (edge < 1 || cd < 20) ? 1 : 0;
     const rw = 2.3 + fbm(x * 0.08, y * 0.08, SEED + 4, 2) * 2.6;
     if (land[i] && d2 - d1 < rw && cd > 14) ridge[i] = 1;
@@ -178,8 +180,45 @@ function generateWorld() {
       if (!wasRock && inPass) { inPass.end = k; placeGate(m, path, inPass, req, ri); inPass = null; }
     });
   });
+  // 7b) pueblos en mitad de los caminos (centro, tienda y tablón de misiones)
+  VILLAGES.length = 0; for (const k in VILLAGE) delete VILLAGE[k];
+  m.roads.forEach((rd, ri) => {
+    for (const f of [0.5, 0.4, 0.6, 0.3, 0.7]) {
+      const [x, y] = rd.path[Math.floor(rd.path.length * f)];
+      if (CITIES.some(c => Math.hypot(c.x - x, c.y - y) < 36)) continue;
+      if (VILLAGES.some(v => Math.hypot(v.x - x, v.y - y) < 40)) continue;
+      if (m.gates.some(g => Math.hypot(g.x - x, g.y - y) < 16)) continue;
+      let ok = true;
+      for (let dy = -10; dy <= 10 && ok; dy++) for (let dx = -15; dx <= 15; dx++) { const t = m.tileAt(x + dx, y + dy); if (t === undefined || t === T.ROCK || t === T.DEEP || ridge[(y + dy) * W + x + dx]) { ok = false; break; } }
+      if (!ok) continue;
+      const reg = m.regionIdx(x, y);
+      const v = { id: 'v' + VILLAGES.length, name: VILLAGE_NAMES[VILLAGES.length % VILLAGE_NAMES.length], x, y, w: 24, h: 16, road: ri, regionIdx: reg, biome: CITIES[reg].biome, lv: CITIES[reg].lv, village: true };
+      VILLAGES.push(v); VILLAGE[v.id] = v;
+      break;
+    }
+  });
+  // 7c) una aldea apartada en cada región, unida a su ciudad por un sendero
+  CITIES.forEach((c, ci) => {
+    const rr = mulberry32(strSeed('hamlet:' + c.id));
+    for (let tries = 0; tries < 80; tries++) {
+      const a = rr() * Math.PI * 2, d = 38 + rr() * 34;
+      const x = Math.round(c.x + Math.cos(a) * d), y = Math.round(c.y + Math.sin(a) * d * 0.8);
+      if (m.regionIdx(x, y) !== ci) continue;
+      if (VILLAGES.some(v => Math.hypot(v.x - x, v.y - y) < 36) || CITIES.some(o => Math.hypot(o.x - x, o.y - y) < 34)) continue;
+      let ok = true;
+      for (let dy = -10; dy <= 10 && ok; dy++) for (let dx = -15; dx <= 15; dx++) { const t = m.tileAt(x + dx, y + dy), i = (y + dy) * W + x + dx; if (t === undefined || t === T.ROCK || t === T.DEEP || ridge[i] || m.regionIdx(x + dx, y + dy) !== ci) { ok = false; break; } }
+      if (!ok) continue;
+      const path = astar(m, x, y, c.x, c.y, (px, py) => m.regionIdx(px, py) === ci && m.tileAt(px, py) !== T.ROCK);
+      if (!path) continue;
+      path.forEach(([px, py]) => { const t = m.tileAt(px, py); if (t === T.WATER || t === T.DEEP || t === T.LAVA) m.set(px, py, T.BRIDGE); else if (![T.ROAD, T.PLAZA, T.BRIDGE].includes(t)) m.set(px, py, T.PATH); });
+      const v = { id: 'v' + VILLAGES.length, name: VILLAGE_NAMES[VILLAGES.length % VILLAGE_NAMES.length], x, y, w: 24, h: 16, road: -1, home: c.id, regionIdx: ci, biome: c.biome, lv: c.lv, village: true };
+      VILLAGES.push(v); VILLAGE[v.id] = v;
+      break;
+    }
+  });
   // 8) edificios, decoración urbana y naturaleza
   CITIES.forEach(c => buildCity(m, c));
+  VILLAGES.forEach(v => buildVillage(m, v));
   scatterNature(m, land, cityDist);
   m.landD = landD;
   m.genMs = Math.round(performance.now() - t0);
@@ -277,20 +316,8 @@ function buildCity(m, c) {
   if (c.id === 'voltia') layout.push({ kind: 'corp', dx: -6, dy: 7, w: 9, h: 7, roof: '#1d1a26', label: 'TORRE CORACORP' });
   if (c.id === 'liga') { layout.length = 0; layout.push({ kind: 'center', dx: -14, dy: -10, w: 7, h: 5, roof: '#d84a4a', label: 'CENTRO COREMON' }, { kind: 'shop', dx: 6, dy: 4, w: 6, h: 4, roof: '#3f7fd0', label: 'TIENDA' }, { kind: 'liga', dx: -5, dy: -12, w: 11, h: 7, roof: '#b8860b', label: 'LIGA COREMON' }); }
   if (c.id === 'gasteiz') { const g = layout.find(b => b.kind === 'gym'); g.dx = 6; }
-  layout.forEach(L => {
-    const bx = c.x + L.dx, by = c.y + L.dy;
-    const roof = L.roof || (L.kind === 'gym' ? shade(TYPE_COLOR[c.gym] || '#ffd54f', -10) : ROOF_COLORS[Math.floor(r() * ROOF_COLORS.length)]);
-    const b = { kind: L.kind, w: L.w, h: L.h, roof, wall: L.kind === 'corp' ? '#5a5560' : L.kind === 'liga' ? '#f5eccb' : L.kind === 'school' ? '#b85c42' : '#f2e6cf', label: L.label, accent: c.gym ? TYPE_COLOR[c.gym] : '#ffd54f', city: c.id };
-    b.tx = bx; b.ty = by;
-    b.id = c.id + ':' + L.kind + (L.kind === 'house' ? ':' + L.dx + ',' + L.dy : '');
-    // suelo bajo el edificio y su entrada
-    for (let y = by; y < by + L.h; y++) for (let x = bx; x < bx + L.w; x++) m.set(x, y, T.PLAZA);
-    const doorX = bx + Math.floor(L.w / 2);
-    m.set(doorX, by + L.h, T.ROAD);
-    m.addObj({ type: 'building', b, x: bx * TS + (L.w * TS) / 2, y: (by + L.h) * TS, col: [-(L.w * TS) / 2 + 2, -(L.h * TS) + 18, L.w * TS - 4, L.h * TS - 18] });
-    m.warps.push({ x: doorX * TS, y: (by + L.h) * TS - 6, w: TS, h: 16, to: 'int:' + b.id, b });
-    m.buildings.push(b);
-  });
+  layout.forEach(L => placeBuilding(m, c, L, r));
+  addBoard(m, c);
   // decoración: fuente, farolas, bancos, flores, árboles de borde y cartel
   m.addObj({ type: 'fountain', x: (c.x - 5) * TS, y: (c.y - 3) * TS });
   for (let i = -2; i <= 2; i++) {
@@ -310,6 +337,64 @@ function buildCity(m, c) {
   for (let y = y0 + 2; y < y0 + c.h - 1; y += 3) {
     [x0 - 1, x0 + c.w + 1].forEach(x => { if (canPlace(m, x, y, 0)) m.addObj({ type: tree, x: x * TS + 16, y: y * TS + 28, v: (x + y * 3) % 4 }); });
   }
+}
+function placeBuilding(m, c, L, r) {
+  m.buildings = m.buildings || [];
+  const bx = c.x + L.dx, by = c.y + L.dy;
+  const roof = L.roof || (L.kind === 'gym' ? shade(TYPE_COLOR[c.gym] || '#ffd54f', -10) : ROOF_COLORS[Math.floor(r() * ROOF_COLORS.length)]);
+  const b = { kind: L.kind, w: L.w, h: L.h, roof, wall: L.kind === 'corp' ? '#5a5560' : L.kind === 'liga' ? '#f5eccb' : L.kind === 'school' ? '#b85c42' : '#f2e6cf', label: L.label, accent: c.gym ? TYPE_COLOR[c.gym] : '#ffd54f', city: c.id };
+  b.tx = bx; b.ty = by;
+  b.id = c.id + ':' + L.kind + (L.kind === 'house' ? ':' + L.dx + ',' + L.dy : '');
+  // suelo bajo el edificio y su entrada
+  for (let y = by; y < by + L.h; y++) for (let x = bx; x < bx + L.w; x++) m.set(x, y, T.PLAZA);
+  const doorX = bx + Math.floor(L.w / 2);
+  m.set(doorX, by + L.h, T.ROAD);
+  m.addObj({ type: 'building', b, x: bx * TS + (L.w * TS) / 2, y: (by + L.h) * TS, col: [-(L.w * TS) / 2 + 2, -(L.h * TS) + 18, L.w * TS - 4, L.h * TS - 18] });
+  m.warps.push({ x: doorX * TS, y: (by + L.h) * TS - 6, w: TS, h: 16, to: 'int:' + b.id, b });
+  m.buildings.push(b);
+  return b;
+}
+// tablón de misiones junto al centro Coremon
+function addBoard(m, c) {
+  const ctr = m.buildings.find(b => b.city === c.id && b.kind === 'center');
+  if (!ctr) return;
+  const x = ctr.tx + ctr.w + 1, y = ctr.ty + ctr.h - 1;
+  m.addObj({ type: 'board', x: x * TS + 16, y: y * TS + 28, action: 'board', place: c.id, text: null });
+}
+// pueblo: plaza, centro, tienda, casas, farolas y tablón
+const VILLAGE_NAMES = ['Arrieta', 'Zubieta', 'Larrea', 'Mendibe', 'Ibarra', 'Olabe', 'Urbina', 'Elorrio', 'Zuaza', 'Gorbeia', 'Lezama', 'Amurrio', 'Okondo', 'Barrika', 'Artzentales', 'Lekeitio'];
+const VILLAGES = [], VILLAGE = {};
+function placeById(id) { return CITY[id] || VILLAGE[id] || null; }
+function buildVillage(m, v) {
+  const r = mulberry32(strSeed('village:' + v.id));
+  const x0 = v.x - (v.w >> 1), y0 = v.y - (v.h >> 1);
+  const ground = v.biome === 'desert' ? T.SAND : v.biome === 'snow' ? T.SNOW : v.biome === 'volcano' ? T.ASH : T.GRASS;
+  for (let y = y0 - 2; y < y0 + v.h + 2; y++) for (let x = x0 - 2; x < x0 + v.w + 2; x++) {
+    const t = m.tileAt(x, y);
+    if (t === undefined) continue;
+    const inside = x >= x0 && y >= y0 && x < x0 + v.w && y < y0 + v.h;
+    if (t === T.PATH || t === T.BRIDGE) { if (inside) m.set(x, y, T.ROAD); continue; }
+    if (inside) m.set(x, y, T.PLAZA);
+    else if (t === T.WATER || t === T.LAVA || TALL_T.has(t)) m.set(x, y, ground);
+  }
+  const free = L => { for (let y = v.y + L.dy; y <= v.y + L.dy + L.h + 1; y++) for (let x = v.x + L.dx - 1; x < v.x + L.dx + L.w + 1; x++) if (m.tileAt(x, y) === T.ROAD) return false; return true; };
+  const opts = [
+    { kind: 'center', dx: -10, dy: -7, w: 6, h: 4, roof: '#d84a4a', label: 'CENTRO' }, { kind: 'center', dx: 4, dy: 2, w: 6, h: 4, roof: '#d84a4a', label: 'CENTRO' },
+    { kind: 'shop', dx: 4, dy: -7, w: 6, h: 4, roof: '#3f7fd0', label: 'TIENDA' }, { kind: 'shop', dx: -10, dy: 2, w: 6, h: 4, roof: '#3f7fd0', label: 'TIENDA' },
+    { kind: 'house', dx: -10, dy: 2, w: 5, h: 4 }, { kind: 'house', dx: 5, dy: 2, w: 5, h: 4 }
+  ];
+  const used = [];
+  for (const L of opts) {
+    if (used.some(u => u.kind === L.kind && L.kind !== 'house')) continue;
+    if (used.some(u => Math.abs(u.dx - L.dx) < 6 && Math.abs(u.dy - L.dy) < 5)) continue;
+    if (!free(L)) continue;
+    placeBuilding(m, v, L, r); used.push(L);
+  }
+  if (!used.some(u => u.kind === 'center')) { const L = { kind: 'center', dx: -3, dy: -7, w: 6, h: 4, roof: '#d84a4a', label: 'CENTRO' }; placeBuilding(m, v, L, r); }
+  addBoard(m, v);
+  [[-12, -1], [11, -1], [-12, 6], [11, 6]].forEach(([dx, dy]) => { if (m.tileAt(v.x + dx, v.y + dy) === T.PLAZA) m.addObj({ type: 'lamp', x: (v.x + dx) * TS + 16, y: (v.y + dy) * TS + 2 }); });
+  m.addObj({ type: 'sign', x: (x0 + 1) * TS + 16, y: (y0 + v.h - 1) * TS + 30, text: [`PUEBLO DE ${v.name.toUpperCase()}`, 'Mira el tablón de misiones junto al centro.'] });
+  m.addObj({ type: 'flowers', x: (v.x - 2) * TS, y: (v.y + 5) * TS + 20 });
 }
 function cityMotto(id) {
   return { gasteiz: 'Ciudad verde. Aquí empieza todo.', ria: 'Barcos, gaviotas y olor a mar.', umbria: 'Cuidado con la niebla.', almar: 'Bajo la arena hay historia.', ignea: 'La ciudad que vive junto al volcán.', voltia: 'Capital de la tecnología. Sede de CoraCorp.', bosque: 'El bosque recuerda lo que olvidas.', nevera: 'Abrígate bien.', liga: 'Solo los mejores llegan hasta aquí.' }[id] || '';
@@ -353,6 +438,8 @@ function scatterNature(m, land, cityDist) {
 // ---------------- REGIONES: NOMBRES, CLIMA, MÚSICA, SALVAJES ----------------
 function placeName(map, x, y) {
   if (!map.outdoor) return map.name;
+  const tx = x / TS, ty = y / TS;
+  for (const v of VILLAGES) if (Math.abs(tx - v.x) < v.w / 2 + 1 && Math.abs(ty - v.y) < v.h / 2 + 1) return v.name;
   const c = CITIES[map.regionIdx(Math.floor(x / TS), Math.floor(y / TS))];
   return (Math.abs(x / TS - c.x) < c.w / 2 && Math.abs(y / TS - c.y) < c.h / 2) ? c.name : c.area;
 }
@@ -383,7 +470,7 @@ function blockedAt(map, x, y, ignoreActor) {
   }
   // personajes
   for (const a of map.npcs) {
-    if (a === ignoreActor || a.hidden) continue;
+    if (a === ignoreActor || a.hidden || a.ko) continue;
     if (Math.abs(a.x - x) < 14 && Math.abs(a.y - y) < 10) return a;
   }
   return false;
@@ -524,6 +611,8 @@ function drawMinimap(canvas, map, px, py) {
   g.drawImage(worldOverview, sx, sy, span, span * 0.75, 0, 0, W, H);
   const k = W / span;
   CITIES.forEach(c => { const x = (c.x - sx) * k, y = (c.y - sy) * k; if (x > -10 && y > -10 && x < W + 10 && y < H + 10) { g.fillStyle = '#ffd54f'; g.fillRect(x - 3, y - 3, 6, 6); } });
+  if (typeof drawMissionMarks === 'function' && G) drawMissionMarks(g, X => (X - sx) * k, Y => (Y - sy) * k);
+  VILLAGES.forEach(v => { const x = (v.x - sx) * k, y = (v.y - sy) * k; g.fillStyle = '#ffe9a8'; g.fillRect(x - 2, y - 2, 4, 4); });
   const ppx = (px / TS - sx) * k, ppy = (py / TS - sy) * k;
   g.fillStyle = '#ff1744'; g.beginPath(); g.arc(ppx, ppy, 4, 0, 7); g.fill();
   g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();

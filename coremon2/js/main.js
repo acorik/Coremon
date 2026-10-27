@@ -10,7 +10,7 @@ let lastT = 0, encounterAcc = 0, hudT = 0;
 let cam = { x: 0, y: 0, w: 0, h: 0 };
 let banner = null;
 let busy = false;                   // escena en curso (bloquea el control)
-const SPEED = { walk: 92, run: 156, bike: 236 };
+const SPEED = { walk: 92, run: 156, bike: 236, moto: 420 };
 
 // ---------------- MAPAS ----------------
 function getMap(id) {
@@ -72,20 +72,40 @@ function update(dt) {
   if (MAP) for (const n of MAP.npcs) updateNpc(n, dt);
   updateWeather(dt);
   if (STATE === 'WORLD' && !busy) checkTrainerSight();
+  updateMissions();
 }
 
 function movePlayer(dt) {
   const d = inputDir();
   const mag = Math.hypot(d.x, d.y);
-  player.moving = mag > 0.15;
-  if (!player.moving) { player.frame = 0; return; }
-  const sp = (G.bike && MAP.outdoor ? SPEED.bike : inputRun() ? SPEED.run : SPEED.walk) * Math.min(1, mag * 1.15) * dt / 1000;
-  const vx = d.x / Math.max(mag, 1e-6) * sp, vy = d.y / Math.max(mag, 1e-6) * sp;
-  player.dir = Math.abs(d.x) > Math.abs(d.y) ? (d.x > 0 ? 'right' : 'left') : (d.y > 0 ? 'down' : 'up');
+  const ride = MAP.outdoor ? G.ride : null;
+  let vx, vy;
+  if (ride === 'moto') {
+    // la moto se conduce: acelera, frena y derrapa con inercia
+    const want = mag > 0.15 ? SPEED.moto * Math.min(1, mag * 1.15) : 0;
+    const tx = mag > 0.15 ? d.x / mag * want : 0, ty = mag > 0.15 ? d.y / mag * want : 0;
+    const k = Math.min(1, dt / (mag > 0.15 ? 380 : 260));
+    player.vx = (player.vx || 0) + (tx - (player.vx || 0)) * k;
+    player.vy = (player.vy || 0) + (ty - (player.vy || 0)) * k;
+    const spd = Math.hypot(player.vx, player.vy);
+    player.moving = spd > 8;
+    if (!player.moving) { player.vx = player.vy = 0; player.frame = 0; return; }
+    vx = player.vx * dt / 1000; vy = player.vy * dt / 1000;
+    player.heading = Math.atan2(player.vx, player.vy);
+    player.dir = Math.abs(player.vx) > Math.abs(player.vy) ? (player.vx > 0 ? 'right' : 'left') : (player.vy > 0 ? 'down' : 'up');
+  } else {
+    player.vx = player.vy = 0;
+    player.moving = mag > 0.15;
+    if (!player.moving) { player.frame = 0; return; }
+    const sp = (ride === 'bici' ? SPEED.bike : inputRun() ? SPEED.run : SPEED.walk) * Math.min(1, mag * 1.15) * dt / 1000;
+    vx = d.x / Math.max(mag, 1e-6) * sp; vy = d.y / Math.max(mag, 1e-6) * sp;
+    player.dir = Math.abs(d.x) > Math.abs(d.y) ? (d.x > 0 ? 'right' : 'left') : (d.y > 0 ? 'down' : 'up');
+    player.heading = Math.atan2(d.x, d.y);
+  }
   const ox = player.x, oy = player.y;
-  // movimiento con deslizamiento contra paredes
-  if (!blockedAt(MAP, player.x + vx, player.y, null)) player.x += vx;
-  if (!blockedAt(MAP, player.x, player.y + vy, null)) player.y += vy;
+  // movimiento con deslizamiento contra paredes (en moto, el golpe frena)
+  if (!blockedAt(MAP, player.x + vx, player.y, null)) player.x += vx; else if (ride === 'moto') { if (Math.abs(player.vx) > 200) sfx('bump'); player.vx *= -0.2; }
+  if (!blockedAt(MAP, player.x, player.y + vy, null)) player.y += vy; else if (ride === 'moto') { if (Math.abs(player.vy) > 200) sfx('bump'); player.vy *= -0.2; }
   const moved = Math.hypot(player.x - ox, player.y - oy);
   G.x = player.x; G.y = player.y; G.facing = player.dir;
   player.dist += moved;
@@ -98,7 +118,7 @@ function movePlayer(dt) {
     }
   }
   // objetos del suelo
-  for (const it of MAP.items) if (!G.picked[it.id] && Math.hypot(it.x - player.x, it.y - player.y) < 14) pickItem(it);
+  for (const it of MAP.items) if (itemVisible(it) && Math.hypot(it.x - player.x, it.y - player.y) < 14) pickItem(it);
   // encuentros en hierba alta
   if (moved > 0 && MAP.outdoor && !G.flags.noEncounters) {
     const t = MAP.tileAt(Math.floor(player.x / TS), Math.floor((player.y - 2) / TS));
@@ -113,7 +133,7 @@ function movePlayer(dt) {
   }
   // cambio de zona
   const name = placeName(MAP, player.x, player.y);
-  if (name !== lastPlace) { lastPlace = name; banner = { text: name, t0: now }; updateMusic(); const c = inCity(MAP, player.x, player.y); if (c) visitCity(c); }
+  if (name !== lastPlace) { lastPlace = name; banner = { text: name, t0: now }; updateMusic(); const c = inCity(MAP, player.x, player.y); if (c) visitCity(c); const v = VILLAGES.find(q => q.name === name); if (v && !G.flags['visit_' + v.id]) { G.flags['visit_' + v.id] = true; toast(`Has llegado a ${v.name}. Mira el tablón de misiones 📋 junto al centro.`, 3200); } }
 }
 
 function enterWarp(w) {
@@ -133,6 +153,7 @@ function enterWarp(w) {
 
 // ---------------- PERSONAJES NO JUGADORES ----------------
 function updateNpc(n, dt) {
+  if (n.ko) { if (now - n.ko > 40000) { n.ko = null; n.x = n.home[0]; n.y = n.home[1]; } return; }
   if (n.walkTo) {
     const [tx, ty] = n.walkTo, dx = tx - n.x, dy = ty - n.y, d = Math.hypot(dx, dy);
     const sp = (n.speed || 80) * dt / 1000;
@@ -158,7 +179,7 @@ function faceTo(a, b) { const dx = b.x - a.x, dy = b.y - a.y; a.dir = Math.abs(d
 // los entrenadores te ven si estás en su línea de visión
 function checkTrainerSight() {
   for (const n of MAP.npcs) {
-    if (!(n.trainer || n.ambush) || n.hidden || G.beaten[n.id] || !n.sight || n.walkTo) continue;
+    if (!(n.trainer || n.ambush) || n.hidden || n.ko || G.beaten[n.id] || !n.sight || n.walkTo) continue;
     const dx = player.x - n.x, dy = player.y - n.y, range = n.sight * TS;
     let seen = false;
     if (n.dir === 'down') seen = Math.abs(dx) < 14 && dy > 0 && dy < range;
@@ -191,7 +212,7 @@ function interact() {
   // personajes (alcance mayor si hay un mostrador en medio)
   for (const dist of [18, 30, 46]) {
     const [fx, fy] = frontPoint(dist);
-    const n = MAP.npcs.find(a => !a.hidden && Math.hypot(a.x - fx, a.y - 6 - fy) < 16 && (dist < 30 || a.counter));
+    const n = MAP.npcs.find(a => !a.hidden && !a.ko && Math.hypot(a.x - fx, a.y - 6 - fy) < 16 && (dist < 30 || a.counter));
     if (n) { talkTo(n); return; }
   }
   // carteles y objetos con texto o acción
@@ -258,8 +279,10 @@ function runAction(o) {
   if (typeof ACTIONS !== 'undefined' && ACTIONS[o.action]) { busy = true; Promise.resolve(ACTIONS[o.action](o)).finally(() => { busy = false; }); }
 }
 
+function itemVisible(it) { return !G.picked[it.id] && (!it.mission || missionActive(it.mission)); }
 function pickItem(it) {
   G.picked[it.id] = true;
+  if (it.mission) { const M = MISSION[it.mission]; busy = true; completeMission(it.mission, [`¡Has encontrado ${M.data.what}! Su dueño estará contentísimo.`]).finally(() => { busy = false; }); return; }
   if (it.item) G.bag[it.item] = (G.bag[it.item] || 0) + (it.qty || 1);
   if (it.money) G.money += it.money;
   sfx('item');
@@ -271,7 +294,7 @@ function startWild(tile) {
   const reg = CITIES[MAP.regionIdx(Math.floor(player.x / TS), Math.floor(player.y / TS))];
   const w = wildEncounter(reg, tile);
   busy = true;
-  startBattle({ kind: 'wild', mon: w }).then(() => { busy = false; });
+  startBattle({ kind: 'wild', mon: w, region: CITIES.indexOf(reg) }).then(() => { busy = false; });
 }
 
 // ---------------- CLIMA ----------------
@@ -393,7 +416,7 @@ function renderWorld() {
   ctx.fillRect(0, 0, VW, VH);
   cam = cameraFor(MAP, player.x, player.y - 16);
   const actors = MAP.npcs.concat([player]);
-  for (const it of MAP.items) if (!G.picked[it.id]) actors.push(Object.assign({ isItem: true }, it));
+  for (const it of MAP.items) if (itemVisible(it)) actors.push(Object.assign({ isItem: true }, it));
   renderMap(MAP, cam, actors);
   drawWeather();
   drawLighting();
@@ -418,13 +441,16 @@ function drawBanner() {
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 
 // ---------------- HUD ----------------
+let hudDexT = 0;
 function updateHud() {
   if (STATE === 'TITLE' || !MAP) return;
   $('hud-place').textContent = placeName(MAP, player.x, player.y);
   const [h, m] = clock();
   $('hud-time').textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${isNight() ? '🌙' : '☀️'}`;
-  $('hud-quest').textContent = typeof questText === 'function' ? questText() : '';
+  const mt = missionHudText();
+  $('hud-quest').textContent = questText() + (mt ? '\n' + mt : '');
   drawMinimap($('minimap'), MAP, player.x, player.y);
+  if (now - (hudDexT || 0) > 2000) { hudDexT = now; checkCoredexMissions(); }
 }
 function showWorldUI(on) {
   $('hud').classList.toggle('hidden', !on);
@@ -444,16 +470,58 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 
-// A/B según el estado
+// A/B según el estado (B dispara si llevas la pistola en la mano)
 function setWorldControls() {
   onA = () => { if (STATE === 'WORLD' && !busy) interact(); };
-  onB = () => {};
+  onB = () => { if (STATE === 'WORLD' && !busy && G.gunOut) shoot(); };
 }
+
+// ---------------- PISTOLA DE DARDOS (por la coña) ----------------
+// Deja K.O. a la gente un rato. A los personajes importantes no les das: se apartan.
+const shots = [];
+function protectedNpc(n) {
+  return !!(n.script || n.counter || n.kind === 'nurse' || n.kind === 'shop' || n.marker || (n.trainer && (n.trainer.boss || n.trainer.onWin)) || /^(leader_|olaia|unai|ceo|lucia|hugo|zurine|elite|champ|nurse|clerk|rcv_)/.test(n.id));
+}
+function shoot() {
+  if (now - (shoot.last || 0) < 350) return;
+  shoot.last = now;
+  sfx('shot');
+  const h = player.heading != null ? player.heading : DIR_YAW2[player.dir];
+  const dx = Math.sin(h), dy = Math.cos(h), range = TS * 10;
+  let hit = null, best = range;
+  for (const n of MAP.npcs) {
+    if (n.hidden || n.ko) continue;
+    const vx = n.x - player.x, vy = n.y - player.y, along = vx * dx + vy * dy, lat = Math.abs(vx * dy - vy * dx);
+    if (along > 4 && along < best && lat < 16) { best = along; hit = n; }
+  }
+  // las paredes paran el dardo
+  for (let d = 8; d < best; d += 8) { const t = MAP.tileAt(Math.floor((player.x + dx * d) / TS), Math.floor((player.y - 10 + dy * d) / TS)); if (t === undefined || t === T.WALL || t === T.ROCK) { best = d; hit = null; break; } }
+  shots.push({ x0: player.x, y0: player.y, x1: player.x + dx * best, y1: player.y + dy * best, t0: now });
+  if (!hit) return;
+  if (protectedNpc(hit)) {
+    faceTo(hit, player);
+    toast(['¡Eh! ¡Que eso pica!', '¡Ni se te ocurra!', '*esquiva el dardo con estilo*', '¡Te estoy viendo, eh!'][Math.floor(Math.random() * 4)]);
+    return;
+  }
+  hit.ko = now; hit.walkTo = null; hit.moving = false;
+  sfx('ko');
+  G.koLog = (G.koLog || []).filter(t => Date.now() - t < 90000);
+  G.koLog.push(Date.now());
+  if (G.koLog.length >= 5) {
+    G.koLog = [];
+    const fine = Math.min(G.money, 500);
+    G.money -= fine;
+    sfx('siren');
+    setTimeout(() => toast(`🚓 La policía de Iberión te multa con ${fine} monedas por ir dejando a la gente K.O. a dardazos.`, 4200), 400);
+  }
+}
+const DIR_YAW2 = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 };
 
 // ---------------- ARRANQUE ----------------
 window.addEventListener('load', () => {
   WORLD = generateWorld();
   setupStory(WORLD);
+  setupMissions(WORLD);
   init3D();
   initJoystick();
   initUI();

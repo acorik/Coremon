@@ -116,7 +116,7 @@ const LIGA = [
   { id: 'elite4', name: 'Alto Mando Mikel', look: { skin: '#f2c49b', hair: 'curly', hairColor: '#b23a3a', shirt: '#ad1457', pants: '#263238' }, prize: 8500, team: [['sinfonix', 56], ['marmolon', 56], ['bibliopolilla', 57], ['loroglot', 57], ['musarte', 58]],
     intro: ['Arte, letras, idiomas... todo lo que aprendiste en el colegio vuelve ahora.', 'A ver si recuerdas tus lecciones.'], win: ['Una obra maestra. El campeón te espera.'] },
   { id: 'champ', name: 'Campeón Unai', look: LOOKS2.rival, prize: 15000, champion: true, team: [['huracanix', 58], ['glaciolobo', 58], ['magmoton', 59], ['gigatron', 59], ['lingualord', 60], ['corazonix', 62]],
-    intro: ['Al final has llegado. Te lo dije en el patio del colegio: vengo de la Segunda Edición.', 'Me hice campeón mientras tú perseguías a CoraCorp. Ahora, el último combate.', '¡Sin contenerse!'], win: ['...Has ganado. Eres el nuevo campeón de Iberión.', 'Me alegro de que fueras tú.'] }
+    intro: ['Al final has llegado. Te lo dije en el patio del colegio: yo venía de aquí fuera.', 'Me hice campeón mientras tú perseguías a CoraCorp. Ahora, el último combate.', '¡Sin contenerse!'], win: ['...Has ganado. Eres el nuevo campeón de Iberión.', 'Me alegro de que fueras tú.'] }
 ];
 
 // ---------------- RIVAL ----------------
@@ -230,8 +230,8 @@ function setupStory(world) {
   CITIES.forEach((c, ci) => {
     const r = mulberry32(strSeed('loot:' + c.id));
     let placed = 0, tries = 0;
-    while (placed < 7 && tries++ < 400) {
-      const x = Math.floor(c.x + (r() - 0.5) * 70), y = Math.floor(c.y + (r() - 0.5) * 60);
+    while (placed < 12 && tries++ < 600) {
+      const x = Math.floor(c.x + (r() - 0.5) * 70 * WS), y = Math.floor(c.y + (r() - 0.5) * 60 * WS);
       if (world.regionIdx(x, y) !== ci || inCity(world, x * TS, y * TS)) continue;
       const t = world.tileAt(x, y);
       if (t === undefined || SOLID_T.has(t) || blockedAt(world, x * TS + 16, y * TS + 26)) continue;
@@ -270,7 +270,7 @@ function setupStory(world) {
   // --- santuarios de los legendarios (tras ser campeón) ---
   const shrines = [['tormentix', 'voltia', 22, -14], ['glaciara', 'nevera', 14, -14], ['ignisaurio', 'ignea', -16, 14], ['oceanox', 'ria', -12, 12], ['silvador', 'bosque', -16, -14], ['eclipsor', 'umbria', -16, 12], ['albor', 'liga', 16, -10], ['cimientor', 'liga', -14, -10], ['mecardio', 'voltia', -22, 12]];
   shrines.forEach(([id, city, dx, dy]) => {
-    const c = CITY[city], [x, y] = freeSpot(world, c.x + dx, c.y + dy);
+    const c = CITY[city], [x, y] = freeSpot(world, c.x + Math.round(dx * WS), c.y + Math.round(dy * WS));
     world.addObj({ type: 'statue', x: x * TS + 16, y: y * TS + 28, action: 'legend', legend: id, text: null });
   });
 }
@@ -388,7 +388,7 @@ async function olaiaScript(n) {
   saveGame(true);
 }
 async function rival1Script(n) {
-  await say(['???: ¡Eh, tú! Te acuerdas de mí, ¿verdad? Del patio del colegio.', 'Unai: Soy Unai. Te dije que venía de la Segunda Edición... y aquí estamos.', 'Unai: Yo también voy a por las ocho medallas. Veamos quién llega antes a la Liga.']);
+  await say(['???: ¡Eh, tú! Te acuerdas de mí, ¿verdad? Del patio del colegio.', 'Unai: Soy Unai. Te dije que venía de fuera del colegio... ¿a que no te lo creías?', 'Unai: Yo también voy a por las ocho medallas. Veamos quién llega antes a la Liga.']);
   const res = await startBattle({ kind: 'trainer', trainer: { name: 'Rival Unai', look: LOOKS2.rival, custom: 'unai', team: rivalTeam(1), prize: 1200 } });
   if (res === 'win') await say(['Unai: ...Vale. Eres bueno. Pero esto acaba de empezar.', 'Unai: ¡Nos vemos en la Liga!']);
   else await say(['Unai: ¡Ja! Entrena un poco más. ¡Nos vemos en la Liga!']);
@@ -495,14 +495,14 @@ async function championEnding() {
   music('victory');
   await say(['¡¡Eres el nuevo campeón de la Liga Coremon de Iberión!!', 'Del colegio Corazonistas de Vitoria a lo más alto del mundo.',
     'Ahora los legendarios de Iberión se dejarán ver en sus santuarios: Tormentix, Glaciara, Ignisaurio, Oceanox, Silvador, Eclipsor, Albor... y Mecardio.',
-    'Y muy pronto llegará el modo online: combates e intercambios con otros entrenadores.', 'Coremon 2 — un juego de acorik. ¡Gracias por jugar!']);
+    'Y muy pronto llegará el modo online: combates e intercambios con otros entrenadores.', 'COREMON — un juego de acorik. ¡Gracias por jugar!']);
 }
 
 // ---------------- ACCIONES DE OBJETOS ----------------
 const ACTIONS = {
   pc: () => openBox(),
   school_door: async () => {
-    const i = await ask('La estatua del vestíbulo... Por aquí se vuelve al colegio de siempre (Coremon 1). ¿Volver?', ['Sí, volver al colegio', 'No']);
+    const i = await ask('La estatua del vestíbulo... Por aquí se vuelve al colegio de siempre. ¿Volver?', ['Sí, volver al colegio', 'No']);
     if (i === 0) { saveGame(true); location.href = '../coremon1/index.html'; }
   },
   legend: async o => {

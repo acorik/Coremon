@@ -90,7 +90,8 @@ function newGame() {
   return {
     v: 1, map: 'world', x: 0, y: 0, facing: 'down',
     team: [], box: [], bag: {}, money: 3000, badges: [], flags: {}, seen: {}, caught: {},
-    beaten: {}, picked: {}, time: 8 * 60, playTime: 0, quest: 'intro', fromC1: false, name: 'Cora'
+    beaten: {}, picked: {}, time: 8 * 60, playTime: 0, quest: 'intro', fromC1: false, name: 'Cora',
+    missions: {}, track: null, ride: null, gunOut: false
   };
 }
 
@@ -100,7 +101,7 @@ function saveGame(silent) {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); if (!silent) toast('Partida guardada.'); } catch (e) { if (!silent) toast('No se ha podido guardar.'); }
 }
 function loadGame() {
-  try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return null; return Object.assign(newGame(), JSON.parse(raw)); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return null; const g = Object.assign(newGame(), JSON.parse(raw)); if (g.bike) { g.ride = 'bici'; delete g.bike; } return g; } catch (e) { return null; }
 }
 function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
 function readC1Save() { try { const raw = localStorage.getItem(C1_SAVE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }

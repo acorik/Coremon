@@ -860,28 +860,29 @@ function drawCine() {
     drawCreature(ctx, cine.species, VIEW_W / 2 - 56, VIEW_H / 2 - 90 + (1 - k) * 60, 112, { white: 1 - k, alpha: k });
     ctx.fillStyle = '#fafafa'; ctx.textAlign = 'center'; ctx.font = 'bold 16px monospace';
     ctx.fillText(`¡${SPECIES[cine.species].name} ha salido de la placa!`, VIEW_W / 2, VIEW_H - 40);
-  } else if (cine.type === 'teaser') {
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    const k = Math.min(1, t / 3000);
-    // ojos enormes que se abren en la oscuridad
-    const open = Math.max(0, Math.min(1, (t - 1500) / 1200)) * (Math.floor(t / 2600) % 3 === 2 && t > 5000 ? 0.1 : 1);
-    ctx.fillStyle = `rgba(${120 + 80 * Math.sin(t / 200)},0,30,${0.25 * k})`;
-    ctx.beginPath(); ctx.ellipse(VIEW_W / 2, VIEW_H / 2 + 40, 260, 140, 0, 0, Math.PI * 2); ctx.fill();
-    [-90, 90].forEach(dx => {
-      ctx.fillStyle = '#ff1744';
-      ctx.beginPath(); ctx.ellipse(VIEW_W / 2 + dx, VIEW_H / 2 - 20, 46, 22 * open + 0.5, dx < 0 ? 0.15 : -0.15, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffeb3b';
-      ctx.fillRect(VIEW_W / 2 + dx - 4, VIEW_H / 2 - 20 - 14 * open, 8, 28 * open);
-    });
-    const a = Math.max(0, Math.min(1, (t - 4200) / 800));
-    ctx.globalAlpha = a; ctx.textAlign = 'center';
-    ctx.font = 'bold 34px monospace'; ctx.lineWidth = 6; ctx.strokeStyle = '#000';
-    ctx.strokeText('COREMON', VIEW_W / 2, VIEW_H - 92); ctx.fillStyle = '#ffd54f'; ctx.fillText('COREMON', VIEW_W / 2, VIEW_H - 92);
-    ctx.font = 'bold 18px monospace';
-    ctx.strokeText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62); ctx.fillStyle = '#ff5252'; ctx.fillText('SEGUNDA EDICIÓN', VIEW_W / 2, VIEW_H - 62);
-    ctx.font = '13px monospace'; ctx.fillStyle = '#bdbdbd';
-    ctx.fillText('«Lo que duerme bajo el gimnasio... ha despertado.»', VIEW_W / 2, VIEW_H - 34);
-    ctx.fillText('COMIENZA AHORA', VIEW_W / 2, VIEW_H - 14);
+  } else if (cine.type === 'tutorial') {
+    // la gran revelación: todo el colegio era el tutorial
+    ctx.fillStyle = '#05040a'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    for (let i = 0; i < 70; i++) { ctx.fillStyle = `rgba(255,255,255,${0.2 + 0.3 * Math.sin(t / 400 + i)})`; ctx.fillRect((i * 97 + t / 30) % VIEW_W, (i * 53) % VIEW_H, 2, 2); }
+    ctx.textAlign = 'center';
+    const ap = (t0, d) => Math.max(0, Math.min(1, (t - t0) / (d || 500)));
+    ctx.globalAlpha = ap(200);
+    ctx.font = 'bold 30px monospace'; ctx.lineWidth = 6; ctx.strokeStyle = '#000';
+    ctx.strokeText('TUTORIAL COMPLETADO', VIEW_W / 2, 74); ctx.fillStyle = '#69f0ae'; ctx.fillText('TUTORIAL COMPLETADO', VIEW_W / 2, 74);
+    const items = ['Moverse y hablar', 'Capturar Coremon', 'Combatir y evolucionar', 'Vencer a los profes', 'Vencer al Fundador'];
+    ctx.font = 'bold 15px monospace'; ctx.textAlign = 'left';
+    items.forEach((it, i) => { ctx.globalAlpha = ap(1200 + i * 450, 300); ctx.fillStyle = '#69f0ae'; ctx.fillText('✔', 150, 118 + i * 24); ctx.fillStyle = '#fafafa'; ctx.fillText(it, 176, 118 + i * 24); });
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = ap(4200, 700);
+    ctx.font = 'bold 15px monospace'; ctx.fillStyle = '#ffd54f';
+    ctx.fillText('Todo lo del colegio... era el tutorial.', VIEW_W / 2, 262);
+    ctx.globalAlpha = ap(6000, 900);
+    const s = 1 + Math.max(0, 1 - ap(6000, 900)) * 0.4;
+    ctx.save(); ctx.translate(VIEW_W / 2, 322); ctx.scale(s, s);
+    ctx.font = 'bold 42px monospace'; ctx.lineWidth = 8; ctx.strokeStyle = '#000'; ctx.strokeText('COREMON', 0, 0); ctx.fillStyle = '#ffd54f'; ctx.fillText('COREMON', 0, 0);
+    ctx.restore();
+    ctx.globalAlpha = ap(7200, 600); ctx.font = '13px monospace'; ctx.fillStyle = '#bdbdbd';
+    ctx.fillText('Ahora empieza el juego de verdad.', VIEW_W / 2, 360);
     ctx.globalAlpha = 1;
   } else if (cine.type === 'credits') {
     ctx.fillStyle = '#100a14'; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -906,7 +907,7 @@ function drawHeartIcon(cx, cy, s) {
 }
 
 const CREDITS = [
-  '#COREMON', 'Edición Corazonistas Vitoria', '',
+  '#COREMON', 'Corazonistas · Vitoria-Gasteiz', '',
   '#Un juego de', 'acorik', '',
   'Has demostrado saber... y tener corazón.', '',
   '#Inspirado en la historia real', 'Padre Andrés Coindre (1787-1826)', 'Fundó en Lyon, en 1821,', 'los Hermanos del Sagrado Corazón', 'para educar a niños sin hogar.', '',
@@ -972,8 +973,8 @@ function drawTitleText(t) {
   ctx.lineWidth = 8; ctx.strokeStyle = '#1d1a26'; ctx.strokeText('COREMON', 256, 290);
   ctx.fillStyle = '#ffd54f'; ctx.fillText('COREMON', 256, 290);
   ctx.font = 'bold 15px monospace';
-  ctx.lineWidth = 4; ctx.strokeText('Edición Corazonistas Vitoria', 256, 314);
-  ctx.fillStyle = '#fafafa'; ctx.fillText('Edición Corazonistas Vitoria', 256, 314);
+  ctx.lineWidth = 4; ctx.strokeText('Corazonistas · Vitoria-Gasteiz', 256, 314);
+  ctx.fillStyle = '#fafafa'; ctx.fillText('Corazonistas · Vitoria-Gasteiz', 256, 314);
   ['tizorex', 'plumavox', 'mochiloide'].forEach((sp, i) => {
     drawCreature(ctx, sp, 70 + i * 160, 318 + Math.sin(t / 300 + i) * 4, 56, { flip: i === 2 });
   });
@@ -1119,19 +1120,18 @@ async function endingScene() {
   await say(['El Padre Andrés Coindre sonríe y se desvanece en una luz cálida...',
     'De repente, todo el colegio tiembla. Algo muy profundo, bajo el gimnasio, se ha movido.']);
   music('ending');
-  await cinematic({ type:'credits', skippable:true }, 30000);
-  await cinematic({ type:'teaser' }, 9000);
+  await cinematic({ type:'tutorial' }, 9000);
   music(null);
-  await say(['¡Has completado Coremon: Edición Corazonistas Vitoria!',
-    'Pero esto no acaba aquí. La trampilla del gimnasio ha reventado... y lo que dormía debajo ha salido al mundo.',
-    'Tu equipo, tus Coremon y tu Coredex vienen contigo. Es hora de salir del colegio.']);
+  await say(['La trampilla del gimnasio revienta. Lo que dormía debajo ha salido... al mundo.',
+    'El colegio solo era el principio. Tu equipo, tus Coremon y tu Coredex vienen contigo.',
+    'Es hora de salir ahí fuera.']);
   STATE = 'OVERWORLD';
   saveGame(); refreshTouch();
   await goToCoremon2();
 }
 
-// ---------------- PASO A COREMON 2 ----------------
-// Coremon 2 (mundo abierto) está en ../coremon2 y lee esta misma partida
+// ---------------- FIN DEL TUTORIAL: AL MUNDO ----------------
+// El mundo abierto está en ../coremon2 y lee esta misma partida
 // (mismo localStorage) para traerse el equipo, la Coredex y el dinero.
 async function goToCoremon2() {
   STATE = 'CUTSCENE';

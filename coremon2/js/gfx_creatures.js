@@ -42,6 +42,13 @@ function creatureCanvas(id) {
 
 // ---------------- CONSTRUCCIÓN POR PARTES ----------------
 function buildCreature(id) {
+  const P = creatureParts(id);
+  return rasterize(P.parts, P.col, SPECIES[id]);
+}
+// piezas de la criatura (las usan el sprite 2D y el modelo 3D)
+const PARTS_CACHE = {};
+function creatureParts(id) {
+  if (PARTS_CACHE[id]) return PARTS_CACHE[id];
   const sp = SPECIES[id];
   const r = mulberry32(strSeed('cr:' + id));
   const pick = arr => arr[Math.floor(r() * arr.length)];
@@ -72,7 +79,7 @@ function buildCreature(id) {
   if (sp.legendary) addLegendFeatures(ctxBuild);
   addFace(ctxBuild);
 
-  return rasterize(parts, col, sp);
+  return (PARTS_CACHE[id] = { parts, col, outline: shade(col.body, -72), float: !!ctxBuild.float, side: ctxBuild.side });
 }
 
 // ---------------- CUERPOS ----------------

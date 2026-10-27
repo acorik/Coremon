@@ -184,10 +184,15 @@ const ITEMS = {
   // objetos clave
   bici:      { name: 'Bicicleta', desc: 'Ve mucho más rápido. Úsala desde la mochila.', kind: 'key', icon: '🚲' },
   mapa:      { name: 'Mapa de Iberión', desc: 'Muestra el mapa del mundo.', kind: 'key', icon: '🗺️' },
-  pase:      { name: 'Pase de CoraCorp', desc: 'Tarjeta de acceso robada a un recluta de CoraCorp.', kind: 'key', icon: '🪪' }
+  pase:      { name: 'Pase de CoraCorp', desc: 'Tarjeta de acceso robada a un recluta de CoraCorp.', kind: 'key', icon: '🪪' },
+  moto:      { name: 'Moto', desc: 'Para cruzar Iberión de punta a punta. Hay que conducirla: acelera, frena y no te la pegues.', kind: 'key', price: 12000, once: true, icon: '🏍️' },
+  pistola:   { name: 'Pistola de juguete', desc: 'Dispara dardos de espuma. Deja K.O. a la gente un rato... y la policía multa.', kind: 'key', price: 3000, once: true, icon: '🔫' },
+  paquete:   { name: 'Paquete', desc: 'Un paquete para entregar. Mira tus misiones.', kind: 'key', icon: '📦' }
 };
 const SHOP_TIERS = [
   ['bocadillo', 'menu', 'zumo', 'antidoto', 'tirita', 'cromo', 'cromoOro', 'repelente'],
   ['bocadillo', 'menu', 'banquete', 'zumo', 'antidoto', 'tirita', 'cromo', 'cromoOro', 'cromoPlatino', 'repelente'],
   ['menu', 'banquete', 'zumo', 'elixir', 'antidoto', 'tirita', 'botiquin', 'cromoOro', 'cromoPlatino', 'repelente']
 ];
+// se venden en todas las tiendas
+SHOP_TIERS.forEach(t => t.push('moto', 'pistola'));

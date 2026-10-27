@@ -163,7 +163,7 @@ function clearRoom1() {
     R1.scene.remove(R1.room);
     R1.room.traverse(o => { if (o.isInstancedMesh) o.dispose(); if (o.geometry && o.userData.own) o.geometry.dispose(); if (o.material && o.userData.ownMat) { [].concat(o.material).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); } });
   }
-  for (const o of R1.actors.values()) { R1.dyn.remove(o.m); if (o.bub) R1.dyn.remove(o.bub); if (o.zz) R1.dyn.remove(o.zz); o.mat.dispose(); }
+  for (const o of R1.actors.values()) { R1.dyn.remove(o.g); if (o.bub) R1.dyn.remove(o.bub); if (o.zz) R1.dyn.remove(o.zz); }
   R1.actors.clear();
   for (const m of R1.items.values()) R1.dyn.remove(m);
   R1.items.clear();
@@ -298,29 +298,24 @@ function updateActors1(map) {
   for (const a of list) {
     seen.add(a);
     let o = R1.actors.get(a);
-    if (!o) {
-      const mat = new THREE.MeshLambertMaterial({ alphaTest: 0.5, side: THREE.DoubleSide });
-      const m = new THREE.Mesh(R1.geoUnit, mat); m.castShadow = true; m.rotation.x = -0.2;
-      m.scale.set(1.125, 1.125 * VS, 1);
-      m.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5 });
-      R1.dyn.add(m);
-      o = { m, mat, key: null };
+    if (!o || o.look !== a.look) {
+      if (o) { R1.dyn.remove(o.g); if (o.bub) R1.dyn.remove(o.bub); if (o.zz) R1.dyn.remove(o.zz); }
+      o = { g: makePerson3D(a.look, 1.08), look: a.look };
+      R1.dyn.add(o.g);
       R1.actors.set(a, o);
     }
-    const fr = actorFrame(a), key = (a.facing || 'down') + fr;
-    if (o.key !== key || o.look !== a.look) {
-      const t = personTex1(a.look, a.facing || 'down', fr);
-      o.mat.map = t; o.mat.needsUpdate = true; o.m.customDepthMaterial.map = t; o.m.customDepthMaterial.needsUpdate = true;
-      o.key = key; o.look = a.look;
-    }
-    o.m.position.set(a.px / TILE + 0.5, 0, a.py / TILE + 0.92);
+    // paso: avance dentro de la casilla
+    const k = a.moving ? Math.min(1, (now - a.t0) / a.dur) : 0;
+    const phase = ((a.step || 0) + k) * Math.PI;
+    animatePerson3D(o.g, !!a.moving, phase, DIR_YAW[a.facing || 'down'], 16, { run: a === player && running() });
+    o.g.position.set(a.px / TILE + 0.5, 0, a.py / TILE + 0.62);
     if (a.bubble && !o.bub) { o.bub = new THREE.Sprite(R1.bubbleMat); o.bub.scale.set(0.45, 0.45, 1); o.bub.renderOrder = 20; R1.dyn.add(o.bub); }
-    if (o.bub) { o.bub.visible = !!a.bubble; o.bub.position.set(o.m.position.x, 1.85, o.m.position.z); }
+    if (o.bub) { o.bub.visible = !!a.bubble; o.bub.position.set(o.g.position.x, 1.95, o.g.position.z); }
     const z = a.sleepy && !a.bubble && !game.badges.includes(a.id);
     if (z && !o.zz) { o.zz = new THREE.Sprite(R1.zzzMat); o.zz.scale.set(0.4, 0.4, 1); o.zz.renderOrder = 20; R1.dyn.add(o.zz); }
-    if (o.zz) { o.zz.visible = z; const k = (now / 900) % 1; o.zz.position.set(o.m.position.x + 0.3 + k * 0.2, 1.6 + k * 0.4, o.m.position.z); o.zz.material.opacity = 1 - k; }
+    if (o.zz) { o.zz.visible = z; const q = (now / 900) % 1; o.zz.position.set(o.g.position.x + 0.3 + q * 0.2, 1.7 + q * 0.4, o.g.position.z); o.zz.material.opacity = 1 - q; }
   }
-  for (const [a, o] of R1.actors) if (!seen.has(a)) { R1.dyn.remove(o.m); if (o.bub) R1.dyn.remove(o.bub); if (o.zz) R1.dyn.remove(o.zz); o.mat.dispose(); R1.actors.delete(a); }
+  for (const [a, o] of R1.actors) if (!seen.has(a)) { R1.dyn.remove(o.g); if (o.bub) R1.dyn.remove(o.bub); if (o.zz) R1.dyn.remove(o.zz); R1.actors.delete(a); }
   // objetos del suelo y páginas del diario
   const itSeen = new Set();
   for (const it of map.items) {
@@ -423,8 +418,11 @@ function battleBg3D(b) {
     R1.bcam.updateMatrixWorld();
     plat(POS.enemy.x, POS.enemy.y + 8, 1.6);
     plat(POS.player.x, POS.player.y + 12, 1.3);
-    R1.bscene = s;
+    R1.platE = groundPoint1(POS.enemy.x / 512, (POS.enemy.y + 8) / 384);
+    R1.platP = groundPoint1(POS.player.x / 512, (POS.player.y + 12) / 384);
+    R1.bscene = s; R1.bmon = {};
   }
+  battleActors3D(b);
   const t = performance.now() / 1000;
   R1.bcam.position.set(Math.sin(t * 0.3) * 0.08, 2.4 + Math.sin(t * 0.21) * 0.04, 6.5);
   R1.bcam.lookAt(0, 0.8, -3);
@@ -437,4 +435,53 @@ function groundPoint1(u, v) {
   const p = new THREE.Vector3();
   ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p);
   return p;
+}
+
+// ---------------- COREMON Y ENTRENADORES DEL COMBATE EN 3D ----------------
+function c1Model(id, size) {
+  const M = C1_MODELS[id];
+  const parts = M.p.map(q => ({ kind: q.k, x: q.x, y: q.y, rx: q.rx, ry: q.ry, rot: q.rot || 0, pts: q.pts, w: q.w, role: q.role, color: q.c }));
+  const g = makeCreature3D('c1:' + id, parts, M.o, size);
+  g.userData.float = !!M.f;
+  return g;
+}
+function battleActors3D(b) {
+  const S = R1.bscene, t = performance.now();
+  const slot = (k, id, mk) => {
+    if (R1.bmon[k] && R1.bmon[k].key === id) return R1.bmon[k].g;
+    if (R1.bmon[k]) S.remove(R1.bmon[k].g);
+    const g = mk(); S.add(g); R1.bmon[k] = { key: id, g };
+    return g;
+  };
+  const hide = k => { if (R1.bmon[k]) R1.bmon[k].g.visible = false; };
+  const px2u = v => v / 512 * 9;
+  const mon = (k, side, m, base, other, size) => {
+    if (!m || !b.show[side + 'Mon']) { hide(k); return; }
+    const g = slot(k, m.species, () => c1Model(m.species, 1));
+    const faint = b.faint[side] || 0, appear = b.appear[side] || 0;
+    let white = appear > 0 ? appear : 0;
+    const fl = b.flash[side] > 0 && b.flash[side] % 4 < 2;
+    g.visible = faint < 1;
+    const sc = size * (1 - appear * 0.8) * (1 + Math.sin(t / 420 + (k === 'p' ? 1 : 0)) * 0.015);
+    g.userData.anim.inner.scale.set(size * (1 - appear * 0.8), sc, size * (1 - appear * 0.8));
+    let x = base.x + px2u(b.off[side] || 0), z = base.z;
+    if (b.lunge && b.lunge.side === side) { const am = Math.sin(Math.min(1, b.lunge.k) * Math.PI) * 0.35; x += (other.x - base.x) * am; z += (other.z - base.z) * am; }
+    g.position.set(x, 0.14 - faint * 1.2 + (g.userData.float ? 0.35 + Math.sin(t / 500) * 0.08 : 0), z);
+    g.lookAt(side === 'enemy' ? new THREE.Vector3(R1.bcam.position.x * 0.5 + other.x * 0.5, g.position.y, R1.bcam.position.z * 0.5 + other.z * 0.5) : new THREE.Vector3(other.x, g.position.y, other.z));
+    styleCreature3D(g, fl ? 0.8 : white, 1 - faint * 0.8);
+  };
+  mon('e', 'enemy', activeEnemy(), R1.platE, R1.platP, 3.0);
+  mon('p', 'player', activePlayer(), R1.platP, R1.platE, 2.3);
+  // entrenadores
+  if (b.show.enemyTrainer && b.trainer) {
+    const look = b.trainer.look || randomStudentLook(b.trainer.name.length * 7);
+    const g = slot('te', JSON.stringify(look), () => makePerson3D(look, 1.7));
+    g.visible = true; g.position.set(R1.platE.x + 1.6 + px2u(b.off.enemyTrainer || 0), 0.14, R1.platE.z - 0.6);
+    animatePerson3D(g, false, 0, Math.atan2(R1.bcam.position.x - g.position.x, R1.bcam.position.z - g.position.z), 100);
+  } else hide('te');
+  if (b.show.playerTrainer) {
+    const g = slot('tp', 'player', () => makePerson3D(LOOKS.player, 1.7));
+    g.visible = true; g.position.set(R1.platP.x - 0.8 + px2u(b.off.playerTrainer || 0), 0.14, R1.platP.z + 0.3);
+    animatePerson3D(g, false, 0, Math.atan2(R1.platE.x - g.position.x, R1.platE.z - g.position.z), 100);
+  } else hide('tp');
 }

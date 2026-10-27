@@ -1,3 +1,21 @@
+# Coremon 2.0 — estado (un solo juego)
+
+- **El colegio es el tutorial.** Al vencer a Coindre aparece «TUTORIAL
+  COMPLETADO» y se sale directo al mundo.
+- **Personajes 3D** (`js/model3d.js`, compartido con el colegio): personas
+  chibi animadas y Coremon 3D construidos con las piezas del generador de
+  sprites, con sombreado cel y contorno. Tu primer Coremon te sigue.
+- **Mapa ×1,6 por lado** (`WS` en `world.js`). Tiene 13 pueblos: 4 en los
+  caminos y una aldea por región unida con un sendero.
+- **Misiones libres** (`js/missions.js`): tablones en ciudades y pueblos, con
+  hasta 5 activas a la vez. Se calcula qué medallas hacen falta para llegar a
+  cada zona, para no mandar a sitios inaccesibles.
+- **Tienda:**
+  - moto (12000 💰), con conducción con inercia;
+  - pistola de dardos (3000 💰): dispara con B o X, deja K.O. 40 s y la
+    policía multa a los 5 K.O. en 90 s;
+  - las dos se usan desde la mochila.
+
 # Coremon 2 — estado y hoja de ruta
 
 Coremon 2 empieza al vencer al Padre Andrés Coindre en Coremon 1 (o al bajar

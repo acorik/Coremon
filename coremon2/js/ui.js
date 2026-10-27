@@ -156,6 +156,7 @@ function openMainMenu() {
     B('🪪', 'Tarjeta', () => openCard());
     B('💾', 'Guardar', () => { saveGame(); closePanel(); });
     B('⚙️', 'Opciones', () => openOptions());
+    B('📋', 'Misiones', () => openMissions());
     B('🌐', 'Online', () => openOnline(), true);
     body.appendChild(grid);
   });
@@ -236,7 +237,15 @@ async function useBagItem(id, battleCtx) {
     panelOnClose = null; closePanel(); battleCtx.onCapture(id); return;
   }
   if (it.kind === 'key') {
-    if (id === 'bici') { if (battleCtx) return; G.bike = !G.bike; toast(G.bike ? '¡Te subes a la bici! 🚲' : 'Te bajas de la bici.'); closePanel(); return; }
+    if (id === 'bici' || id === 'moto') {
+      if (battleCtx) return;
+      if (!MAP.outdoor) { toast('Aquí dentro no puedes montar.'); return; }
+      G.ride = G.ride === id ? null : id; G.bike = false;
+      toast(G.ride === 'moto' ? '¡Arrancas la moto! 🏍️ Acelera con el joystick y cuidado con las curvas.' : G.ride === 'bici' ? '¡Te subes a la bici! 🚲' : 'Te bajas.');
+      if (G.ride === 'moto') sfx('engine');
+      closePanel(); return;
+    }
+    if (id === 'pistola') { if (battleCtx) return; G.gunOut = !G.gunOut; toast(G.gunOut ? '🔫 Pistola en mano: dispara con B (X en el teclado).' : 'Guardas la pistola.'); closePanel(); return; }
     if (id === 'mapa') { openMap(); return; }
     toast(it.desc); return;
   }
@@ -297,6 +306,8 @@ function openMap() {
       g.fillStyle = known ? '#ffd54f' : '#9e9e9e'; g.fillRect(ct.x * 3 - 5, ct.y * 3 - 5, 10, 10);
       if (known) { g.fillStyle = '#000'; g.fillText(ct.name, ct.x * 3 - 28 + 1, ct.y * 3 - 10 + 1); g.fillStyle = '#fff'; g.fillText(ct.name, ct.x * 3 - 28, ct.y * 3 - 10); }
     });
+    VILLAGES.forEach(v => { g.fillStyle = '#ffe9a8'; g.fillRect(v.x * 3 - 4, v.y * 3 - 4, 8, 8); if (G.flags['visit_' + v.id]) { g.fillStyle = '#000'; g.fillText(v.name, v.x * 3 - 20 + 1, v.y * 3 - 8 + 1); g.fillStyle = '#fff3c4'; g.fillText(v.name, v.x * 3 - 20, v.y * 3 - 8); } });
+    drawMissionMarks(g, X => X * 3, Y => Y * 3);
     if (MAP === WORLD) { g.fillStyle = '#ff1744'; g.beginPath(); g.arc(player.x / TS * 3, player.y / TS * 3, 7, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); }
     body.appendChild(c);
     body.appendChild(el('p', 'muted', 'Las ciudades visitadas aparecen con su nombre. Las barreras rojas de CoraCorp se rompen con las medallas.'));
@@ -333,10 +344,10 @@ function openOptions() {
     body.appendChild(s);
     body.appendChild(el('h4', null, 'Controles'));
     body.appendChild(el('p', 'muted', 'Teclado: flechas/WASD para moverte, Shift para correr, Enter/Espacio/Z para hablar (A), Esc/X para volver (B) y M para el menú. Móvil: joystick (hasta el borde para correr) y botones A/B. También funciona con mando.'));
-    const c1 = el('button', 'bigbtn grey', '🏫 Volver al colegio (Coremon 1)');
+    const c1 = el('button', 'bigbtn grey', '🏫 Volver al colegio');
     c1.onclick = async () => { closePanel(); const i = await ask('¿Volver al colegio? Tu partida del mundo se guardará.', ['Sí, volver', 'No']); if (i === 0) { saveGame(true); location.href = '../coremon1/index.html'; } };
     body.appendChild(c1);
-    body.appendChild(el('p', 'muted', 'Coremon 2 · versión ' + C2_VERSION + ' · un juego de acorik · acorik.itch.io/coremon'));
+    body.appendChild(el('p', 'muted', 'Coremon · versión ' + C2_VERSION + ' · un juego de acorik · acorik.itch.io/coremon'));
   });
 }
 function openOnline() {
@@ -358,7 +369,8 @@ function openShop() {
       const g = el('div', 'grow'); const top = el('div', 'top'); top.appendChild(el('b', null, it.name)); top.appendChild(el('span', null, it.price + ' 💰'));
       g.appendChild(top); g.appendChild(el('div', 'muted', it.desc + (G.bag[id] ? ` (tienes ${G.bag[id]})` : ''))); r.appendChild(g);
       [1, 5].forEach(n => {
-        const b = el('button', 'pbtn', '×' + n);
+        if (it.once && (n > 1 || G.bag[id])) { if (n === 1) r.appendChild(el('span', 'muted', '✔')); return; }
+        const b = el('button', 'pbtn', it.once ? 'Comprar' : '×' + n);
         b.onclick = e => { e.stopPropagation(); if (G.money < it.price * n) { toast('No tienes dinero suficiente.'); return; } G.money -= it.price * n; G.bag[id] = (G.bag[id] || 0) + n; sfx('item'); openShop(); };
         r.appendChild(b);
       });
@@ -388,13 +400,13 @@ function showTitle() {
   $('t-continue').disabled = !save;
   let info = '';
   if (save) info = `Partida guardada: ${save.badges.length} medalla${save.badges.length === 1 ? '' : 's'} · ${Math.floor(save.playTime / 3600000)} h ${Math.floor(save.playTime / 60000) % 60} min`;
-  else if (c1) info = `Se traerá tu partida de Coremon 1: ${(c1.team || []).length} Coremon en el equipo y ${(c1.box || []).length} en la taquilla.`;
+  else if (c1) info = `Se traerá tu partida del colegio: ${(c1.team || []).length} Coremon en el equipo y ${(c1.box || []).length} en la taquilla.`;
   else info = 'Empieza tu aventura en el mundo de Iberión.';
   $('title-info').textContent = info;
   $('t-continue').onclick = () => { audioInit(); continueGame(); };
   $('t-new').onclick = async () => {
     audioInit();
-    if (save && !confirm('Empezar una aventura nueva borrará tu partida de Coremon 2. ¿Seguro?')) return;
+    if (save && !confirm('Empezar una aventura nueva borrará tu partida del mundo. ¿Seguro?')) return;
     startNewGame();
   };
   onA = () => { if (save) continueGame(); else startNewGame(); };
