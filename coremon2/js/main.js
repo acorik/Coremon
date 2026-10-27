@@ -98,12 +98,14 @@ function movePlayer(dt) {
     player.moving = mag > 0.15;
     if (!player.moving) { player.frame = 0; return; }
     const sp = (ride === 'bici' ? SPEED.bike : inputRun() ? SPEED.run : SPEED.walk) * Math.min(1, mag * 1.15) * dt / 1000;
-    vx = d.x / Math.max(mag, 1e-6) * sp; vy = d.y / Math.max(mag, 1e-6) * sp;
+    const turbo = G.flags.devTurbo ? 2.5 : 1;
+    vx = d.x / Math.max(mag, 1e-6) * sp * turbo; vy = d.y / Math.max(mag, 1e-6) * sp * turbo;
     player.dir = Math.abs(d.x) > Math.abs(d.y) ? (d.x > 0 ? 'right' : 'left') : (d.y > 0 ? 'down' : 'up');
     player.heading = Math.atan2(d.x, d.y);
   }
   const ox = player.x, oy = player.y;
   // movimiento con deslizamiento contra paredes (en moto, el golpe frena)
+  if (G.flags.devNoclip) { player.x = clamp(player.x + vx, 8, MAP.w * TS - 8); player.y = clamp(player.y + vy, 8, MAP.h * TS - 8); vx = vy = 0; }
   if (!blockedAt(MAP, player.x + vx, player.y, null)) player.x += vx; else if (ride === 'moto') { if (Math.abs(player.vx) > 200) sfx('bump'); player.vx *= -0.2; }
   if (!blockedAt(MAP, player.x, player.y + vy, null)) player.y += vy; else if (ride === 'moto') { if (Math.abs(player.vy) > 200) sfx('bump'); player.vy *= -0.2; }
   const moved = Math.hypot(player.x - ox, player.y - oy);
@@ -120,7 +122,7 @@ function movePlayer(dt) {
   // objetos del suelo
   for (const it of MAP.items) if (itemVisible(it) && Math.hypot(it.x - player.x, it.y - player.y) < 14) pickItem(it);
   // encuentros en hierba alta
-  if (moved > 0 && MAP.outdoor && !G.flags.noEncounters) {
+  if (moved > 0 && MAP.outdoor && !G.flags.noEncounters && G.ride !== 'moto') {
     const t = MAP.tileAt(Math.floor(player.x / TS), Math.floor((player.y - 2) / TS));
     if (ENCOUNTER_T.has(t)) {
       encounterAcc += moved;
@@ -178,6 +180,7 @@ function faceTo(a, b) { const dx = b.x - a.x, dy = b.y - a.y; a.dir = Math.abs(d
 
 // los entrenadores te ven si estás en su línea de visión
 function checkTrainerSight() {
+  if (G.ride === 'moto' && MAP.outdoor) return;   // en moto vas demasiado rápido para que te paren
   for (const n of MAP.npcs) {
     if (!(n.trainer || n.ambush) || n.hidden || n.ko || G.beaten[n.id] || !n.sight || n.walkTo) continue;
     const dx = player.x - n.x, dy = player.y - n.y, range = n.sight * TS;
@@ -459,9 +462,13 @@ function showWorldUI(on) {
 
 // ---------------- BUCLE ----------------
 let frameDt = 16;
+const FPSC = { n: 0, t0: 0, v: 0 };
 function frame(ts) {
+  if (SETTINGS.fpsCap && lastT && ts - lastT < 1000 / SETTINGS.fpsCap - 2) { requestAnimationFrame(frame); return; }
   const dt = lastT ? Math.min(50, ts - lastT) : 16;
   lastT = ts; now = ts; frameDt = dt;
+  FPSC.n++;
+  if (ts - FPSC.t0 > 500) { FPSC.v = Math.round(FPSC.n * 1000 / (ts - FPSC.t0)); FPSC.n = 0; FPSC.t0 = ts; const e = $('fps'); if (e) { e.classList.toggle('hidden', !SETTINGS.fps); if (SETTINGS.fps) e.textContent = `${FPSC.v} FPS · ${R3.ok ? (SETTINGS.quality === 'auto' ? 'auto ' + Math.round(PERF.scale * 100) + '%' : SETTINGS.quality) : '2D'}`; } }
   if (STATE !== 'TITLE') update(dt);
   if (STATE === 'BATTLE') renderBattle();
   else if (STATE === 'TITLE') renderTitle();

@@ -342,12 +342,71 @@ function openOptions() {
     const s = el('button', 'bigbtn', audioOn ? '🔊 Sonido: activado' : '🔇 Sonido: desactivado');
     s.onclick = () => { audioInit(); setAudio(!audioOn); s.textContent = audioOn ? '🔊 Sonido: activado' : '🔇 Sonido: desactivado'; };
     body.appendChild(s);
+    // gráficos
+    body.appendChild(el('h4', null, '🎨 Gráficos'));
+    const qrow = el('div', 'optrow');
+    [['auto', 'Auto'], ['baja', 'Baja'], ['media', 'Media'], ['alta', 'Alta'], ['ultra', 'Ultra']].forEach(([k, l]) => {
+      const b = el('button', SETTINGS.quality === k ? 'on' : '', l);
+      b.onclick = () => { SETTINGS.quality = k; saveSettings(); if (R3.ok) applyQuality(); openOptions(); };
+      qrow.appendChild(b);
+    });
+    body.appendChild(qrow);
+    body.appendChild(el('p', 'muted', R3.ok ? 'Auto ajusta la resolución y las sombras según lo que aguante tu dispositivo. Ultra es solo para ordenadores potentes.' : 'Tu dispositivo no tiene WebGL: se juega en 2D.'));
+    body.appendChild(el('h4', null, '⏱️ FPS'));
+    const frow = el('div', 'optrow');
+    const fb = el('button', SETTINGS.fps ? 'on' : '', SETTINGS.fps ? 'Contador: sí' : 'Contador: no');
+    fb.onclick = () => { SETTINGS.fps = !SETTINGS.fps; saveSettings(); openOptions(); };
+    frow.appendChild(fb);
+    [[30, '30'], [60, '60'], [0, 'Sin límite']].forEach(([v, l]) => { const b = el('button', SETTINGS.fpsCap === v ? 'on' : '', l); b.onclick = () => { SETTINGS.fpsCap = v; saveSettings(); openOptions(); }; frow.appendChild(b); });
+    body.appendChild(frow);
+    body.appendChild(el('p', 'muted', 'Limitar a 30 FPS ahorra batería en el móvil.'));
     body.appendChild(el('h4', null, 'Controles'));
     body.appendChild(el('p', 'muted', 'Teclado: flechas/WASD para moverte, Shift para correr, Enter/Espacio/Z para hablar (A), Esc/X para volver (B) y M para el menú. Móvil: joystick (hasta el borde para correr) y botones A/B. También funciona con mando.'));
     const c1 = el('button', 'bigbtn grey', '🏫 Volver al colegio');
     c1.onclick = async () => { closePanel(); const i = await ask('¿Volver al colegio? Tu partida del mundo se guardará.', ['Sí, volver', 'No']); if (i === 0) { saveGame(true); location.href = '../coremon1/index.html'; } };
     body.appendChild(c1);
+    // código secreto
+    const crow = el('div', 'optrow');
+    const inp = el('input'); inp.type = 'text'; inp.inputMode = 'numeric'; inp.placeholder = 'Código'; inp.style.cssText = 'flex:2;padding:10px;border-radius:10px;border:1px solid rgba(255,213,79,0.4);background:#14121c;color:#fff;font-weight:bold';
+    const ok = el('button', '', 'Usar código');
+    ok.onclick = () => { if (inp.value.trim() === '1000') { G.flags.dev = true; sfx('levelup'); toast('🛠️ Herramientas de desarrollador activadas'); openOptions(); } else { sfx('bad'); toast('Código incorrecto.'); } };
+    crow.appendChild(inp); crow.appendChild(ok);
+    body.appendChild(crow);
+    if (G.flags.dev) { const d = el('button', 'bigbtn', '🛠️ Herramientas de desarrollador'); d.onclick = () => openDevtools(); body.appendChild(d); }
     body.appendChild(el('p', 'muted', 'Coremon · versión ' + C2_VERSION + ' · un juego de acorik · acorik.itch.io/coremon'));
+  });
+}
+// ---------------- HERRAMIENTAS DE DESARROLLADOR (código 1000) ----------------
+function openDevtools() {
+  openPanel('🛠️ Devtools', body => {
+    const tx = Math.floor(player.x / TS), ty = Math.floor(player.y / TS);
+    body.appendChild(el('p', 'muted', `Mapa: ${MAP.id} · casilla ${tx},${ty} · ${placeName(MAP, player.x, player.y)}${MAP === WORLD ? ' · medallas para llegar: ' + tierAt(tx, ty) : ''} · ${FPSC.v} FPS`));
+    const grid = el('div', 'devgrid');
+    const B = (label, fn, on) => { const b = el('button', on ? 'on' : '', label); b.onclick = () => { fn(); refreshNpcs(); openDevtools(); }; grid.appendChild(b); };
+    const T = (label, flag) => B((G.flags[flag] ? '✅ ' : '⬜ ') + label, () => { G.flags[flag] = !G.flags[flag]; }, G.flags[flag]);
+    T('Atravesar paredes', 'devNoclip');
+    T('Velocidad ×2,5', 'devTurbo');
+    T('Sin Coremon salvajes', 'noEncounters');
+    B('💰 +10.000', () => { G.money += 10000; });
+    B('🎒 Kit completo', () => { ['cromoMaestro', 'cromoPlatino', 'banquete', 'elixir', 'botiquin', 'caramelo', 'repelente'].forEach(k => G.bag[k] = (G.bag[k] || 0) + 10); ['bici', 'moto', 'pistola', 'mapa'].forEach(k => G.bag[k] = 1); });
+    B('⬆️ Equipo +5 niveles', () => { G.team.forEach(m => { for (let i = 0; i < 5 && m.level < 100; i++) levelUpMon(m, true); healMon(m); }); });
+    B('❤️ Curar equipo', () => G.team.forEach(healMon));
+    B('🏅 +1 medalla', () => { const c = CITIES.find(c => c.gym && !G.badges.includes(c.id)); if (c) G.badges.push(c.id); });
+    B('📘 Coredex vista', () => { DEX_ORDER.forEach(i => G.seen[i] = true); });
+    B('🌅 Mañana', () => { G.time = 8 * 60; });
+    B('🌇 Atardecer', () => { G.time = 19 * 60; });
+    B('🌙 Noche', () => { G.time = 23 * 60; });
+    B('🏍️ Subir a la moto', () => { G.bag.moto = 1; G.ride = 'moto'; });
+    B('🐉 Legendario aleatorio', () => { const l = LEGENDS[Math.floor(Math.random() * LEGENDS.length)][0]; giveMon(l, 50); toast('¡' + SPECIES[l].name + '!'); });
+    B((SETTINGS.fps ? '✅ ' : '⬜ ') + 'Contador de FPS', () => { SETTINGS.fps = !SETTINGS.fps; saveSettings(); }, SETTINGS.fps);
+    body.appendChild(grid);
+    body.appendChild(el('h4', null, 'Teletransporte'));
+    const tg = el('div', 'devgrid');
+    CITIES.concat(VILLAGES).forEach(p => { const b = el('button', '', p.name); b.onclick = () => { closePanel(); const [x, y] = freeSpot(WORLD, p.x, p.y + 2); warpTo('world', x * TS + 16, y * TS + 26, 'down'); }; tg.appendChild(b); });
+    body.appendChild(tg);
+    const off = el('button', 'bigbtn grey', 'Desactivar herramientas');
+    off.onclick = () => { G.flags.dev = false; G.flags.devNoclip = G.flags.devTurbo = false; closePanel(); toast('Herramientas desactivadas.'); };
+    body.appendChild(off);
   });
 }
 function openOnline() {

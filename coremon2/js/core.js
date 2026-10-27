@@ -4,7 +4,7 @@
 // Un juego de acorik.
 // ============================================================
 
-const C2_VERSION = '2.0.1';
+const C2_VERSION = '2.0.2';
 const TS = 32;                         // tamaño de casilla en píxeles del mundo
 const SAVE_KEY = 'coremon2_save_v1';
 const C1_SAVE_KEY = 'corazonistasvitoria_save_v2';
@@ -95,6 +95,10 @@ function newGame() {
   };
 }
 
+// ---------------- AJUSTES (gráficos, FPS) ----------------
+const SETTINGS = Object.assign({ quality: 'auto', fps: false, fpsCap: 0 }, (() => { try { return JSON.parse(localStorage.getItem('coremon_settings') || '{}'); } catch (e) { return {}; } })());
+function saveSettings() { try { localStorage.setItem('coremon_settings', JSON.stringify(SETTINGS)); } catch (e) {} }
+
 // ---------------- GUARDADO ----------------
 function saveGame(silent) {
   if (!G) return;
@@ -121,8 +125,13 @@ function importFromC1(g, c1) {
     m.hp = monStats(m).hp;
     return m;
   };
-  g.team = (c1.team || []).map(conv).filter(Boolean).slice(0, 6);
-  g.box = (c1.box || []).map(conv).filter(Boolean);
+  // el mundo está pensado para llegar con una media de nivel ~15
+  const team = (c1.team || []).filter(p => p && SPECIES[p.species]).slice(0, 6);
+  const avg = team.length ? team.reduce((a, p) => a + (p.level || 5), 0) / team.length : 15;
+  const k = avg > 16 ? 15 / avg : 1;
+  const fit = p => p && Object.assign({}, p, { level: Math.max(5, Math.round((p.level || 5) * k)), exp: k < 1 ? 0 : p.exp });
+  g.team = team.map(fit).map(conv).filter(Boolean);
+  g.box = (c1.box || []).map(fit).map(conv).filter(Boolean);
   Object.keys(c1.caught || {}).forEach(k => { if (SPECIES[k]) { g.caught[k] = true; g.seen[k] = true; } });
   Object.keys(c1.seen || {}).forEach(k => { if (SPECIES[k]) g.seen[k] = true; });
   g.money = Math.max(3000, Math.min(999999, c1.coins || 0));

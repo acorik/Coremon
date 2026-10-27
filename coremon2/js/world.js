@@ -20,6 +20,8 @@ const CITIES = [
   { id: 'nevera', name: 'Nevera', area: 'Montes de Nevera', x: Math.round(182 * WS), y: Math.round(46 * WS), biome: 'snow', gym: 'hielo', badge: 'Medalla Escarcha', w: 26, h: 22, lv: [46, 51] },
   { id: 'liga', name: 'Cumbre Corazón', area: 'Cumbre Corazón', x: Math.round(262 * WS), y: Math.round(48 * WS), biome: 'peak', gym: null, badge: null, w: 30, h: 24, lv: [50, 56] }
 ];
+// curva de niveles: se llega al mundo con ~15
+CITIES.forEach(c => { c.lv = [c.lv[0] - 5, c.lv[1] - 5]; });
 const CITY = Object.fromEntries(CITIES.map(c => [c.id, c]));
 // caminos [a, b, medallas necesarias para cruzar la barrera]
 const ROADS = [
@@ -215,6 +217,34 @@ function generateWorld() {
       VILLAGES.push(v); VILLAGE[v.id] = v;
       break;
     }
+  });
+  // 7d) farolas a lo largo de los caminos y carteles con la dirección a la salida de cada ciudad
+  m.roads.forEach(rd => {
+    const p = rd.path;
+    for (let k = 10; k < p.length - 10; k += 18) {
+      const [x, y] = p[k];
+      if (CITIES.some(c => Math.abs(x - c.x) < c.w / 2 + 4 && Math.abs(y - c.y) < c.h / 2 + 4)) continue;
+      const [x0, y0] = p[k - 1], [x1, y1] = p[k + 1];
+      const horiz = Math.abs(x1 - x0) > Math.abs(y1 - y0);
+      const lx = horiz ? x : x + 2, ly = horiz ? y - 2 : y;
+      const t = m.tileAt(lx, ly);
+      if (t === undefined || SOLID_T.has(t) || [T.PATH, T.ROAD, T.BRIDGE, T.PLAZA].includes(t)) continue;
+      m.addObj({ type: 'lamp', x: lx * TS + 16, y: ly * TS + 20 });
+    }
+    [[rd.a, rd.b, 0], [rd.b, rd.a, p.length - 1]].forEach(([from, to, idx]) => {
+      const c = CITY[from], dir = idx === 0 ? 1 : -1;
+      for (let k = idx; k >= 0 && k < p.length; k += dir) {
+        const [x, y] = p[k];
+        if (Math.abs(x - c.x) < c.w / 2 + 3 && Math.abs(y - c.y) < c.h / 2 + 3) continue;
+        for (const [ox, oy] of [[2, 1], [-2, 1], [2, -1], [-2, -1], [3, 0], [-3, 0], [0, 3], [0, -3]]) {
+          const sx = x + ox, sy = y + oy, t = m.tileAt(sx, sy);
+          if (t === undefined || SOLID_T.has(t) || [T.PATH, T.ROAD, T.BRIDGE, T.PLAZA].includes(t)) continue;
+          m.addObj({ type: 'signpost', x: sx * TS + 16, y: sy * TS + 28, col: [-6, -6, 12, 7], text: [`→ ${CITY[to].name}`, rd.req ? `(Barrera de CoraCorp: ${rd.req} medalla${rd.req > 1 ? 's' : ''})` : 'Camino libre.'] });
+          break;
+        }
+        break;
+      }
+    });
   });
   // 8) edificios, decoración urbana y naturaleza
   CITIES.forEach(c => buildCity(m, c));
@@ -432,6 +462,22 @@ function scatterNature(m, land, cityDist) {
       case 'peak': if (h < 0.03) type = 'rock'; else if (h < 0.045) type = 'pine'; else if (h > 0.99) type = 'bigrock'; break;
     }
     if (type) m.addObj({ type, x: x * TS + 16, y: y * TS + 28, v });
+  }
+  // detalles especiales por bioma (pocos y repartidos)
+  for (let y = 4; y < H - 4; y += 3) for (let x = 4; x < W - 4; x += 3) {
+    const i = y * W + x, h = hash2(x, y, 9090);
+    if (cityDist[i] < 20) continue;
+    const t = m.tiles[i], c = CITIES[m.reg[i]];
+    if (t === T.WATER) {
+      if (c.biome === 'swamp' && h < 0.35) m.addObj({ type: 'lily', x: x * TS + 16, y: y * TS + 20, solid: false, col: null });
+      else if ((c.biome === 'coast' && h < 0.09) || h < 0.012) m.addObj({ type: 'boat3', x: x * TS + 16, y: y * TS + 20, solid: false, col: null });
+      continue;
+    }
+    if (!land[i] || !canPlace(m, x, y, 2)) continue;
+    if (c.biome === 'plains' && h < 0.012) m.addObj({ type: 'windmill', x: x * TS + 16, y: y * TS + 28, col: [-20, -14, 40, 16] });
+    else if (c.biome === 'meadow' && h < 0.005) m.addObj({ type: 'windmill', x: x * TS + 16, y: y * TS + 28, col: [-20, -14, 40, 16] });
+    else if (c.biome === 'desert' && h < 0.02) m.addObj({ type: 'ruin', x: x * TS + 16, y: y * TS + 28, col: [-12, -10, 24, 12], v: Math.floor(h * 400) % 3 });
+    else if ((c.biome === 'snow' || c.biome === 'peak') && h < 0.008) m.addObj({ type: 'snowman', x: x * TS + 16, y: y * TS + 28, col: [-8, -6, 16, 8] });
   }
 }
 

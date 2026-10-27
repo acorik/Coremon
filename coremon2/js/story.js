@@ -40,35 +40,35 @@ function teamFrom(city, lv, n, seed) {
 // ---------------- LÍDERES DE GIMNASIO ----------------
 const GYMS = {
   gasteiz: { name: 'Amaia', title: 'Líder Amaia', look: { skin: '#f2c49b', hair: 'ponytail', hairColor: '#6d3b1f', shirt: '#558b2f', pants: '#4e342e', cap: '#558b2f' }, prize: 2400,
-    team: [['setilla', 20], ['ciervito', 21], ['arbustor', 23]],
+    team: [['setilla', 15], ['ciervito', 16], ['arbustor', 18]],
     intro: ['Bienvenido al Gimnasio de Gasteiz. Soy Amaia, guardabosques de la Pradera.', 'Esta ciudad se llama verde por algo. Las raíces aguantan todo... ¿y tu equipo?'],
     win: ['Tienes raíces fuertes. Toma la Medalla Raíz.', 'Con ella, la barrera de CoraCorp hacia el Puerto de la Ría ya no te detendrá.'] },
   ria: { name: 'Koldo', title: 'Capitán Koldo', look: { skin: '#c68642', hair: 'cap', cap: '#1565c0', hairColor: '#1a1a1a', shirt: '#eceff1', pants: '#1a237e', beard: true, beardColor: '#424242' }, prize: 2900,
-    team: [['sardinon', 25], ['pulpin', 25], ['medusin', 26], ['atunauta', 27]],
+    team: [['sardinon', 20], ['pulpin', 20], ['medusin', 21], ['atunauta', 22]],
     intro: ['¡Ah del barco! Soy Koldo, capitán del puerto.', 'Gracias por echar a esos de CoraCorp de mis muelles. Pero en el agua no regalo nada.'],
     win: ['¡Hundido! Toma la Medalla Marea.', 'Al este está Umbría. Ten cuidado: dicen que CoraCorp anda por la ciénaga.'] },
   umbria: { name: 'Maite', title: 'Sorgina Maite', look: { skin: '#f6d8c4', hair: 'long', hairColor: '#1a1a1a', shirt: '#4a148c', pants: '#1d1a26', robe: true }, prize: 3400,
-    team: [['murcielin', 29], ['michisombra', 29], ['akelarrin', 30], ['espectron', 31]],
+    team: [['murcielin', 24], ['michisombra', 24], ['akelarrin', 25], ['espectron', 26]],
     intro: ['La niebla me dijo que vendrías.', 'Soy Maite. Las sombras de Umbría guardan secretos... y mis Coremon también.'],
     win: ['La luz de tu equipo atraviesa la niebla. Medalla Eclipse para ti.', 'En el desierto de Almar CoraCorp está excavando. Buscan algo enterrado.'] },
   almar: { name: 'Nerea', title: 'Arqueóloga Nerea', look: { skin: '#e0ac69', hair: 'cap', cap: '#c8a165', hairColor: '#6d3b1f', shirt: '#a1887f', pants: '#5d4037', glasses: true }, prize: 3900,
-    team: [['cuarcin', 33], ['tortugrava', 33], ['fosilin', 34], ['pedrusco', 35]],
+    team: [['cuarcin', 28], ['tortugrava', 28], ['fosilin', 29], ['pedrusco', 30]],
     intro: ['Llevo diez años excavando estas dunas. CoraCorp lleva diez días y ya lo ha destrozado todo.', 'Soy Nerea. Enséñame que tu equipo es tan duro como la roca.'],
     win: ['Duro como el granito. Toma la Medalla Duna.', 'CoraCorp buscaba restos del Núcleo... la energía que hace nacer a los Coremon. Algo traman.'] },
   ignea: { name: 'Iker', title: 'Herrero Iker', look: { skin: '#c68642', hair: 'short', hairColor: '#3b2416', shirt: '#bf360c', pants: '#3e2723', beard: true, beardColor: '#3b2416' }, prize: 4400,
-    team: [['candelilla', 37], ['cenizo', 37], ['lagartizon', 38], ['magmoton', 39]],
+    team: [['candelilla', 32], ['cenizo', 32], ['lagartizon', 33], ['magmoton', 34]],
     intro: ['Aquí forjamos el acero con el calor del volcán.', 'Soy Iker. Si tu equipo no se funde, saldrá más fuerte.'],
     win: ['¡Forjado a fuego! La Medalla Brasa es tuya.', 'Con el pase de CoraCorp podrás entrar en su torre de Voltia. Ten cuidado ahí dentro.'] },
   voltia: { name: 'Zuriñe', title: 'Ingeniera Zuriñe', look: { skin: '#f2c49b', hair: 'short', hairColor: '#f2c418', shirt: '#263238', pants: '#37474f', glasses: true, coat: true }, prize: 4900,
-    team: [['voltarron', 41], ['megabyte', 41], ['zumbatron', 42], ['baterion', 42], ['tranvitron', 43]],
+    team: [['voltarron', 36], ['megabyte', 36], ['zumbatron', 37], ['baterion', 37], ['tranvitron', 38]],
     intro: ['Me encerraron en su torre por negarme a construir a Mecardio. Gracias por sacarme.', 'Ahora, como líder de Voltia, me toca probarte. ¡A plena potencia!'],
     win: ['Cortocircuito total. Medalla Voltio para ti.', 'Si Mecardio llega a la Cumbre Corazón, CoraCorp controlará a Cimientor. Necesitas todas las medallas.'] },
   bosque: { name: 'Beñat', title: 'Pastor Beñat', look: { skin: '#e0ac69', hair: 'curly', hairColor: '#8d5524', shirt: '#2e7d32', pants: '#5d4037' }, prize: 5400,
-    team: [['libelustorm', 45], ['remolinon', 45], ['nubarron', 46], ['aerogeneron', 46], ['huracanix', 47]],
+    team: [['libelustorm', 40], ['remolinon', 40], ['nubarron', 41], ['aerogeneron', 41], ['huracanix', 42]],
     intro: ['El viento del Bosque Olvido sopla desde que el mundo es mundo.', 'Soy Beñat. Veamos si tu equipo aguanta un buen vendaval.'],
     win: ['Has calmado la tormenta. Medalla Pluma.', 'Al norte, Nevera. La última medalla antes de la Cumbre.'] },
   nevera: { name: 'Garazi', title: 'Montañera Garazi', look: { skin: '#ffdbac', hair: 'bun', hairColor: '#d4a017', shirt: '#0277bd', pants: '#263238', cap: '#0277bd' }, prize: 5900,
-    team: [['ventisquero', 49], ['glaciolobo', 49], ['icebergon', 50], ['morsatron', 50], ['auroreal', 51]],
+    team: [['ventisquero', 44], ['glaciolobo', 44], ['icebergon', 45], ['morsatron', 45], ['auroreal', 46]],
     intro: ['He subido todas las cumbres de Iberión. Esta es la más fría: mi gimnasio.', 'Soy Garazi. Si aguantas el frío, la Cumbre Corazón te espera.'],
     win: ['¡Has fundido el hielo! La Medalla Escarcha es la última.', 'Con ocho medallas, la barrera de la Cumbre Corazón caerá. CoraCorp ya está allí. ¡Corre!'] }
 };
@@ -88,16 +88,16 @@ function gymTrainers(city) {
 
 // ---------------- CORACORP ----------------
 const CORP = {
-  lucia: { name: 'Administradora Lucía', look: LOOKS2.admin, corp: true, boss: true, prize: 3200, team: [['vampiron', 29], ['tinieblin', 29], ['espectron', 31]],
+  lucia: { name: 'Administradora Lucía', look: LOOKS2.admin, corp: true, boss: true, prize: 3200, team: [['vampiron', 24], ['tinieblin', 24], ['espectron', 26]],
     intro: ['Vaya, vaya. El niño del colegio.', 'Soy Lucía, administradora de CoraCorp. Esta ciénaga está llena de energía del Núcleo, y nos la vamos a llevar.'],
     win: ['Esto no ha terminado. El presidente Coraza sabrá de ti.'] },
-  hugo: { name: 'Administrador Hugo', look: Object.assign({}, LOOKS2.admin, { hair: 'spiky', hairColor: '#424242' }), corp: true, boss: true, prize: 4200, team: [['magmoton', 37], ['salamandrax', 37], ['megabyte', 38], ['fenixor', 39]],
+  hugo: { name: 'Administrador Hugo', look: Object.assign({}, LOOKS2.admin, { hair: 'spiky', hairColor: '#424242' }), corp: true, boss: true, prize: 4200, team: [['magmoton', 32], ['salamandrax', 32], ['megabyte', 33], ['fenixor', 34]],
     intro: ['¡Alto! Estamos perforando el volcán por orden del presidente.', 'El calor de Ignea alimentará a Mecardio. Y tú no vas a impedirlo.'],
     win: ['¡Mi pase! Se me ha caído... ¡Devuélvemelo!', '...Da igual. En la Torre de Voltia no tendrás ninguna oportunidad.'] },
-  ceo1: { name: 'Presidente Coraza', look: LOOKS2.ceo, corp: true, boss: true, prize: 6000, team: [['algoritmon', 42], ['tormentaguila', 42], ['panteoscura', 43], ['gigatron', 44]],
+  ceo1: { name: 'Presidente Coraza', look: LOOKS2.ceo, corp: true, boss: true, prize: 6000, team: [['algoritmon', 37], ['tormentaguila', 37], ['panteoscura', 38], ['gigatron', 39]],
     intro: ['Así que tú eres el alumno que despertó a Cimientor. Te debo un favor.', 'Me llamo Ricardo Coraza. Compré el nombre de los Corazonistas porque vende confianza.', 'Pero lo que de verdad quiero está bajo tierra: el Núcleo. Con Mecardio, Cimientor me obedecerá.'],
     win: ['Impresionante. Pero llegas tarde: Mecardio ya está terminado.', 'Nos veremos en la Cumbre Corazón. Allí Cimientor será mío.'] },
-  ceo2: { name: 'Presidente Coraza', look: LOOKS2.ceo, corp: true, boss: true, prize: 9000, team: [['algoritmon', 50], ['panteoscura', 51], ['gigatron', 52], ['tormentaguila', 52], ['mecardio', 55]],
+  ceo2: { name: 'Presidente Coraza', look: LOOKS2.ceo, corp: true, boss: true, prize: 9000, team: [['algoritmon', 45], ['panteoscura', 46], ['gigatron', 47], ['tormentaguila', 47], ['mecardio', 50]],
     intro: ['Ocho medallas. Qué tenaz.', 'Mira. Ahí abajo, Cimientor se despierta. Y Mecardio late al mismo ritmo que su corazón.', 'Con él, CoraCorp será dueña de todos los Coremon de Iberión. ¡Apártate!'],
     win: ['¡No... Mecardio...! ¡El corazón mecánico se ha roto!', 'Todo... todo para nada.'] },
   grunt: (id, lv, city, n) => ({ name: 'Recluta de CoraCorp', look: LOOKS2.grunt, corp: true, prize: lv * 45, team: teamFrom(city, lv, n || 2, strSeed(id)),
@@ -107,15 +107,15 @@ const CORP = {
 
 // ---------------- LIGA ----------------
 const LIGA = [
-  { id: 'elite1', name: 'Alto Mando Argia', look: { skin: '#ffdbac', hair: 'long', hairColor: '#fff59d', shirt: '#fff8e1', pants: '#fff8e1', robe: true }, prize: 7000, team: [['albita', 53], ['potrillux', 53], ['hadaluz', 54], ['resplandin', 54], ['aurorapluma', 55]],
+  { id: 'elite1', name: 'Alto Mando Argia', look: { skin: '#ffdbac', hair: 'long', hairColor: '#fff59d', shirt: '#fff8e1', pants: '#fff8e1', robe: true }, prize: 7000, team: [['albita', 48], ['potrillux', 48], ['hadaluz', 49], ['resplandin', 49], ['aurorapluma', 50]],
     intro: ['Bienvenido a la Liga Coremon. Soy Argia, la luz que abre el camino.', 'Cuatro del Alto Mando y un campeón. ¿Estás preparado?'], win: ['Tu luz brilla más que la mía. Adelante.'] },
-  { id: 'elite2', name: 'Alto Mando Euclides', look: { skin: '#e0ac69', hair: 'bald', hairColor: '#9e9e9e', shirt: '#1a237e', pants: '#1a237e', glasses: true, beard: true, beardColor: '#bdbdbd' }, prize: 7500, team: [['algoritmon', 54], ['jaquemate', 54], ['teseracto', 55], ['tizormax', 55], ['teoremorfo', 56]],
+  { id: 'elite2', name: 'Alto Mando Euclides', look: { skin: '#e0ac69', hair: 'bald', hairColor: '#9e9e9e', shirt: '#1a237e', pants: '#1a237e', glasses: true, beard: true, beardColor: '#bdbdbd' }, prize: 7500, team: [['algoritmon', 49], ['jaquemate', 49], ['teseracto', 50], ['tizormax', 50], ['teoremorfo', 51]],
     intro: ['La lógica no falla. Tú, quizá sí.', 'He calculado cuarenta y dos formas de ganarte.'], win: ['Error en mis cálculos. Acepto la derrota.'] },
-  { id: 'elite3', name: 'Alto Mando Oihana', look: { skin: '#c68642', hair: 'ponytail', hairColor: '#1a1a1a', shirt: '#c62828', pants: '#fafafa' }, prize: 8000, team: [['boxeon', 55], ['bisontazo', 55], ['frontonix', 56], ['gorilazo', 56], ['campeonix', 57]],
+  { id: 'elite3', name: 'Alto Mando Oihana', look: { skin: '#c68642', hair: 'ponytail', hairColor: '#1a1a1a', shirt: '#c62828', pants: '#fafafa' }, prize: 8000, team: [['boxeon', 50], ['bisontazo', 50], ['frontonix', 51], ['gorilazo', 51], ['campeonix', 52]],
     intro: ['¡Calienta! Aquí se suda.', 'Pelota, balonmano, boxeo... da igual el deporte: yo no pierdo.'], win: ['¡Qué partido! Te has ganado seguir.'] },
-  { id: 'elite4', name: 'Alto Mando Mikel', look: { skin: '#f2c49b', hair: 'curly', hairColor: '#b23a3a', shirt: '#ad1457', pants: '#263238' }, prize: 8500, team: [['sinfonix', 56], ['marmolon', 56], ['bibliopolilla', 57], ['loroglot', 57], ['musarte', 58]],
+  { id: 'elite4', name: 'Alto Mando Mikel', look: { skin: '#f2c49b', hair: 'curly', hairColor: '#b23a3a', shirt: '#ad1457', pants: '#263238' }, prize: 8500, team: [['sinfonix', 51], ['marmolon', 51], ['bibliopolilla', 52], ['loroglot', 52], ['musarte', 53]],
     intro: ['Arte, letras, idiomas... todo lo que aprendiste en el colegio vuelve ahora.', 'A ver si recuerdas tus lecciones.'], win: ['Una obra maestra. El campeón te espera.'] },
-  { id: 'champ', name: 'Campeón Unai', look: LOOKS2.rival, prize: 15000, champion: true, team: [['huracanix', 58], ['glaciolobo', 58], ['magmoton', 59], ['gigatron', 59], ['lingualord', 60], ['corazonix', 62]],
+  { id: 'champ', name: 'Campeón Unai', look: LOOKS2.rival, prize: 15000, champion: true, team: [['huracanix', 53], ['glaciolobo', 53], ['magmoton', 54], ['gigatron', 54], ['lingualord', 55], ['corazonix', 57]],
     intro: ['Al final has llegado. Te lo dije en el patio del colegio: yo venía de aquí fuera.', 'Me hice campeón mientras tú perseguías a CoraCorp. Ahora, el último combate.', '¡Sin contenerse!'], win: ['...Has ganado. Eres el nuevo campeón de Iberión.', 'Me alegro de que fueras tú.'] }
 ];
 
@@ -123,8 +123,8 @@ const LIGA = [
 function rivalTeam(stage) {
   const counter = { chispazo: 'gotin', gotin: 'brotin', brotin: 'chispazo' }[G.starter2] || 'gotin';
   const evo = (id, lv) => evolveForLevel(id, lv);
-  if (stage === 1) return [['plumin', 15], [counter, 16]];
-  return [[evo('vendavalin', 43), 43], [evo('glaciolobo', 43), 43], [evo('gigatron', 44), 44], [evo('lingualord', 45), 45], [evo(counter, 46), 46]];
+  if (stage === 1) return [['plumin', 13], [counter, 14]];
+  return [[evo('vendavalin', 38), 38], [evo('glaciolobo', 38), 38], [evo('gigatron', 39), 39], [evo('lingualord', 40), 40], [evo(counter, 41), 41]];
 }
 
 // ---------------- OBJETIVO ACTUAL ----------------
@@ -255,7 +255,7 @@ function setupStory(world) {
   const ria = CITY.ria;
   [[-1, 0], [1, 0]].forEach(([d], i) => {
     const [x, y] = freeSpot(world, ria.x + 4 + i * 2, ria.y - 5);
-    npcAt(world, { id: 'riaGrunt' + i, tx: x, ty: y, look: LOOKS2.grunt, custom: 'recluta', dir: 'down', trainer: Object.assign(CORP.grunt('riaGrunt' + i, 24, 'ria', 2), { onWin: async () => { if (G.beaten.riaGrunt0 && G.beaten.riaGrunt1) { G.flags.riaClear = true; await say(['Los reclutas huyen hacia su barco negro, que zarpa a toda prisa.', 'El gimnasio del Puerto de la Ría vuelve a estar abierto.']); } } }), cond: () => !G.beaten['riaGrunt' + i] });
+    npcAt(world, { id: 'riaGrunt' + i, tx: x, ty: y, look: LOOKS2.grunt, custom: 'recluta', dir: 'down', trainer: Object.assign(CORP.grunt('riaGrunt' + i, 19, 'ria', 2), { onWin: async () => { if (G.beaten.riaGrunt0 && G.beaten.riaGrunt1) { G.flags.riaClear = true; await say(['Los reclutas huyen hacia su barco negro, que zarpa a toda prisa.', 'El gimnasio del Puerto de la Ría vuelve a estar abierto.']); } } }), cond: () => !G.beaten['riaGrunt' + i] });
   });
   const um = CITY.umbria; { const [x, y] = freeSpot(world, um.x + 8, um.y - 6); npcAt(world, { id: 'lucia', tx: x, ty: y, look: LOOKS2.admin, custom: 'lucia', dir: 'down', trainer: Object.assign({}, CORP.lucia, { onWin: async () => { G.flags.lucia = true; } }), cond: () => !G.flags.lucia, marker: true }); }
   const ig = CITY.ignea; { const [x, y] = freeSpot(world, ig.x + 8, ig.y - 7); npcAt(world, { id: 'hugo', tx: x, ty: y, look: CORP.hugo.look, custom: 'hugo', dir: 'down', trainer: Object.assign({}, CORP.hugo, { onWin: async () => { G.flags.hugo = true; G.bag.pase = 1; sfx('item'); await say('¡Has conseguido el Pase de CoraCorp! Con él podrás entrar en la Torre de Voltia.'); } }), cond: () => !G.flags.hugo, marker: true }); }
@@ -313,7 +313,7 @@ function populateInterior(b, m) {
     }
     case 'corp': {
       const gl = [[5, 14, 'right'], [13, 11, 'left'], [5, 8, 'right'], [13, 5, 'left']];
-      gl.forEach(([x, y, d], i) => N({ id: 'tower' + i, tx: x, ty: y, look: LOOKS2.grunt, custom: 'recluta', dir: d, sight: 4, trainer: CORP.grunt('tower' + i, 39 + i, 'voltia', 3) }));
+      gl.forEach(([x, y, d], i) => N({ id: 'tower' + i, tx: x, ty: y, look: LOOKS2.grunt, custom: 'recluta', dir: d, sight: 4, trainer: CORP.grunt('tower' + i, 34 + i, 'voltia', 3) }));
       N({ id: 'ceo1', tx: 9, ty: 3, look: LOOKS2.ceo, custom: 'coraza', dir: 'down', script: towerCeoScript, cond: () => !G.flags.towerDone });
       N({ id: 'zurine_tower', tx: 16, ty: 3, look: GYMS.voltia.look, custom: 'lider_voltia', kind: 'talk', lines: ['Zuriñe: ¡Gracias por sacarme de aquí! Te espero en mi gimnasio.'], cond: () => G.flags.towerDone });
       break;
@@ -337,10 +337,10 @@ const HOUSE_LINES = {
 const HOUSE_GIFTS = {
   'ria:house:-14,3': { items: { cromoOro: 3 }, text: ['Pescadora: ¡Has echado a CoraCorp de nuestro puerto! Toma, cromos dorados de mi colección.'] },
   'umbria:house:-14,3': { items: { antidoto: 3, banquete: 1 }, text: ['Curandera: Para el veneno de la ciénaga. Y un banquete, que estás en los huesos.'] },
-  'almar:house:-14,3': { mon: ['fosilin', 30], text: ['Arqueólogo: ¡Este fósil se ha despertado! Necesita un entrenador. ¿Te lo quedas?'] },
+  'almar:house:-14,3': { mon: ['fosilin', 25], text: ['Arqueólogo: ¡Este fósil se ha despertado! Necesita un entrenador. ¿Te lo quedas?'] },
   'ignea:house:-14,3': { items: { elixir: 2 }, text: ['Bombera: Para que tus Coremon no se queden sin fuerzas.'] },
   'voltia:house:-14,3': { items: { cromoPlatino: 3 }, text: ['Informático: Me los llevé de la torre cuando me despidieron. Úsalos bien.'] },
-  'bosque:house:-14,3': { mon: ['hadilla', 44], text: ['Anciana: Esta Hadilla siempre viene a mi ventana. Creo que quiere irse contigo.'] },
+  'bosque:house:-14,3': { mon: ['hadilla', 39], text: ['Anciana: Esta Hadilla siempre viene a mi ventana. Creo que quiere irse contigo.'] },
   'nevera:house:-14,3': { items: { caramelo: 3 }, text: ['Montañero: Caramelos raros para la última subida.'] }
 };
 function giftScript(gift) {
@@ -376,7 +376,7 @@ async function olaiaScript(n) {
   const i = await ask('¿Qué Coremon eliges?', ['🔥 Chispazo', '💧 Gotín', '🌿 Brotín']);
   const sp = STARTERS2[i];
   G.starter2 = sp;
-  giveMon(sp, G.team.length ? 15 : 12);
+  giveMon(sp, G.team.length ? 14 : 13);
   sfx('levelup');
   G.bag.cromo = (G.bag.cromo || 0) + 10; G.bag.menu = (G.bag.menu || 0) + 3; G.bag.mapa = 1;
   await say([`¡${SPECIES[sp].name} se une a tu equipo!`, 'Dra. Olaia: Toma también 10 cromos, 3 menús y un mapa de Iberión.',
@@ -466,7 +466,7 @@ async function summitScript(n) {
   await say(CORP.ceo2.win.map(l => `Presidente Coraza: ${l}`));
   G.flags.ceoBeaten = true;
   await say(['¡La montaña tiembla! Del suelo, en mitad de la Cumbre Corazón, emerge una figura gigantesca de piedra.', 'Es Cimientor. Te mira... y parece reconocerte. Fuiste tú quien lo despertó.']);
-  const r2 = await startBattle({ kind: 'wild', mon: { species: 'cimientor', level: 58, legendary: true }, noRun: true, music: 'boss' });
+  const r2 = await startBattle({ kind: 'wild', mon: { species: 'cimientor', level: 53, legendary: true }, noRun: true, music: 'boss' });
   if (r2 === 'capture') await say(['¡Cimientor se ha unido a tu equipo!', 'Sin él, CoraCorp ya no podrá llegar nunca al Núcleo. El presidente Coraza se entrega a la policía de Iberión.']);
   else await say(['Cimientor se hunde lentamente en la tierra... pero esta vez no está furioso. Vuelve a proteger el Núcleo.', 'Quizá vuelva a aparecer en su santuario de la cumbre. El presidente Coraza se entrega a la policía de Iberión.']);
   await say(['Dra. Olaia (por teléfono): ¡Lo has conseguido! CoraCorp ha caído. Ahora... la Liga Coremon te espera.']);
@@ -513,7 +513,7 @@ const ACTIONS = {
     if (id === 'eclipsor' && !isNight()) { await say('El santuario está en silencio. Dicen que solo despierta de noche.'); return; }
     if (id === 'albor' && !(G.time % 1440 >= 300 && G.time % 1440 < 540)) { await say('El santuario está en calma. Dicen que Albor aparece al amanecer.'); return; }
     await say([`Un santuario de piedra. La inscripción dice: «${sp.lore}»`, `¡${sp.name} aparece!`]);
-    const r = await startBattle({ kind: 'wild', mon: { species: id, level: 60, legendary: true } });
+    const r = await startBattle({ kind: 'wild', mon: { species: id, level: 55, legendary: true } });
     if (r === 'capture' || r === 'win') G.flags['legend_' + id] = r === 'capture';
   }
 };

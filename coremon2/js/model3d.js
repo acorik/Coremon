@@ -23,7 +23,16 @@ function m3toon() {
   g.minFilter = g.magFilter = THREE.NearestFilter; g.needsUpdate = true;
   M3.grad = g;
   M3.toon = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: g });
+  m3rim(M3.toon);
   return M3.toon;
+}
+// luz de borde (rim light): da volumen y brillo a los modelos, como en los juegos 3D de Pokémon
+function m3rim(mat, k) {
+  mat.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `float m3r = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 3.0);\noutgoingLight += m3r * ${(k || 0.32).toFixed(2)} * (0.6 + 0.4 * outgoingLight);\n#include <opaque_fragment>`);
+  };
+  mat.customProgramCacheKey = () => 'rim' + (k || 0.32);
+  return mat;
 }
 // contorno: casco invertido empujado por las normales
 function m3outline(color, width) {
@@ -63,12 +72,14 @@ function m3merge(list) {
 const M3G = {};
 function m3g() {
   if (M3G.sph) return M3G;
-  M3G.sph = new THREE.SphereGeometry(1, 14, 10);
-  M3G.hemi = new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  M3G.sph = new THREE.SphereGeometry(1, 20, 14);
+  M3G.sphLo = new THREE.SphereGeometry(1, 10, 8);
+  M3G.hemi = new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+  M3G.torus = new THREE.TorusGeometry(1, 0.2, 6, 18);
   M3G.cyl = new THREE.CylinderGeometry(1, 1, 1, 10);
   M3G.cone = new THREE.ConeGeometry(1, 1, 10);
   M3G.box = new THREE.BoxGeometry(1, 1, 1);
-  M3G.cap = new THREE.CapsuleGeometry(1, 1, 4, 10);
+  M3G.cap = new THREE.CapsuleGeometry(1, 1, 5, 14);
   return M3G;
 }
 
@@ -80,69 +91,103 @@ function personParts3D(look) {
   const key = JSON.stringify(look);
   if (M3.geo['p:' + key]) return M3.geo['p:' + key];
   const G = m3g();
-  const skin = look.skin || SKINS3[m3hash(key) % 2 === 0 ? 0 : 3];
+  const h = m3hash(key);
+  const skin = look.skin || SKINS3[h % 2 === 0 ? 0 : 3];
   const hair = look.hairColor || '#3b2416', shirt = look.shirt || '#1f3b73', pants = look.pants || '#33334a', shoes = look.shoes || '#212121';
+  const iris = look.eyes || ['#4e342e', '#2e5d9f', '#3b7a3b', '#6d4c41', '#1d1a26'][h % 5];
   const coat = look.coat || look.labcoat;
+  const sleeve = coat ? '#f5f5f5' : look.hoodie ? shirt : m3shade(shirt, -10);
   const body = [], legL = [], legR = [], armL = [], armR = [];
-  // piernas (pivote en la cadera, y = 0.42)
+  // ---- piernas (pivote en la cadera, y = 0.47) ----
   const leg = (arr, x) => {
-    arr.push(m3part(G.cap, look.skirt ? skin : pants, [x, -0.2, 0], [0.085, 0.13, 0.085]));
-    arr.push(m3part(G.box, shoes, [x, -0.385, 0.03], [0.15, 0.08, 0.22]));
+    arr.push(m3part(G.cap, look.skirt ? skin : pants, [x, -0.2, 0], [0.075, 0.14, 0.075]));
+    if (!look.skirt) arr.push(m3part(G.cyl, m3shade(pants, -12), [x, -0.36, 0], [0.082, 0.05, 0.082]));        // bajo del pantalón
+    arr.push(m3part(G.box, shoes, [x, -0.425, 0.035], [0.13, 0.07, 0.21]));                                         // zapatilla
+    arr.push(m3part(G.box, '#f5f5f5', [x, -0.462, 0.035], [0.135, 0.022, 0.215]));                                   // suela
+    arr.push(m3part(G.box, m3shade(shoes, 40), [x, -0.39, 0.11], [0.07, 0.015, 0.06]));                              // cordones
   };
-  leg(legL, 0.1); leg(legR, -0.1);
-  // tronco
-  if (look.robe) body.push(m3part(G.cone, shirt, [0, 0.52, 0], [0.3, 0.72, 0.26]));
-  body.push(m3part(G.cap, shirt, [0, 0.62, 0], [0.2, 0.14, 0.15]));
-  if (look.skirt) body.push(m3part(G.cone, pants, [0, 0.42, 0], [0.24, 0.24, 0.2]));
-  else body.push(m3part(G.cap, pants, [0, 0.43, 0], [0.19, 0.03, 0.14]));
-  if (coat) { body.push(m3part(G.box, '#f5f5f5', [0.13, 0.55, 0.02], [0.1, 0.42, 0.3])); body.push(m3part(G.box, '#f5f5f5', [-0.13, 0.55, 0.02], [0.1, 0.42, 0.3])); }
-  if (look.tie) body.push(m3part(G.box, look.tie, [0, 0.66, 0.15], [0.05, 0.2, 0.02]));
-  if (look.collar) body.push(m3part(G.box, look.collar, [0, 0.79, 0.1], [0.2, 0.04, 0.08]));
-  if (look.corp) body.push(m3part(G.sph, '#e53935', [0.09, 0.7, 0.15], [0.04, 0.04, 0.02]));
-  // cabeza (grande, estilo chibi)
-  const HY = 1.06, HR = 0.27;
-  body.push(m3part(G.sph, skin, [0, HY, 0], [HR, HR * 0.98, HR * 0.95]));
-  body.push(m3part(G.sph, skin, [HR * 0.98, HY - 0.01, 0], [0.04, 0.06, 0.04]));
-  body.push(m3part(G.sph, skin, [-HR * 0.98, HY - 0.01, 0], [0.04, 0.06, 0.04]));
-  // ojos y boca (mirando hacia +z)
-  for (const s of [-1, 1]) {
-    body.push(m3part(G.sph, '#1d1a26', [s * 0.095, HY - 0.01, HR * 0.9], [0.04, 0.06, 0.03]));
-    body.push(m3part(G.sph, '#ffffff', [s * 0.095 - 0.012, HY + 0.02, HR * 0.93], [0.014, 0.016, 0.01]));
+  leg(legL, 0.09); leg(legR, -0.09);
+  // ---- tronco ----
+  if (look.robe) body.push(m3part(G.cone, shirt, [0, 0.55, 0], [0.28, 0.82, 0.24]));
+  body.push(m3part(G.cap, shirt, [0, 0.69, 0], [0.18, 0.13, 0.135]));
+  body.push(m3part(G.sph, shirt, [0, 0.82, 0], [0.22, 0.07, 0.15]));                                                 // hombros
+  if (look.skirt) body.push(m3part(G.cone, pants, [0, 0.5, 0], [0.22, 0.26, 0.18]));
+  else { body.push(m3part(G.cap, pants, [0, 0.5, 0], [0.175, 0.04, 0.13])); body.push(m3part(G.box, '#3e2723', [0, 0.56, 0], [0.36, 0.035, 0.27])); body.push(m3part(G.box, '#ffd54f', [0, 0.56, 0.135], [0.05, 0.03, 0.01])); }
+  // cuello de la camisa en V
+  body.push(m3part(G.box, look.collar || (look.tie ? '#fafafa' : m3shade(shirt, 25)), [0.045, 0.845, 0.11], [0.07, 0.035, 0.03], [0, 0, -0.5]));
+  body.push(m3part(G.box, look.collar || (look.tie ? '#fafafa' : m3shade(shirt, 25)), [-0.045, 0.845, 0.11], [0.07, 0.035, 0.03], [0, 0, 0.5]));
+  if (!coat && !look.robe) { body.push(m3part(G.box, m3shade(shirt, -18), [0.08, 0.7, 0.13], [0.07, 0.06, 0.01])); }   // bolsillo
+  if (coat) { body.push(m3part(G.box, '#f5f5f5', [0.12, 0.62, 0.03], [0.1, 0.5, 0.28])); body.push(m3part(G.box, '#f5f5f5', [-0.12, 0.62, 0.03], [0.1, 0.5, 0.28])); body.push(m3part(G.box, '#e0e0e0', [0.12, 0.62, 0.17], [0.02, 0.46, 0.01])); }
+  if (look.hoodie) body.push(m3part(G.hemi, m3shade(shirt, -15), [0, 0.86, -0.1], [0.17, 0.12, 0.12], [-1.4, 0, 0]));
+  if (look.tie) { body.push(m3part(G.box, look.tie, [0, 0.72, 0.14], [0.045, 0.2, 0.02])); body.push(m3part(G.box, look.tie, [0, 0.82, 0.14], [0.06, 0.04, 0.025])); }
+  if (look.corp) { body.push(m3part(G.sph, '#e53935', [-0.09, 0.76, 0.14], [0.04, 0.04, 0.015])); body.push(m3part(G.sph, '#fafafa', [-0.09, 0.76, 0.152], [0.015, 0.015, 0.005])); }
+  if (look.backpack) {                                                                                              // mochila de entrenador
+    const bp = look.backpack === true ? '#e53935' : look.backpack;
+    body.push(m3part(G.cap, bp, [0, 0.7, -0.17], [0.15, 0.1, 0.09]));
+    body.push(m3part(G.box, m3shade(bp, -25), [0, 0.64, -0.255], [0.18, 0.12, 0.03]));
+    body.push(m3part(G.box, '#ffd54f', [0, 0.66, -0.272], [0.05, 0.03, 0.01]));
+    for (const s of [-1, 1]) body.push(m3part(G.box, m3shade(bp, -35), [s * 0.11, 0.72, 0.02], [0.035, 0.3, 0.3], [0, 0, 0]));
   }
-  body.push(m3part(G.box, '#8a3b3b', [0, HY - 0.11, HR * 0.9], [0.06, 0.015, 0.02]));
-  body.push(m3part(G.sph, m3shade(skin, -20), [0, HY - 0.05, HR * 0.97], [0.025, 0.02, 0.02]));
+  // cuello
+  body.push(m3part(G.cyl, skin, [0, 0.9, 0], [0.055, 0.07, 0.055]));
+  // ---- cabeza ----
+  const HY = 1.13, HR = 0.25;
+  body.push(m3part(G.sph, skin, [0, HY, 0], [HR, HR * 0.97, HR * 0.94]));
+  body.push(m3part(G.sph, skin, [0, HY - 0.1, 0.05], [HR * 0.78, HR * 0.55, HR * 0.8]));                            // mandíbula
+  for (const s of [-1, 1]) body.push(m3part(G.sph, m3shade(skin, -8), [s * HR * 0.97, HY - 0.01, 0], [0.035, 0.055, 0.03]));   // orejas
+  // ojos de anime: blanco, iris, pupila y dos brillos
+  for (const s of [-1, 1]) {
+    const ex = s * 0.088, ey = HY - 0.005, ez = HR * 0.86;
+    body.push(m3part(G.sph, '#ffffff', [ex, ey, ez], [0.048, 0.062, 0.028]));
+    body.push(m3part(G.sph, iris, [ex, ey - 0.006, ez + 0.012], [0.036, 0.05, 0.022]));
+    body.push(m3part(G.sph, '#120d18', [ex, ey - 0.008, ez + 0.02], [0.019, 0.028, 0.016]));
+    body.push(m3part(G.sph, '#ffffff', [ex - s * 0.012, ey + 0.02, ez + 0.03], [0.012, 0.013, 0.008]));
+    body.push(m3part(G.sph, '#ffffff', [ex + s * 0.012, ey - 0.022, ez + 0.03], [0.006, 0.006, 0.005]));
+    body.push(m3part(G.box, m3shade(hair, -10), [ex, ey + 0.075, ez + 0.01], [0.06, 0.014, 0.02], [0, 0, s * -0.12]));   // ceja
+    body.push(m3part(G.sph, '#ff8a80', [s * 0.15, HY - 0.07, HR * 0.78], [0.032, 0.016, 0.01]));                          // rubor
+  }
+  body.push(m3part(G.sph, m3shade(skin, -14), [0, HY - 0.05, HR * 0.95], [0.018, 0.016, 0.014]));                           // nariz
+  body.push(m3part(G.box, '#8a3b3b', [0, HY - 0.12, HR * 0.86], [0.05, 0.014, 0.012]));                                      // boca
   if (look.glasses) {
     const gc = look.glassesColor || '#1d1a26';
-    for (const s of [-1, 1]) body.push(m3part(new THREE.TorusGeometry(0.055, 0.012, 4, 12), gc, [s * 0.095, HY - 0.01, HR * 0.97], [1, 1, 1]));
-    body.push(m3part(G.box, gc, [0, HY + 0.005, HR * 0.97], [0.08, 0.015, 0.015]));
+    for (const s of [-1, 1]) body.push(m3part(new THREE.TorusGeometry(0.058, 0.01, 5, 16), gc, [s * 0.088, HY - 0.005, HR * 0.95], [1, 1, 1]));
+    body.push(m3part(G.box, gc, [0, HY + 0.005, HR * 0.95], [0.06, 0.012, 0.012]));
   }
-  if (look.beard) body.push(m3part(G.sph, look.beardColor || hair, [0, HY - 0.13, HR * 0.55], [0.2, 0.12, 0.16]));
-  // pelo
+  if (look.beard) body.push(m3part(G.sph, look.beardColor || hair, [0, HY - 0.14, HR * 0.5], [0.19, 0.12, 0.15]));
+  // ---- pelo por capas ----
   const st = look.hair || 'short';
-  const capC = look.cap && st === 'cap' ? (typeof look.cap === 'string' ? look.cap : '#c62828') : null;
-  if (st === 'bald') { body.push(m3part(G.sph, hair, [0, HY - 0.02, -0.05], [HR * 1.03, HR * 0.6, HR * 0.95])); }
+  const tuft = (x, y, z, sx, sy, sz, rx, rz, c) => body.push(m3part(G.sph, c || hair, [x, y, z], [sx, sy, sz], [rx || 0, 0, rz || 0]));
+  if (st === 'bald') { body.push(m3part(G.sph, hair, [0, HY - 0.03, -0.06], [HR * 1.02, HR * 0.55, HR * 0.92])); }
   else if (st === 'cap') {
-    const cc = capC || look.cap || '#c62828';
-    body.push(m3part(G.hemi, cc, [0, HY + 0.02, 0], [HR * 1.07, HR * 1.0, HR * 1.07]));
-    body.push(m3part(G.box, m3shade(cc, -25), [0, HY + 0.04, HR * 0.95], [HR * 1.4, 0.03, 0.22]));
-    body.push(m3part(G.sph, hair, [0, HY - 0.06, -0.06], [HR * 1.02, HR * 0.7, HR * 0.95]));
+    const cc = typeof look.cap === 'string' ? look.cap : '#c62828';
+    body.push(m3part(G.sph, hair, [0, HY - 0.04, -0.06], [HR * 1.03, HR * 0.75, HR * 0.95]));
+    tuft(0.12, HY - 0.02, 0.12, 0.06, 0.07, 0.05, 0, 0.3); tuft(-0.12, HY - 0.02, 0.12, 0.06, 0.07, 0.05, 0, -0.3);
+    body.push(m3part(G.hemi, cc, [0, HY + 0.03, 0], [HR * 1.08, HR * 0.95, HR * 1.08]));
+    body.push(m3part(G.hemi, '#fafafa', [0, HY + 0.03, 0.002], [HR * 1.085, HR * 0.4, HR * 1.085], [0, Math.PI / 2, 0]));
+    body.push(m3part(G.box, m3shade(cc, -25), [0, HY + 0.05, HR * 0.98], [HR * 1.3, 0.025, 0.24]));
+    body.push(m3part(G.sph, '#fafafa', [0, HY + 0.14, HR * 0.85], [0.05, 0.05, 0.02]));
+    body.push(m3part(G.sph, cc, [0, HY + 0.14, HR * 0.87], [0.03, 0.03, 0.015]));
   } else {
-    body.push(m3part(G.hemi, hair, [0, HY + 0.01, -0.01], [HR * 1.08, HR * 1.06, HR * 1.08]));
-    body.push(m3part(G.box, hair, [0, HY + 0.16, HR * 0.7], [HR * 1.6, 0.08, 0.12]));          // flequillo
-    body.push(m3part(G.sph, hair, [0, HY - 0.04, -0.07], [HR * 1.05, HR * 0.85, HR * 0.95]));  // nuca
-    if (st === 'long') body.push(m3part(G.box, hair, [0, HY - 0.2, -0.13], [HR * 1.8, 0.42, 0.14]));
-    if (st === 'ponytail') body.push(m3part(G.cap, hair, [0, HY - 0.12, -0.32], [0.07, 0.14, 0.07], [0.5, 0, 0]));
-    if (st === 'bun') body.push(m3part(G.sph, hair, [0, HY + 0.3, -0.05], [0.11, 0.1, 0.11]));
-    if (st === 'spiky') for (let i = 0; i < 5; i++) body.push(m3part(G.cone, hair, [(i - 2) * 0.09, HY + 0.25, -0.02], [0.07, 0.16, 0.07], [-0.2, 0, (i - 2) * -0.25]));
-    if (st === 'curly') for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; body.push(m3part(G.sph, hair, [Math.cos(a) * 0.2, HY + 0.12 + Math.sin(a * 2) * 0.03, Math.sin(a) * 0.2 - 0.04], [0.1, 0.1, 0.1])); }
-    if (st === 'crest') body.push(m3part(G.cone, hair, [0, HY + 0.32, 0], [0.08, 0.2, 0.12]));
+    body.push(m3part(G.hemi, hair, [0, HY + 0.015, -0.01], [HR * 1.09, HR * 1.07, HR * 1.09]));
+    body.push(m3part(G.sph, hair, [0, HY - 0.04, -0.08], [HR * 1.04, HR * 0.86, HR * 0.92]));
+    // flequillo en mechones
+    for (let i = -2; i <= 2; i++) tuft(i * 0.075, HY + 0.13 - Math.abs(i) * 0.02, HR * 0.78, 0.065, 0.085, 0.05, 0.3, i * 0.18);
+    for (const s of [-1, 1]) tuft(s * HR * 0.92, HY + 0.02, 0.05, 0.05, 0.11, 0.06, 0, s * 0.15);   // patillas
+    if (st === 'long') { body.push(m3part(G.cap, hair, [0, HY - 0.2, -0.12], [0.2, 0.18, 0.09])); for (const s of [-1, 1]) body.push(m3part(G.cap, hair, [s * 0.2, HY - 0.16, 0.02], [0.06, 0.15, 0.06])); }
+    if (st === 'ponytail') { body.push(m3part(G.sph, look.tie || '#e53935', [0, HY + 0.02, -0.25], [0.04, 0.04, 0.03])); body.push(m3part(G.cap, hair, [0, HY - 0.12, -0.3], [0.07, 0.14, 0.07], [0.45, 0, 0])); }
+    if (st === 'bun') { body.push(m3part(G.sph, hair, [0, HY + 0.28, -0.07], [0.1, 0.09, 0.1])); body.push(m3part(G.torus, m3shade(hair, 30), [0, HY + 0.22, -0.06], [0.07, 0.07, 0.07], [Math.PI / 2, 0, 0])); }
+    if (st === 'spiky') for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 2.2; body.push(m3part(G.cone, hair, [Math.sin(a) * 0.17, HY + 0.2 + Math.cos(a) * 0.04, -0.04 - Math.cos(a) * 0.03], [0.065, 0.2, 0.065], [-0.35, 0, -a * 0.7])); }
+    if (st === 'curly') for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; tuft(Math.cos(a) * 0.19, HY + 0.12 + Math.sin(a * 3) * 0.03, Math.sin(a) * 0.19 - 0.04, 0.095, 0.095, 0.095); }
+    if (st === 'crest') body.push(m3part(G.cone, hair, [0, HY + 0.3, 0], [0.07, 0.22, 0.13]));
   }
-  // brazos (pivote en el hombro, y = 0.76)
+  // ---- brazos (pivote en el hombro, y = 0.82) ----
   const arm = (arr, x) => {
-    arr.push(m3part(G.cap, coat ? '#f5f5f5' : shirt, [x, -0.15, 0], [0.065, 0.13, 0.065]));
-    arr.push(m3part(G.sph, skin, [x, -0.32, 0], [0.065, 0.065, 0.065]));
+    arr.push(m3part(G.sph, sleeve, [x, -0.02, 0], [0.07, 0.07, 0.07]));
+    arr.push(m3part(G.cap, sleeve, [x, -0.14, 0], [0.058, 0.1, 0.058]));
+    arr.push(m3part(G.cap, coat ? '#f5f5f5' : skin, [x, -0.29, 0], [0.05, 0.06, 0.05]));
+    arr.push(m3part(G.sph, skin, [x, -0.38, 0.01], [0.058, 0.06, 0.058]));
   };
-  arm(armL, 0.25); arm(armR, -0.25);
+  arm(armL, 0.235); arm(armR, -0.235);
   const out = { body: m3merge(body), legL: m3merge(legL), legR: m3merge(legR), armL: m3merge(armL), armR: m3merge(armR), outline: m3shade(hair, -30) };
   M3.geo['p:' + key] = out;
   return out;
@@ -153,8 +198,9 @@ function makePerson3D(look, scale) {
   const g = new THREE.Group(), inner = new THREE.Group();
   g.add(inner);
   const mk = (geo, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y || 0; m.castShadow = true; m.receiveShadow = false; inner.add(m); return m; };
-  const body = mk(p.body), legL = mk(p.legL, 0.42), legR = mk(p.legR, 0.42), armL = mk(p.armL, 0.76), armR = mk(p.armR, 0.76);
-  const ol = new THREE.Mesh(p.body, m3outline('#1d1a26', 0.012)); inner.add(ol);
+  const body = mk(p.body), legL = mk(p.legL, 0.47), legR = mk(p.legR, 0.47), armL = mk(p.armL, 0.82), armR = mk(p.armR, 0.82);
+  const ol = new THREE.Mesh(p.body, m3outline('#1d1a26', 0.01)); inner.add(ol);
+  for (const lm of [legL, legR, armL, armR]) { const o2 = new THREE.Mesh(lm.geometry, m3outline('#1d1a26', 0.008)); lm.add(o2); }
   inner.scale.setScalar(scale || 1);
   g.userData.anim = { inner, body, legL, legR, armL, armR, ol, yaw: 0 };
   return g;
@@ -179,7 +225,7 @@ function animatePerson3D(g, moving, phase, yawTarget, dt, opts) {
 
 // ---------------- COREMON EN 3D ----------------
 // parts: [{ kind:'e'|'p'|'ring', x, y, rx, ry, rot, pts, w, role, color }] en una rejilla 64×64
-const FLAT3 = { eyeW: 1, pupil: 1, shine: 1, mouth: 1, glow: 1, screen: 1 };
+const FLAT3 = { eyeW: 1, pupil: 1, shine: 1, mouth: 1, glow: 1, screen: 1, iris: 1 };
 function creatureGeo3D(id, parts, outlineCol) {
   if (M3.geo['c:' + id]) return M3.geo['c:' + id];
   const G = m3g(), U = 1 / 64, list = [], placed = [];
@@ -190,8 +236,17 @@ function creatureGeo3D(id, parts, outlineCol) {
     const v = (lx / q.rx) ** 2 + (ly / q.ry) ** 2;
     return v < 1 ? v : -1;
   };
+  // iris de color (el del acento de la criatura) entre el blanco del ojo y la pupila
+  const irisC = (parts.find(p => p.role === 'acc') || {}).color || '#5c6bc0';
+  const P2 = [];
+  parts.forEach(p => {
+    if (p.role === 'pupil' && p.kind === 'e') P2.push(Object.assign({}, p, { role: 'iris', color: irisC, rx: p.rx * 1.25, ry: p.ry * 1.2 }));
+    P2.push(p);
+    if (p.role === 'shine' && p.kind === 'e') P2.push(Object.assign({}, p, { x: p.x + p.rx * 2.6, y: p.y + p.ry * 3, rx: p.rx * 0.55, ry: p.ry * 0.55 }));
+  });
+  parts = P2;
   parts.forEach((p, i) => {
-    const flat = FLAT3[p.role];
+    const flat = FLAT3[p.role] || p.role === 'iris';
     const m = Math.min(p.rx, p.ry);
     let rz = flat ? Math.max(0.6, m * 0.3) : p.role === 'belly' ? m * 0.45 : (p.role === 'body' ? (p.rx + p.ry) / 2 * 0.78 : m * 0.75);
     // se apoya sobre la última pieza que tiene debajo (ojos sobre la cabeza, tripa sobre el cuerpo...)
@@ -223,6 +278,9 @@ function creatureGeo3D(id, parts, outlineCol) {
   });
   const geo = m3merge(list);
   geo.computeBoundingBox();
+  // sombreado por volumen: más oscuro abajo, como si le diera la luz desde arriba
+  const bb = geo.boundingBox, hh = Math.max(0.01, bb.max.y - bb.min.y), pa = geo.attributes.position, ca = geo.attributes.color;
+  for (let i = 0; i < pa.count; i++) { const k = 0.72 + 0.28 * Math.min(1, (pa.getY(i) - bb.min.y) / hh * 1.5); ca.setXYZ(i, ca.getX(i) * k, ca.getY(i) * k, ca.getZ(i) * k); }
   const out = { geo, outline: outlineCol || '#1d1a26', height: geo.boundingBox.max.y };
   M3.geo['c:' + id] = out;
   return out;
@@ -230,7 +288,7 @@ function creatureGeo3D(id, parts, outlineCol) {
 function makeCreature3D(id, parts, outlineCol, size) {
   const c = creatureGeo3D(id, parts, outlineCol);
   const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
-  const mat = m3toon().clone();
+  const mat = m3rim(m3toon().clone(), 0.4);
   mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 0;
   const m = new THREE.Mesh(c.geo, mat); m.castShadow = true; inner.add(m);
   const olm = m3outline(c.outline, 0.012).clone();

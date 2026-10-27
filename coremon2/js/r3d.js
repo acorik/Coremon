@@ -44,6 +44,7 @@ function init3D() {
     R3.skyCol = new THREE.Color(0x8fd3ff);
     buildSharedAssets();
     resize3D();
+    if (qual()) setTimeout(applyQuality, 0);
     window.addEventListener('resize', resize3D);
     canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); R3.ok = false; });
     R3.ok = true;
@@ -57,7 +58,29 @@ function init3D() {
 }
 // calidad adaptativa: si el dispositivo no llega a ~30 fps, baja la resolución y luego las sombras
 const PERF = { acc: 0, n: 0, scale: 1, shadows: true };
+// calidad elegida en Opciones (auto = adaptativa)
+const QUALITY = {
+  baja:  { scale: 0.6, shadows: false, map: 512, rx: 1, grass: 0.4 },
+  media: { scale: 0.85, shadows: true, map: 1024, rx: 2, grass: 0.7 },
+  alta:  { scale: 1, shadows: true, map: 2048, rx: 2, grass: 1 },
+  ultra: { scale: 1.25, shadows: true, map: 4096, rx: 3, grass: 1.3 }
+};
+function qual() { return QUALITY[SETTINGS.quality] || null; }
+function applyQuality() {
+  if (!R3.renderer) return;
+  const q = qual();
+  PERF.scale = q ? q.scale : 1;
+  const sh = q ? q.shadows : true;
+  R3.renderer.shadowMap.enabled = sh; PERF.shadows = sh;
+  const sz = q ? q.map : (R3.mobile ? 1024 : 2048);
+  if (R3.sun.shadow.mapSize.x !== sz) { R3.sun.shadow.mapSize.set(sz, sz); if (R3.sun.shadow.map) { R3.sun.shadow.map.dispose(); R3.sun.shadow.map = null; } }
+  R3.scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
+  for (const ch of R3.chunks.values()) disposeChunk(ch);
+  R3.chunks.clear();
+  resize3D();
+}
 function perfTick() {
+  if (qual()) return;   // calidad fija elegida por el jugador
   const t = performance.now(), dt = PERF.last ? t - PERF.last : 0; PERF.last = t;
   if (document.hidden || !dt || dt > 250 || /[?&]hq\b/.test(location.search)) return;   // pestaña oculta, tirón puntual o calidad fija
   PERF.acc += dt; PERF.n++;
@@ -162,6 +185,18 @@ function buildSharedAssets() {
   MODELS.shelf = M([part(BOX, '#8d6e63', 0, 0.8, 0, 2, 1.6, 0.4), part(BOX, '#5d4037', 0, 0.45, 0.12, 1.84, 0.34, 0.2), part(BOX, '#5d4037', 0, 0.95, 0.12, 1.84, 0.34, 0.2)].concat([...Array(6)].map((_, i) => part(BOX, ['#e53935', '#42a5f5', '#ffd54f', '#66bb6a'][i % 4], -0.75 + i * 0.3, 0.5 + (i % 2) * 0.5, 0.15, 0.2, 0.26, 0.16))));
   MODELS.barrier = M([part(BOX, '#1d1a26', -0.44, 0.45, 0, 0.12, 0.9, 0.12), part(BOX, '#1d1a26', 0.44, 0.45, 0, 0.12, 0.9, 0.12)].concat([0, 1, 2, 3].map(i => part(BOX, i % 2 ? '#fafafa' : '#e53935', -0.375 + i * 0.25, 0.66, 0, 0.25, 0.2, 0.06))), [part(BOX, '#ff5252', -0.44, 0.95, 0, 0.1, 0.08, 0.1), part(BOX, '#ff5252', 0.44, 0.95, 0, 0.1, 0.08, 0.1)], { glowAlways: true });
 
+  // detalles nuevos del mapa
+  MODELS.signpost = M([part(CYL(0.05, 0.06), '#6d4c2a', 0, 0.6, 0, 1, 1.2, 1), part(BOX, '#c99a5c', 0.2, 1.05, 0, 0.55, 0.16, 0.05), part(BOX, '#a0703c', -0.15, 0.82, 0, 0.45, 0.14, 0.05), part(CONE(4), '#c99a5c', 0.52, 1.05, 0, 0.1, 0.12, 0.05, 0, 0, -Math.PI / 2)]);
+  MODELS.windmill = M([part(CYL(0.5, 0.75, 8), '#f5ecd8', 0, 1.6, 0, 1, 3.2, 1), part(CONE(8), '#a0522d', 0, 3.6, 0, 0.75, 0.9, 0.75), part(BOX, '#5d4037', 0, 0.45, 0.62, 0.35, 0.8, 0.12), part(BOX, '#8ecae6', 0, 2.1, 0.55, 0.25, 0.3, 0.1)]);
+  MODELS.windmillBlades = M([0, 1, 2, 3].map(i => part(BOX, i % 2 ? '#fafafa' : '#e0d6c2', Math.cos(i * Math.PI / 2) * 0.85, Math.sin(i * Math.PI / 2) * 0.85, 0, i % 2 ? 0.28 : 1.7, i % 2 ? 1.7 : 0.28, 0.04)).concat([part(CYL(0.1, 0.1), '#5d4037', 0, 0, -0.1, 1, 0.3, 1, 0, Math.PI / 2, 0)]));
+  MODELS.boat3 = M([part(BOX, '#8d5a2b', 0, 0.1, 0, 0.7, 0.25, 1.6), part(CONE(4), '#8d5a2b', 0, 0.1, 0.95, 0.5, 0.35, 0.25, 0, Math.PI / 2, 0), part(BOX, '#c99a5c', 0, 0.24, 0, 0.6, 0.04, 1.4), part(CYL(0.03, 0.03), '#5d4037', 0, 0.85, -0.1, 1, 1.3, 1), part(BOX, '#fafafa', 0, 0.95, 0.15, 0.03, 0.9, 0.55)], null, { rot: true });
+  MODELS.ruin = M([part(CYL(0.22, 0.25, 10), '#d8c39a', 0, 0.7, 0, 1, 1.4, 1), part(BOX, '#c8b088', 0, 1.45, 0, 0.6, 0.12, 0.6), part(BOX, '#c8b088', 0.5, 0.12, 0.3, 0.5, 0.25, 0.35), part(DOD, '#cdb58e', -0.5, 0.15, 0.2, 0.22)], null, { rot: true, vary: true });
+  MODELS.snowman = M([part(SPH, '#fafafa', 0, 0.32, 0, 0.36), part(SPH, '#fafafa', 0, 0.82, 0, 0.26), part(SPH, '#fafafa', 0, 1.18, 0, 0.18), part(CONE(), '#ff8f1f', 0, 1.18, 0.22, 0.04, 0.16, 0.04, 0, Math.PI / 2, 0), part(SPH, '#1d1a26', 0.07, 1.24, 0.15, 0.025), part(SPH, '#1d1a26', -0.07, 1.24, 0.15, 0.025), part(CYL(0.16, 0.16), '#1d1a26', 0, 1.36, 0, 1, 0.08, 1), part(CYL(0.11, 0.11), '#1d1a26', 0, 1.47, 0, 1, 0.2, 1), part(BOX, '#e53935', 0, 1.0, 0, 0.42, 0.06, 0.42)], null, { rot: true });
+  MODELS.lily = M([part(CYL(0.3, 0.3, 10), '#4c8f3a', 0, -0.08, 0, 1, 0.02, 1), part(SPH, '#f8bbd0', 0.08, -0.03, 0.05, 0.07, 0.05, 0.07)], null, { rot: true, vary: true });
+  // flores y piedrecitas del suelo
+  R3.flowerStem = mergeParts([part(CYL(0.012, 0.012, 4), '#3d8a3a', 0, 0.09, 0, 1, 0.18, 1), part(new THREE.SphereGeometry(1, 4, 2), '#4c9c45', 0.04, 0.06, 0, 0.04, 0.012, 0.02)]);
+  R3.flowerHead = mergeParts([0, 1, 2, 3, 4].map(i => part(new THREE.SphereGeometry(1, 5, 3), '#ffffff', Math.cos(i * 1.256) * 0.035, 0.19, Math.sin(i * 1.256) * 0.035, 0.03, 0.012, 0.03)).concat([part(new THREE.SphereGeometry(1, 5, 3), '#ffd54f', 0, 0.195, 0, 0.022, 0.014, 0.022)]));
+  R3.pebble = mergeParts([part(DOD, '#9e9890', 0, 0.02, 0, 0.07, 0.04, 0.06)]);
   // materiales
   R3.matStd = new THREE.MeshLambertMaterial({ vertexColors: true });
   R3.matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
@@ -294,7 +329,7 @@ function wantedChunks(map, tx, tz) {
     for (let cy = 0; cy * CHUNK < map.h; cy++) for (let cx = 0; cx * CHUNK < map.w; cx++) out.push([cx, cy, 0]);
     return out;
   }
-  const rx = R3.titleMode ? 3 : 2;
+  const rx = R3.titleMode ? 3 : (qual() ? qual().rx : 2);
   for (let cy = ccy - (R3.titleMode ? 3 : 2); cy <= ccy + 1; cy++) for (let cx = ccx - rx; cx <= ccx + rx; cx++) {
     if (cx < 0 || cy < 0 || cx * CHUNK >= map.w || cy * CHUNK >= map.h) continue;
     const mx = (cx + 0.5) * CHUNK - tx, mz = (cy + 0.5) * CHUNK - tz;
@@ -364,11 +399,30 @@ function buildChunk(map, cx, cy) {
       if (!TALL_T.has(t)) continue;
       const reg = map.regionAt(x0 + i, z0 + j);
       const col = t === T.SNOWTALL ? '#a8c9b0' : t === T.DRYTALL ? '#b89040' : t === T.DARK ? '#2f5a3c' : shade(grassColor(reg), -6);
+      const dens = qual() ? qual().grass : 1;
       for (let k = 0; k < 3; k++) {
+        if (hash2(x0 + i, z0 + j, k + 40) > dens) continue;
         const fx = x0 + i + 0.2 + hash2(x0 + i, z0 + j, k) * 0.6, fz = z0 + j + 0.2 + hash2(x0 + i, z0 + j, k + 5) * 0.6;
         const s = 0.8 + hash2(x0 + i, z0 + j, k + 9) * 0.5;
         mats.push([fx, groundY(map, fx * TS, fz * TS), fz, s, hash2(i, j, k + 2) * 3, col]);
       }
+    }
+    const fl = [], pb = [], FC = ['#ef5350', '#ffd54f', '#ba68c8', '#ffffff', '#ff8a65', '#4fc3f7'];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const X = x0 + i, Z = z0 + j, t = map.tileAt(X, Z), hh = hash2(X, Z, 77);
+      if (t === T.GRASS && hh < 0.09 * (qual() ? qual().grass : 1)) { const reg = map.regionAt(X, Z); if (reg === 'desert' || reg === 'volcano') continue; for (let k = 0; k < 4; k++) { const fx = X + 0.15 + hash2(X, Z, k + 80) * 0.7, fz = Z + 0.15 + hash2(X, Z, k + 90) * 0.7; fl.push([fx, groundY(map, fx * TS, fz * TS), fz, FC[Math.floor(hash2(X, Z, 3) * FC.length)]]); } }
+      else if ((t === T.PATH || t === T.DRY || t === T.SAND || t === T.ASH) && hh < 0.06) { const fx = X + hash2(X, Z, 81), fz = Z + hash2(X, Z, 82); pb.push([fx, groundY(map, fx * TS, fz * TS), fz]); }
+    }
+    if (fl.length) {
+      const st = new THREE.InstancedMesh(R3.flowerStem, R3.matStd, fl.length), hd = new THREE.InstancedMesh(R3.flowerHead, R3.matStd, fl.length);
+      const m4 = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), e = new THREE.Euler(), sv = new THREE.Vector3(1.6, 1.6, 1.6);
+      fl.forEach(([x, y, z, col], k) => { m4.compose(new THREE.Vector3(x, y, z), q.setFromEuler(e.set(0, k, 0)), sv); st.setMatrixAt(k, m4); hd.setMatrixAt(k, m4); hd.setColorAt(k, c.set(col)); });
+      group.add(st, hd);
+    }
+    if (pb.length) {
+      const im = new THREE.InstancedMesh(R3.pebble, R3.matStd, pb.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+      pb.forEach(([x, y, z], k) => { const sc = 0.7 + hash2(k, x, 5) * 1.2; m4.compose(new THREE.Vector3(x, y, z), q.setFromEuler(e.set(0, k * 1.7, 0)), new THREE.Vector3(sc, sc, sc)); im.setMatrixAt(k, m4); });
+      im.receiveShadow = true; group.add(im);
     }
     if (mats.length) {
       const im = new THREE.InstancedMesh(R3.grassGeo, R3.grassMat, mats.length);
@@ -409,6 +463,11 @@ function buildChunk(map, cx, cy) {
     if (md.std) place(new THREE.InstancedMesh(md.std, R3.matStd, list.length), false);
     if (md.glow) place(new THREE.InstancedMesh(md.glow, md.glowAlways ? R3.matGlow : R3.matGlowNight, list.length), true);
     if (type === 'barrier') list.forEach(o => ch.gates.push(o));
+    if (type === 'windmill') {
+      const im = new THREE.InstancedMesh(MODELS.windmillBlades.std, R3.matStd, list.length);
+      im.castShadow = true; group.add(im);
+      ch.spin = { im, pos: list.map(o => new THREE.Vector3(o.x * U3, groundY(map, o.x, o.y) + 2.8, o.y * U3 + 0.65)) };
+    }
   }
   for (const k in byCard) {
     const [type, vv] = k.split(':'), d = OBJ_DEF[type], list = byCard[k];
@@ -706,8 +765,15 @@ function updateActor(a, map, dt) {
       const phase = (a.dist || 0) / TS * Math.PI * 0.9;
       animatePerson3D(o.g, a.moving && !ride, phase, yaw, dt, { run: a.isPlayer && inputRun(), seated: !!ride, aim: a.isPlayer && G && G.gunOut });
       const an = o.g.userData.anim;
-      if (ride) { an.inner.position.y += ride === 'moto' ? 0.36 : 0.3; an.inner.position.z = -0.12; if (o.ride) o.ride.rotation.y = an.yaw; an.inner.position.x = 0; }
-      else an.inner.position.z = 0;
+      if (ride) {
+        an.inner.position.y += ride === 'moto' ? 0.36 : 0.3; an.inner.position.z = -0.12; an.inner.position.x = 0;
+        // se inclina hacia dentro en las curvas
+        const turn = ((an.yaw - (o.lastYaw == null ? an.yaw : o.lastYaw)) / Math.max(1, dt)) * 1000;
+        o.lastYaw = an.yaw;
+        o.lean = (o.lean || 0) + (clamp(-turn * 0.12, -0.45, 0.45) - (o.lean || 0)) * Math.min(1, dt / 120);
+        if (o.ride) o.ride.rotation.set(0, an.yaw, o.lean);
+        an.inner.rotation.z = o.lean;
+      } else { an.inner.rotation.z = 0; an.inner.position.z = 0; }
       if (a.isPlayer) {
         if (!o.gun) { o.gun = new THREE.Mesh(m3merge([m3part(m3g().box, '#263238', [-0.25, -0.36, 0.1], [0.06, 0.08, 0.2]), m3part(m3g().box, '#ff7043', [-0.25, -0.42, 0.04], [0.05, 0.1, 0.05]), m3part(m3g().box, '#ffeb3b', [-0.25, -0.36, 0.22], [0.03, 0.03, 0.04])]), m3toon()); an.armR.add(o.gun); }
         o.gun.visible = !!(G && G.gunOut) && !ride;
@@ -948,10 +1014,41 @@ function render3DWorld(dt) {
   updateCamera(map, tx, ty + 0.55, tz, dt, first);
   updateShots3D(map);
   updateBeam3D(map);
+  updateLife3D(map, dt);
   R3.water.position.set(Math.round(R3.camT.x), -0.1, Math.round(R3.camT.z)); R3.seabed.position.set(Math.round(R3.camT.x), -1.3, Math.round(R3.camT.z));
   updateEnv(map, R3.camT.x, R3.camT.z, G.time, dt);
   updateWeather3D(R3.camT.x, R3.camT.y, R3.camT.z, dt);
   R3.renderer.render(R3.scene, R3.cam);
+}
+// vida en el mapa: aspas de los molinos, pájaros y polvo de la moto
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s1 = new THREE.Vector3(1, 1, 1);
+function updateLife3D(map, dt) {
+  for (const ch of R3.chunks.values()) if (ch.spin) { ch.spin.pos.forEach((p, k) => { _m4.compose(p, _q.setFromEuler(_e.set(0, 0, now / 900 + k)), _s1); ch.spin.im.setMatrixAt(k, _m4); }); ch.spin.im.instanceMatrix.needsUpdate = true; }
+  // pájaros: una bandada que da vueltas por encima (de día y al aire libre)
+  if (!R3.birds) {
+    const wing = mergeParts([part(new THREE.BoxGeometry(1, 1, 1), '#2b2b38', -0.14, 0, 0, 0.28, 0.02, 0.08, 0, 0, 0.35), part(new THREE.BoxGeometry(1, 1, 1), '#2b2b38', 0.14, 0, 0, 0.28, 0.02, 0.08, 0, 0, -0.35)]);
+    R3.birds = new THREE.InstancedMesh(wing, R3.matStd, 7); R3.birds.castShadow = true; R3.dyn.add(R3.birds);
+  }
+  const day = map.outdoor && darknessAt(G ? G.time : 600) < 0.3;
+  R3.birds.visible = day;
+  if (day && R3.camT) for (let k = 0; k < 7; k++) {
+    const a = now / 5200 + k * 0.18, r = 7 + (k % 3);
+    const flap = Math.sin(now / 90 + k) * 0.5;
+    _m4.compose(new THREE.Vector3(R3.camT.x + Math.cos(a) * r, 6.5 + Math.sin(now / 1300 + k) * 0.4 + (k % 2) * 0.4, R3.camT.z - 3 + Math.sin(a) * r * 0.6), _q.setFromEuler(_e.set(0, -a, flap)), _s1);
+    R3.birds.setMatrixAt(k, _m4);
+  }
+  R3.birds.instanceMatrix.needsUpdate = true;
+  // polvo detrás de la moto
+  if (!R3.dust) {
+    R3.dust = []; R3.dustMat = new THREE.SpriteMaterial({ map: tex3(cnv(16, 16, g => { const gr = g.createRadialGradient(8, 8, 1, 8, 8, 8); gr.addColorStop(0, 'rgba(220,200,170,0.9)'); gr.addColorStop(1, 'rgba(220,200,170,0)'); g.fillStyle = gr; g.fillRect(0, 0, 16, 16); }), { smooth: true, mip: false }), transparent: true, depthWrite: false });
+  }
+  const spd = Math.hypot(player.vx || 0, player.vy || 0);
+  if (G && G.ride === 'moto' && map.outdoor && spd > 160 && Math.random() < 0.6) {
+    const sp = new THREE.Sprite(R3.dustMat.clone()); sp.scale.set(0.3, 0.3, 1);
+    sp.position.set(player.x * U3 - (player.vx / spd) * 0.6, groundY(map, player.x, player.y) + 0.15, player.y * U3 - (player.vy / spd) * 0.6);
+    R3.dyn.add(sp); R3.dust.push({ sp, t0: now });
+  }
+  R3.dust = R3.dust.filter(d => { const k = (now - d.t0) / 650; d.sp.material.opacity = 0.8 * (1 - k); d.sp.scale.setScalar(0.3 + k * 0.7); d.sp.position.y += 0.004 * dt; if (k >= 1) { R3.dyn.remove(d.sp); d.sp.material.dispose(); return false; } return true; });
 }
 // dardos de la pistola (estela que se desvanece)
 function updateShots3D(map) {
@@ -1122,11 +1219,20 @@ function render3DBattle() {
     const breath = 1 + Math.sin(t * 2.2 + (k === 'p' ? 1 : 0)) * 0.02;
     g.userData.anim.inner.scale.set(SZ * big, SZ * big * breath, SZ * big);
     g.position.set(base.x + off, 0.16 - faint * 1.2 + fl + (fl ? Math.sin(t * 1.6) * 0.1 : 0), base.z);
-    if (lungeK) g.position.lerp(new THREE.Vector3(other.x, g.position.y, other.z), lungeK * 0.32);
+    if (lungeK) { g.position.lerp(new THREE.Vector3(other.x, g.position.y, other.z), lungeK * 0.32); g.position.y += Math.sin(Math.min(1, lungeK) * Math.PI) * 0.45; }
     // el rival mira hacia la cámara; el tuyo, hacia el rival
     const tgt = k === 'e' ? new THREE.Vector3((cam.position.x + other.x) / 2, g.position.y, (cam.position.z + other.z) / 2) : new THREE.Vector3(other.x, g.position.y, other.z);
     g.lookAt(tgt);
+    if (faint > 0) g.rotateZ(faint * 1.3 * (k === 'e' ? 1 : -1));
     styleCreature3D(g, white, 1 - faint);
+    // onda de impacto al recibir un golpe
+    bs.prevFlash = bs.prevFlash || {};
+    if (flash > 0 && !(bs.prevFlash[k] > 0)) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.06, 6, 28), new THREE.MeshBasicMaterial({ color: 0xfff59d, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      ring.position.set(g.position.x, 1.1, g.position.z); ring.lookAt(cam.position);
+      bs.scene.add(ring); (bs.rings = bs.rings || []).push({ ring, t0: now });
+    }
+    bs.prevFlash[k] = flash;
   };
   const lg = a.lunge;
   place('e', B.enemyTeam[B.ei], a.eShow, a.eOff * 12, a.faint.e, a.white.e, a.flash.e, lg && lg.side === 'e' ? lg.k : 0);
@@ -1142,6 +1248,7 @@ function render3DBattle() {
   const showMe = !a.pShow && a.pOff > 0.01;
   if (showMe) { const g = setPerson3D(bs, 'me', LOOKS2.player); g.position.set(BPOS.p.x - 0.6 - a.pOff * 10, 0.16, BPOS.p.z + 0.4); animatePerson3D(g, false, 0, Math.atan2(BPOS.e.x - g.position.x, BPOS.e.z - g.position.z), 100); }
   if (bs.me) bs.me.visible = showMe;
+  if (bs.rings) bs.rings = bs.rings.filter(r => { const q = (now - r.t0) / 380; r.ring.scale.setScalar(1 + q * 2.2); r.ring.material.opacity = 1 - q; if (q >= 1) { bs.scene.remove(r.ring); r.ring.geometry.dispose(); r.ring.material.dispose(); return false; } return true; });
   R3.waterTex.offset.set((now / 9000) % 1, (now / 13000) % 1);
   R3.renderer.render(bs.scene, cam);
   // posiciones en pantalla para los cuadros, números y partículas (en píxeles del lienzo 2D)

@@ -205,5 +205,12 @@ button { font-family: inherit; cursor: pointer; }
   position: fixed; left: 50%; transform: translateX(-50%); top: calc(70px + var(--safe-t)); z-index: 60;
   background: var(--glass-2); border: 2px solid var(--gold); border-radius: 12px; padding: 10px 16px; font-size: 15px; max-width: 90vw; text-align: center;
 }
+#fps { position: fixed; left: 50%; transform: translateX(-50%); top: calc(6px + var(--safe-t)); z-index: 45; background: rgba(0,0,0,0.6); color: #69f0ae; font: bold 12px monospace; padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+.devgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.devgrid button { padding: 10px; border-radius: 10px; border: 1px solid rgba(255,213,79,0.4); background: #2a2740; color: #fff; font-weight: bold; }
+.devgrid button.on { background: #1b5e20; }
+.optrow { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+.optrow button { flex: 1; min-width: 70px; padding: 10px 6px; border-radius: 10px; border: 1px solid rgba(255,213,79,0.4); background: #2a2740; color: #fff; font-weight: bold; }
+.optrow button.on { background: #ffd54f; color: #1d1a26; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 55; transition: opacity .35s; }
 #fade.on { opacity: 1; }

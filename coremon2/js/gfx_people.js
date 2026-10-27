@@ -157,7 +157,7 @@ function drawPerson(g, look, x, y, dir, frame, customId) {
 
 // aspectos fijos de personajes principales
 const LOOKS2 = {
-  player:  { skin: '#f2c49b', hair: 'short', hairColor: '#3b2416', shirt: '#1f3b73', pants: '#3a3a48', tie: '#b71c1c', shoes: '#212121' },
+  player:  { skin: '#f2c49b', hair: 'short', hairColor: '#3b2416', shirt: '#1f3b73', pants: '#3a3a48', tie: '#b71c1c', shoes: '#212121', backpack: '#e53935', eyes: '#3b6fb6' },
   rival:   { skin: '#e0ac69', hair: 'cap', cap: '#212121', hairColor: '#1a1a1a', shirt: '#212121', pants: '#263238', shoes: '#fafafa' },
   olaia:   { skin: '#f6d8c4', hair: 'ponytail', hairColor: '#6d3b1f', shirt: '#26a69a', pants: '#37474f', coat: true, glasses: true },
   grunt:   { skin: '#e0ac69', hair: 'cap', cap: '#1d1a26', hairColor: '#1a1a1a', shirt: '#2b2b38', pants: '#1d1a26', corp: true, shoes: '#1d1a26' },
