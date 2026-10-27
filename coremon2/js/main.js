@@ -73,6 +73,7 @@ function update(dt) {
   updateWeather(dt);
   if (STATE === 'WORLD' && !busy) checkTrainerSight();
   updateMissions();
+  updateExtras(dt);
 }
 
 function movePlayer(dt) {
@@ -111,6 +112,7 @@ function movePlayer(dt) {
   const moved = Math.hypot(player.x - ox, player.y - oy);
   G.x = player.x; G.y = player.y; G.facing = player.dir;
   player.dist += moved;
+  if (moved > 0) { stat('dist', moved / TS); if (ride === 'moto') stat('motoDist', moved / TS); }
   player.frame = Math.floor(player.dist / 9) % 4;
   // puertas
   for (const w of MAP.warps) {
@@ -237,6 +239,8 @@ function interact() {
       return;
     }
   }
+  // pesca
+  if (facingWater()) goFish();
 }
 
 async function talkTo(n) {
@@ -454,6 +458,7 @@ function updateHud() {
   $('hud-quest').textContent = questText() + (mt ? '\n' + mt : '');
   drawMinimap($('minimap'), MAP, player.x, player.y);
   if (now - (hudDexT || 0) > 2000) { hudDexT = now; checkCoredexMissions(); }
+  checkLogros();
 }
 function showWorldUI(on) {
   $('hud').classList.toggle('hidden', !on);
@@ -511,6 +516,7 @@ function shoot() {
     return;
   }
   hit.ko = now; hit.walkTo = null; hit.moving = false;
+  stat('kos');
   sfx('ko');
   G.koLog = (G.koLog || []).filter(t => Date.now() - t < 90000);
   G.koLog.push(Date.now());

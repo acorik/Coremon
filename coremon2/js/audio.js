@@ -94,7 +94,12 @@ const SFX = {
   engine(t) { tone(70, t, 0.6, 'sawtooth', 0.18, null, 140); noise(t, 0.6, 0.15, null, 400); },
   ko(t) { [700, 500, 300].forEach((f, i) => tone(f, t + i * 0.08, 0.1, 'square', 0.18)); },
   quest(t) { [659, 784, 988, 1319].forEach((f, i) => tone(f, t + i * 0.08, 0.14, 'triangle', 0.25)); },
-  siren(t) { for (let i = 0; i < 4; i++) tone(i % 2 ? 660 : 880, t + i * 0.22, 0.2, 'square', 0.12); }
+  siren(t) { for (let i = 0; i < 4; i++) tone(i % 2 ? 660 : 880, t + i * 0.22, 0.2, 'square', 0.12); },
+  shiny(t) { [1568, 2093, 2637, 3136, 2637, 3136].forEach((f, i) => tone(f, t + i * 0.06, 0.12, 'triangle', 0.16)); },
+  splash(t) { noise(t, 0.35, 0.35, null, 1800); tone(400, t, 0.2, 'sine', 0.15, null, 900); },
+  bite(t) { tone(1200, t, 0.06, 'square', 0.25); tone(1200, t + 0.1, 0.06, 'square', 0.25); tone(1600, t + 0.2, 0.1, 'square', 0.25); },
+  whoosh(t) { noise(t, 0.9, 0.35, null, 900); tone(200, t, 0.9, 'sine', 0.12, null, 600); },
+  trophy(t) { [784, 988, 1175, 1568, 1175, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.07, 0.12, 'triangle', 0.22)); }
 };
 
 function sfx(name) {

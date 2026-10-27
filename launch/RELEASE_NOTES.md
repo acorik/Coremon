@@ -1,4 +1,4 @@
-## 🎮 Coremon 2.0 — v2.0.1
+## 🎮 Coremon — v2.1.0
 
 **Un juego de acorik.** Página oficial: **[acorik.itch.io/coremon](https://acorik.itch.io/coremon)**
 
@@ -8,11 +8,40 @@ Coremon es un solo juego, **en 3D**. Empiezas en el Colegio Sagrado Corazón –
 
 | Plataforma | Archivo |
 |---|---|
-| 🤖 Android | `Coremon-2.0.1.apk`. Se instala encima de la 1.0.1 y de la 2.0.0 sin perder la partida. No pide permisos y funciona sin internet. |
-| 🪟 Windows | `Coremon-Setup-2.0.1.exe` (instalador) o `Coremon-2.0.1-portable.exe` (sin instalar) |
-| 🐧 Linux | `Coremon-2.0.1.AppImage`: `chmod +x` y doble clic |
-| 🍎 macOS | `Coremon-2.0.1-mac-arm64.dmg` (Apple Silicon) o `Coremon-2.0.1-mac-x64.dmg` (Intel). No está firmado: clic derecho → Abrir. |
-| 🌐 Web | `Coremon-2.0.1-web.zip`: descomprime y abre `index.html` |
+| 🤖 Android | `Coremon-2.1.0.apk`. Se instala encima de cualquier versión anterior sin perder la partida. No pide permisos y funciona sin internet. |
+| 🪟 Windows | `Coremon-Setup-2.1.0.exe` (instalador) o `Coremon-2.1.0-portable.exe` (sin instalar) |
+| 🐧 Linux | `Coremon-2.1.0.AppImage`: `chmod +x` y doble clic |
+| 🍎 macOS | `Coremon-2.1.0-mac-arm64.dmg` (Apple Silicon) o `Coremon-2.1.0-mac-x64.dmg` (Intel). No está firmado: clic derecho → Abrir. |
+| 🌐 Web | `Coremon-2.1.0-web.zip`: descomprime y abre `index.html` |
+
+### Novedades de la 2.1
+
+- **✨ Coremon variocolor.** 1 de cada 128 Coremon salvajes sale con otros
+  colores, con destellos y sonido propio. Se ven en 3D, en el equipo y te
+  siguen por el mundo. El **Amuleto Iris** triplica la probabilidad.
+- **⚡ Habilidades.** Cada especie tiene una habilidad pasiva: Torrente, Mar
+  Llamas, Intimidación, Robustez, Regeneración, Piel Reactiva, Pies
+  Ligeros, Coraza, Ojo Crítico, Agallas y el Aura de los legendarios. Se ven
+  en la ficha de cada Coremon y en la Coredex.
+- **🎣 Pesca.** Compra la caña en la tienda, ponte delante del agua y pulsa
+  A. Cuando pique, pulsa A a tiempo. Salen Coremon de agua, y a veces un
+  cromo... o una bota vieja.
+- **✈️ Vuelo rápido.** Desde la primera medalla, el Taxi Aéreo te lleva a
+  cualquier ciudad o pueblo que ya hayas visitado. Está en el Mapa.
+- **🏆 30 logros** con premios en dinero y objetos, y una pantalla de
+  estadísticas: capturas, combates, peces, kilómetros en moto...
+- **📬 Regalo diario** de Olaia la primera vez que juegas cada día.
+- **🎮 Opciones de juego:**
+  - velocidad de los combates (Normal, Rápida o Turbo);
+  - correr siempre;
+  - autoguardado.
+
+### Novedades de la 2.0.2
+
+- En moto no salen Coremon salvajes ni te paran los entrenadores.
+- Niveles más equilibrados: se llega al mundo con el equipo en torno al nivel 15.
+- Opciones de gráficos y FPS, y herramientas de desarrollador (código 1000).
+- Personajes y Coremon 3D más detallados, y más detalles en el mapa.
 
 ### Novedades de la 2.0.1
 

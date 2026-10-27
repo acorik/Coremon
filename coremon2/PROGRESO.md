@@ -1,4 +1,21 @@
-# Coremon 2.0.2 — estado (un solo juego)
+# Coremon 2.1 — estado (un solo juego)
+
+Novedades de la 2.1 (`js/extras.js` y los cambios en `battle.js`):
+
+- **Variocolor:** 1 de cada 128 salvajes, o 3 de cada 128 con el Amuleto
+  Iris. `shinyCol()` en `gfx_creatures.js` gira el tono de la paleta, y se
+  aplica en 2D, en 3D y al Coremon que te sigue.
+- **Habilidades:** `ABILITIES` en `types.js` y una por especie en
+  `species.js`. Afectan al daño, la velocidad y los estados, y se anuncian en
+  el combate.
+- **Pesca** con la caña, que se compra en la tienda.
+- **Vuelo rápido** desde el Mapa, a partir de la primera medalla.
+- **30 logros** (`LOGROS`) y estadísticas en `G.stats`.
+- **Regalo diario.**
+- **Opciones de juego:** velocidad de combate, correr siempre y
+  autoguardado.
+
+## 2.0.2
 
 - **El colegio es el tutorial.** Al vencer a Coindre aparece «TUTORIAL
   COMPLETADO» y se sale directo al mundo.

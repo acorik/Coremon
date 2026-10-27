@@ -17,8 +17,8 @@ android {
         applicationId = "com.acorik.coremon"
         minSdk = 23
         targetSdk = 35
-        versionCode = 6
-        versionName = "2.0.2"
+        versionCode = 7
+        versionName = "2.1.0"
     }
 
     signingConfigs {

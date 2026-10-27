@@ -33,11 +33,31 @@ const FEATURE_COL = {
   dark: '#3a2f3a', horn: '#efe6d0', beak: '#ffb84d', paper: '#fbf6e8', glow: '#ff4f6d'
 };
 
-function creatureCanvas(id) {
-  if (CR_CACHE[id]) return CR_CACHE[id];
-  const c = buildCreature(id);
-  CR_CACHE[id] = c;
+function creatureCanvas(id, shiny) {
+  const key = shiny ? 'shy:' + id : id;
+  if (CR_CACHE[key]) return CR_CACHE[key];
+  const c = shiny ? (() => { const P = creatureParts(id); return rasterize(P.parts, shinyCol(id, P.col), SPECIES[id]); })() : buildCreature(id);
+  CR_CACHE[key] = c;
   return c;
+}
+
+// ---------------- VARIOCOLOR ----------------
+// Los Coremon variocolor (1 de cada 128 salvajes) cambian el tono de su
+// cuerpo y sus adornos. El cambio es siempre el mismo para cada especie.
+function hueShift(hex, deg, sat) {
+  let [r, g, b] = hexToRgb(hex).map(v => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0, s = 0;
+  if (d) {
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+  }
+  return hsl(h + deg, clamp(s * 100 * (sat || 1), 0, 100), l * 100);
+}
+function shinyCol(id, col) {
+  const deg = 110 + (strSeed('shiny:' + id) % 140);
+  return { body: hueShift(col.body, deg, 1.1), belly: hueShift(col.belly, deg * 0.5), acc: hueShift(col.acc, -deg, 1.2) };
 }
 
 // ---------------- CONSTRUCCIÓN POR PARTES ----------------
@@ -467,7 +487,7 @@ function rasterize(parts, col, sp) {
 // opts: { flip, white (0..1 destello), alpha, silhouette, bob }
 function drawCreature(g, id, x, y, size, opts) {
   opts = opts || {};
-  const img = opts.silhouette ? silhouetteOf(id) : creatureCanvas(id);
+  const img = opts.silhouette ? silhouetteOf(id) : creatureCanvas(id, opts.shiny);
   g.save();
   g.imageSmoothingEnabled = false;
   if (opts.alpha != null) g.globalAlpha = opts.alpha;

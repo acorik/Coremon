@@ -28,7 +28,7 @@ function wildEncounter(city, tile) {
   if (legend && r() > 0.25) sp = w.pool[Math.floor(r() * w.pool.length)];
   const isLegend = ['teoremorfo', 'bibliomante', 'atletisaurio', 'musarte', 'naturalux', 'lingualord'].includes(sp);
   lv = clamp(lv, 2, 100);
-  return { species: isLegend ? sp : evolveForLevel(sp, lv), level: lv, legendary: isLegend };
+  return { species: isLegend ? sp : evolveForLevel(sp, lv), level: lv, legendary: isLegend, shiny: !isLegend && rollShiny() };
 }
 function teamFrom(city, lv, n, seed) {
   const r = mulberry32(seed), w = WILD[city];
@@ -550,6 +550,7 @@ async function startNewGame() {
   busy = false;
   await say(['¡Estás fuera del colegio! Delante tienes Gasteiz... y el mundo de Iberión entero.', c1 ? `Tu equipo del colegio viene contigo: ${G.team.map(monName).join(', ')}.` : '', 'Alguien corre hacia ti...']);
   refreshNpcs();
+  dailyGift();
   saveGame(true);
 }
 function continueGame() {
@@ -564,4 +565,5 @@ function continueGame() {
   showWorldUI(true);
   setWorldControls();
   refreshNpcs();
+  setTimeout(dailyGift, 1800);
 }

@@ -214,3 +214,9 @@ button { font-family: inherit; cursor: pointer; }
 .optrow button.on { background: #ffd54f; color: #1d1a26; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 55; transition: opacity .35s; }
 #fade.on { opacity: 1; }
+/* 2.1: logros, habilidades, variocolor, autoguardado */
+#autosave { position: fixed; right: calc(12px + var(--safe-r, 0px)); bottom: calc(12px + var(--safe-b, 0px)); z-index: 45; background: rgba(20,18,34,0.8); color: #ffd54f; font: bold 12px sans-serif; padding: 5px 10px; border-radius: 8px; pointer-events: none; }
+.logro-ic { font-size: 30px; width: 44px; text-align: center; }
+.row.logro-done { border-color: rgba(255,213,79,0.7); background: rgba(255,213,79,0.08); }
+.ability { margin-top: 6px; font-size: 13px; color: #d7ccff; }
+.shiny-tag { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 8px; background: linear-gradient(90deg,#fff59d,#80deea,#f48fb1); color: #1d1a26; font-weight: bold; font-size: 12px; }

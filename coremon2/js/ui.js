@@ -127,10 +127,10 @@ function hpBar(m) {
 function typeChip(t) { const s = el('span', 'chip', TYPE_ICON[t] + ' ' + TYPE_LABEL[t]); s.style.background = TYPE_COLOR[t]; if (t === 'luz' || t === 'electrico' || t === 'hielo') s.style.color = '#1d1a26'; return s; }
 function monRow(m, onClick, extra) {
   const r = el('div', 'row' + (m.hp <= 0 ? ' ko' : ''));
-  r.appendChild(creatureIcon(m.species, 56));
+  r.appendChild(creatureIcon(m.species, 56, { shiny: m.shiny }));
   const g = el('div', 'grow');
   const top = el('div', 'top');
-  top.appendChild(el('b', null, (SPECIES[m.species].legendary || m.legendary ? '★ ' : '') + monName(m)));
+  top.appendChild(el('b', null, (SPECIES[m.species].legendary || m.legendary ? '★ ' : '') + (m.shiny ? '✨ ' : '') + monName(m)));
   top.appendChild(el('span', 'muted', 'Nv ' + m.level + (m.status ? ' · ' + STATUS[m.status].short : '')));
   g.appendChild(top);
   g.appendChild(typeChip(SPECIES[m.species].type));
@@ -157,6 +157,7 @@ function openMainMenu() {
     B('💾', 'Guardar', () => { saveGame(); closePanel(); });
     B('⚙️', 'Opciones', () => openOptions());
     B('📋', 'Misiones', () => openMissions());
+    B('🏆', 'Logros', () => openLogros());
     B('🌐', 'Online', () => openOnline(), true);
     body.appendChild(grid);
   });
@@ -172,7 +173,7 @@ function openTeam(focus) {
 function buildMonDetail(body, m, idx) {
   const sp = SPECIES[m.species], st = monStats(m);
   const head = el('div', 'row');
-  head.appendChild(creatureIcon(m.species, 96));
+  head.appendChild(creatureIcon(m.species, 96, { shiny: m.shiny }));
   const g = el('div', 'grow');
   g.appendChild(el('b', null, monName(m) + '  ·  Nv ' + m.level));
   g.appendChild(document.createElement('br'));
@@ -182,6 +183,8 @@ function buildMonDetail(body, m, idx) {
   g.appendChild(el('div', 'muted', `PS ${m.hp}/${st.hp} · EXP ${m.exp}/${expToNext(m.level)}`));
   const xp = el('div', 'bar'), xf = el('div', 'xp'); xf.style.width = Math.min(100, m.exp / expToNext(m.level) * 100) + '%'; xp.appendChild(xf); g.appendChild(xp);
   if (sp.evolvesTo) g.appendChild(el('div', 'muted', `Evoluciona a ${SPECIES[sp.evolvesTo].name} al nivel ${sp.evolveLevel}.`));
+  if (m.shiny) g.appendChild(el('div', 'shiny-tag', '✨ Variocolor'));
+  const ab = el('div', 'ability'); ab.appendChild(el('b', null, '⚡ ' + abilityName(m) + ': ')); ab.appendChild(document.createTextNode(ABILITIES[abilityOf(m)].desc)); g.appendChild(ab);
   head.appendChild(g); body.appendChild(head);
   const sg = el('div', 'stat-grid');
   [['PS', st.hp], ['Ataque', st.atk], ['Defensa', st.def], ['Velocidad', st.spd]].forEach(([k, v]) => { const s = el('div', 'stat'); s.appendChild(el('b', null, v)); s.appendChild(document.createTextNode(k)); sg.appendChild(s); });
@@ -286,7 +289,7 @@ function openDex() {
       c.appendChild(cv2);
       c.appendChild(el('div', null, String(n + 1).padStart(3, '0') + ' ' + (G.seen[id] ? sp.name : '???')));
       if (G.caught[id]) c.appendChild(el('span', 'got', '●'));
-      if (G.seen[id]) c.onclick = () => toast(`${sp.name} · ${TYPE_LABEL[sp.type]}${sp.evolvesTo ? ' · Evoluciona a ' + SPECIES[sp.evolvesTo].name + ' (Nv ' + sp.evolveLevel + ')' : ''}${sp.lore ? ' · ' + sp.lore : ''}`, 4200);
+      if (G.seen[id]) c.onclick = () => toast(`${sp.name} · ${TYPE_LABEL[sp.type]} · Habilidad: ${abilityName({ species: id })}${sp.evolvesTo ? ' · Evoluciona a ' + SPECIES[sp.evolvesTo].name + ' (Nv ' + sp.evolveLevel + ')' : ''}${sp.lore ? ' · ' + sp.lore : ''}`, 4200);
       grid.appendChild(c);
     });
     body.appendChild(grid);
@@ -311,6 +314,7 @@ function openMap() {
     if (MAP === WORLD) { g.fillStyle = '#ff1744'; g.beginPath(); g.arc(player.x / TS * 3, player.y / TS * 3, 7, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); }
     body.appendChild(c);
     body.appendChild(el('p', 'muted', 'Las ciudades visitadas aparecen con su nombre. Las barreras rojas de CoraCorp se rompen con las medallas.'));
+    buildFlyList(body);
   });
 }
 
@@ -360,8 +364,19 @@ function openOptions() {
     [[30, '30'], [60, '60'], [0, 'Sin límite']].forEach(([v, l]) => { const b = el('button', SETTINGS.fpsCap === v ? 'on' : '', l); b.onclick = () => { SETTINGS.fpsCap = v; saveSettings(); openOptions(); }; frow.appendChild(b); });
     body.appendChild(frow);
     body.appendChild(el('p', 'muted', 'Limitar a 30 FPS ahorra batería en el móvil.'));
+    // juego
+    body.appendChild(el('h4', null, '🎮 Juego'));
+    body.appendChild(el('div', 'muted', 'Velocidad de los combates'));
+    const brow = el('div', 'optrow');
+    [['normal', 'Normal'], ['rapida', 'Rápida'], ['turbo', 'Turbo']].forEach(([k, l]) => { const b = el('button', SETTINGS.bspeed === k ? 'on' : '', l); b.onclick = () => { SETTINGS.bspeed = k; saveSettings(); openOptions(); }; brow.appendChild(b); });
+    body.appendChild(brow);
+    const grow = el('div', 'optrow');
+    const tg = (label, key) => { const b = el('button', SETTINGS[key] ? 'on' : '', label + (SETTINGS[key] ? ': sí' : ': no')); b.onclick = () => { SETTINGS[key] = !SETTINGS[key]; saveSettings(); openOptions(); }; grow.appendChild(b); };
+    tg('Correr siempre', 'autorun'); tg('Autoguardado', 'autosave');
+    body.appendChild(grow);
+    body.appendChild(el('p', 'muted', 'Con «correr siempre», mantén B (o Shift) para andar despacio. El autoguardado guarda cada minuto y medio mientras exploras.'));
     body.appendChild(el('h4', null, 'Controles'));
-    body.appendChild(el('p', 'muted', 'Teclado: flechas/WASD para moverte, Shift para correr, Enter/Espacio/Z para hablar (A), Esc/X para volver (B) y M para el menú. Móvil: joystick (hasta el borde para correr) y botones A/B. También funciona con mando.'));
+    body.appendChild(el('p', 'muted', 'Teclado: flechas/WASD para moverte, Shift para correr, Enter/Espacio/Z para hablar (A), Esc/X para volver (B) y M para el menú. Móvil: joystick (hasta el borde para correr) y botones A/B. También funciona con mando. Con la caña de pescar, pulsa A delante del agua.'));
     const c1 = el('button', 'bigbtn grey', '🏫 Volver al colegio');
     c1.onclick = async () => { closePanel(); const i = await ask('¿Volver al colegio? Tu partida del mundo se guardará.', ['Sí, volver', 'No']); if (i === 0) { saveGame(true); location.href = '../coremon1/index.html'; } };
     body.appendChild(c1);
@@ -397,6 +412,8 @@ function openDevtools() {
     B('🌇 Atardecer', () => { G.time = 19 * 60; });
     B('🌙 Noche', () => { G.time = 23 * 60; });
     B('🏍️ Subir a la moto', () => { G.bag.moto = 1; G.ride = 'moto'; });
+    B('✨ Próximo salvaje variocolor', () => { G.flags.devShiny = true; });
+    B('🎣 Caña y amuleto', () => { G.bag.cana = 1; G.bag.amuleto = 1; });
     B('🐉 Legendario aleatorio', () => { const l = LEGENDS[Math.floor(Math.random() * LEGENDS.length)][0]; giveMon(l, 50); toast('¡' + SPECIES[l].name + '!'); });
     B((SETTINGS.fps ? '✅ ' : '⬜ ') + 'Contador de FPS', () => { SETTINGS.fps = !SETTINGS.fps; saveSettings(); }, SETTINGS.fps);
     body.appendChild(grid);

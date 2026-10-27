@@ -10,7 +10,7 @@ let B = null;
 function startBattle(opts) {
   return new Promise(res => {
     const enemyTeam = opts.kind === 'wild'
-      ? [Object.assign(makeMon(opts.mon.species, opts.mon.level), { legendary: !!opts.mon.legendary })]
+      ? [Object.assign(makeMon(opts.mon.species, opts.mon.level), { legendary: !!opts.mon.legendary, shiny: !!opts.mon.shiny })]
       : opts.trainer.team.map(([sp, lv]) => makeMon(sp, lv));
     const first = Math.max(0, G.team.findIndex(m => m.hp > 0));
     B = {
@@ -20,7 +20,7 @@ function startBattle(opts) {
       sleep: { p: 0, e: 0 },
       scene: battleScene(opts),
       anim: { eOff: 1, pOff: 1, eShow: false, pShow: false, tShow: opts.kind === 'trainer', tOff: 1, flash: { p: 0, e: 0 }, lunge: null, shake: 0, faint: { p: 0, e: 0 }, white: { p: 0, e: 0 }, card: null, hp: {}, exp: null },
-      fx: [], texts: [], busy: true, over: false, noRun: !!opts.noRun, region: opts.region
+      fx: [], texts: [], busy: true, over: false, noRun: !!opts.noRun, region: opts.region, fished: !!opts.fished, said: new Set()
     };
     G.seen[enemyTeam[0].species] = true;
     STATE = 'BATTLE';
@@ -51,11 +51,14 @@ const bmsg = { waiting: false, skip: false };
 async function bsay(text, ms) {
   $('b-log').textContent = text;
   bmsg.waiting = true; bmsg.skip = false;
-  const t0 = performance.now(), dur = ms || 1150;
+  const t0 = performance.now(), dur = (ms || 1150) * battleSpeed();
   while (performance.now() - t0 < dur && !bmsg.skip) await wait(30);
   bmsg.waiting = false;
 }
+// velocidad de los combates (Opciones): normal, rápida o turbo
+function battleSpeed() { return STATE === 'BATTLE' ? ({ normal: 1, rapida: 0.6, turbo: 0.35 }[SETTINGS.bspeed] || 1) : 1; }
 function tween(ms, fn) {
+  ms *= battleSpeed();
   return new Promise(res => {
     const t0 = performance.now();
     const step = () => { const k = Math.min(1, (performance.now() - t0) / ms); fn(k); if (k < 1) requestAnimationFrame(step); else res(); };
@@ -73,7 +76,8 @@ async function battleIntro() {
   if (B.kind === 'wild') {
     a.eShow = true;
     if (e.legendary) { a.shake = 22; sfx('rumble'); spawnFx('e', '#ffd54f', 30); await bsay(`¡¡Un Coremon LEGENDARIO!! ¡${SPECIES[e.species].name} aparece envuelto en luz!`, 1700); }
-    else await bsay(`¡Un ${SPECIES[e.species].name} salvaje aparece!`);
+    else if (e.shiny) { stat('shinies'); sfx('shiny'); a.sparkle = { side: 'e', t: now }; spawnFx('e', '#fff59d', 24); spawnFx('e', '#80deea', 16); await bsay(`✨ ¡Un ${SPECIES[e.species].name} VARIOCOLOR salvaje aparece! ✨`, 1900); }
+    else await bsay(`¡${B.fished ? 'Ha picado un' : 'Un'} ${SPECIES[e.species].name} salvaje${B.fished ? '' : ' aparece'}!`);
   } else {
     await bsay(`¡${B.trainer.name} quiere luchar!`);
     await tween(300, k => { a.tOff = ease(k); });
@@ -89,6 +93,14 @@ async function sendOut(side) {
   if (side === 'e') { a.eShow = true; a.faint.e = 0; a.hp.e = activeE().hp; G.seen[activeE().species] = true; if (B.kind === 'trainer') await bsay(`${B.trainer.name} saca a ${monName(activeE())}.`, 900); }
   else { a.pShow = true; a.faint.p = 0; a.hp.p = activeP().hp; B.part.add(activeP()); await bsay(`¡Adelante, ${monName(activeP())}!`, 900); }
   a.white[side] = 1; await tween(350, k => { a.white[side] = 1 - k; });
+  const m = side === 'e' ? activeE() : activeP();
+  if (m.shiny && !(side === 'e' && B.kind === 'wild')) { a.sparkle = { side, t: now }; sfx('shiny'); }
+  if (abilityOf(m) === 'intimida') { const other = side === 'e' ? 'p' : 'e', o = other === 'e' ? activeE() : activeP(); if (o && o.hp > 0 && (other === 'p' ? a.pShow : a.eShow)) { await announceAbility(m, side); await changeStage(other, 'atk', -1); } }
+}
+// cartel de habilidad
+async function announceAbility(m, side) {
+  floatText(side, abilityName(m), '#b388ff');
+  await bsay(`[${abilityName(m)}] de ${monName(m)}`, 750);
 }
 
 // ---------------- MENÚS ----------------
@@ -159,7 +171,7 @@ async function switchTo(i, forced) {
 // ---------------- TURNOS ----------------
 const STRUGGLE = { name: 'Forcejeo', type: null, power: 40, acc: 1, pp: 1 };
 function stageMult(s) { return s >= 0 ? (2 + s) / 2 : 2 / (2 - s); }
-function effSpeed(m, side) { let s = monStats(m).spd * stageMult(B.stages[side].spd); if (m.status === 'par') s *= 0.5; return s; }
+function effSpeed(m, side) { let s = monStats(m).spd * stageMult(B.stages[side].spd); if (m.status === 'par') s *= 0.5; if (abilityOf(m) === 'veloz') s *= 1.25; return s; }
 
 async function playerTurn(choice) {
   if (B.busy) return;
@@ -231,6 +243,10 @@ async function doAttack(side, mv) {
   }
   if (mv.power) {
     const r = damageCalc(att, side, mv, def, other);
+    if (r.pinch && !B.said.has(att)) { B.said.add(att); await announceAbility(att, side); }
+    const full = def.hp >= monStats(def).hp;
+    let sturdy = false;
+    if (abilityOf(def) === 'robusto' && full && r.dmg >= def.hp) { r.dmg = def.hp - 1; sturdy = true; }
     def.hp = Math.max(0, def.hp - r.dmg);
     if (mv === STRUGGLE) att.hp = Math.max(0, att.hp - Math.max(1, Math.floor(monStats(att).hp / 8)));
     a.flash[other] = 14; a.shake = r.eff > 1 || r.crit ? 16 : 6;
@@ -242,6 +258,12 @@ async function doAttack(side, mv) {
     if (r.crit) await bsay('¡Un golpe crítico!', 700);
     if (r.eff > 1) await bsay('¡Es muy eficaz!', 700);
     else if (r.eff < 1) await bsay('No es muy eficaz...', 700);
+    if (sturdy) { await announceAbility(def, other); await bsay(`¡${monName(def)} aguanta el golpe!`, 800); }
+    // piel reactiva: quien golpea puede quemarse, paralizarse...
+    if (mv !== STRUGGLE && abilityOf(def) === 'reactiva' && att.hp > 0 && !att.status && Math.random() < 0.25) {
+      const st = REACTIVE_STATUS[SPECIES[def.species].type] || 'par';
+      await announceAbility(def, other); await applyStatus(att, side, st);
+    }
     if (def.hp > 0 && mv.eff && Math.random() < mv.eff.chance) await applyStatus(def, other, mv.eff.status);
     if (def.hp > 0 && mv.foeChance && Math.random() < mv.foeChance.chance) await changeStage(other, 'spd', mv.foeChance.spd);
     if (mv.heal) { const st = monStats(att); const h = Math.min(st.hp - att.hp, Math.floor(st.hp * mv.heal)); if (h > 0) { att.hp += h; await tween(400, k => { a.hp[side] = lerp(a.hp[side], att.hp, k); }); await bsay(`${an} recupera energía.`, 700); } }
@@ -261,13 +283,17 @@ async function doAttack(side, mv) {
 function damageCalc(att, aside, mv, def, dside) {
   const as = monStats(att), ds = monStats(def);
   let atk = as.atk * stageMult(B.stages[aside].atk), dfn = ds.def * stageMult(B.stages[dside].def);
-  if (att.status === 'brn') atk *= 0.7;
+  const aa = abilityOf(att), da = abilityOf(def);
+  if (att.status === 'brn' && aa !== 'agallas') atk *= 0.7;
+  if (att.status && aa === 'agallas') atk *= 1.5;
   const eff = typeEff(mv.type, SPECIES[def.species].type);
   const stab = mv.type && mv.type === SPECIES[att.species].type ? 1.2 : 1;
-  const crit = Math.random() < 1 / 24;
+  const pinch = aa === 'furia' && stab > 1 && att.hp <= monStats(att).hp / 3;
+  const crit = Math.random() < (aa === 'suerte' ? 1 / 12 : 1 / 24);
+  let k = (pinch ? 1.5 : 1) * (aa === 'aura' ? 1.2 : 1) * (da === 'coraza' && eff > 1 ? 0.75 : 1);
   const base = ((att.level / 5 + 2) * mv.power * atk / dfn) / 10 + 2;
-  const dmg = Math.max(1, Math.floor(base * eff * stab * (crit ? 1.5 : 1) * (0.9 + Math.random() * 0.1)));
-  return { dmg, eff, crit };
+  const dmg = Math.max(1, Math.floor(base * eff * stab * k * (crit ? 1.5 : 1) * (0.9 + Math.random() * 0.1)));
+  return { dmg, eff, crit, pinch };
 }
 
 async function applyStatus(m, side, st) {
@@ -283,6 +309,8 @@ async function applyStatus(m, side, st) {
 }
 async function changeStage(side, stat, delta) {
   const s = B.stages[side], before = s[stat];
+  const who = side === 'p' ? activeP() : activeE();
+  if (delta < 0 && abilityOf(who) === 'aura') { await bsay(`¡El aura de ${monName(who)} impide que le bajen las estadísticas!`, 900); return; }
   s[stat] = clamp(s[stat] + delta, -6, 6);
   const m = side === 'p' ? activeP() : activeE(), n = monName(m);
   const lab = { atk: 'ataque', def: 'defensa', spd: 'velocidad' }[stat];
@@ -302,6 +330,13 @@ async function endOfTurn() {
       await tween(400, k => { B.anim.hp[side] = lerp(B.anim.hp[side], m.hp, k); });
       await bsay(`${monName(m)} sufre por ${m.status === 'brn' ? 'la quemadura' : 'el veneno'}.`, 800);
       if (await checkFaints()) return;
+    }
+    const mx = monStats(m).hp;
+    if (abilityOf(m) === 'regenera' && m.hp > 0 && m.hp < mx) {
+      m.hp = Math.min(mx, m.hp + Math.max(1, Math.floor(mx / 16)));
+      await tween(300, k => { B.anim.hp[side] = lerp(B.anim.hp[side], m.hp, k); });
+      B.anim.hp[side] = m.hp;
+      await bsay(`[${abilityName(m)}] ${monName(m)} recupera un poco de vida.`, 700);
     }
   }
   B.busy = false;
@@ -401,6 +436,7 @@ async function throwCard(id) {
     sfx('win');
     await bsay(`¡Ya está! ¡Has capturado a ${SPECIES[e.species].name}!`, 1400);
     G.caught[e.species] = true; G.seen[e.species] = true;
+    stat('captures'); if (e.shiny) stat('shinyCaught');
     missionEvent('capture', { species: e.species });
     const mon = JSON.parse(JSON.stringify(e)); mon.status = null;
     if (G.team.length < 6) { G.team.push(mon); await bsay(`${SPECIES[e.species].name} se une a tu equipo.`, 1000); }
@@ -427,6 +463,7 @@ async function tryRun() {
 async function endBattle(result) {
   B.over = true; B.busy = true; hideBattleMenus();
   const tr = B.trainer;
+  if (result === 'win') stat(B.kind === 'trainer' ? 'trainers' : 'wins');
   if (result === 'win' && B.kind === 'trainer') {
     music('victory');
     await bsay(`¡Has vencido a ${tr.name}!`, 1100);
@@ -486,6 +523,7 @@ async function runEvolution(m) {
   const now4 = movesUpTo(to, m.level);
   m.moves = now4.map(id => m.moves.find(x => x.id === id) || { id, pp: MOVES[id].pp, maxPp: MOVES[id].pp });
   G.seen[to] = true; G.caught[to] = true;
+  stat('evos');
   evoAnim.done = true;
   await say(`¡Enhorabuena! ¡${SPECIES[from].name} ha evolucionado a ${SPECIES[to].name}!`);
   evoAnim = null;
@@ -563,7 +601,7 @@ function renderBattle2D() {
   if (a.eShow && a.faint.e < 1) {
     const e = activeE(), s = L.e.s, lg = a.lunge && a.lunge.side === 'e' ? a.lunge.k : 0;
     const x = L.e.x - s / 2 + a.eOff * VW * 0.6 - lg * s * 0.5 + sh, y = L.e.y - s * 0.92 + a.faint.e * s * 0.6 + lg * s * 0.25;
-    if (!(a.flash.e > 0 && Math.floor(a.flash.e) % 4 < 2)) drawCreature(ctx, e.species, x, y + Math.sin(t * 2.2) * s * 0.012, s, { white: a.white.e, alpha: 1 - a.faint.e });
+    if (!(a.flash.e > 0 && Math.floor(a.flash.e) % 4 < 2)) drawCreature(ctx, e.species, x, y + Math.sin(t * 2.2) * s * 0.012, s, { white: a.white.e, alpha: 1 - a.faint.e, shiny: e.shiny });
     if (e.legendary || SPECIES[e.species].legendary) { ctx.globalAlpha = 0.25 + 0.15 * Math.sin(t * 3); ctx.fillStyle = '#ffd54f'; ctx.beginPath(); ctx.ellipse(L.e.x + sh, L.e.y - s * 0.4, s * 0.55, s * 0.55, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
   }
   // entrenador rival
@@ -577,7 +615,7 @@ function renderBattle2D() {
   if (a.pShow && a.faint.p < 1) {
     const p = activeP(), s = L.p.s, lg = a.lunge && a.lunge.side === 'p' ? a.lunge.k : 0;
     const x = L.p.x - s / 2 - a.pOff * VW * 0.6 + lg * s * 0.5, y = L.p.y - s * 0.92 + a.faint.p * s * 0.6 - lg * s * 0.25;
-    if (!(a.flash.p > 0 && Math.floor(a.flash.p) % 4 < 2)) drawCreature(ctx, p.species, x, y + Math.sin(t * 2.2 + 1) * s * 0.012, s, { flip: true, white: a.white.p, alpha: 1 - a.faint.p });
+    if (!(a.flash.p > 0 && Math.floor(a.flash.p) % 4 < 2)) drawCreature(ctx, p.species, x, y + Math.sin(t * 2.2 + 1) * s * 0.012, s, { flip: true, white: a.white.p, alpha: 1 - a.faint.p, shiny: p.shiny });
   } else if (!a.pShow && a.pOff > 0.01 && a.tShow !== undefined) {
     const s = L.p.s * 1.2 / PH * 1.3;
     ctx.save(); ctx.translate(L.p.x - a.pOff * VW * 0.4, L.p.y); ctx.scale(s, s); drawPerson(ctx, LOOKS2.player, 0, 0, 'up', 0, 'jugador'); ctx.restore();
@@ -607,6 +645,17 @@ function renderBattle() {
     ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2 + 4 * DPR, -h / 2 + 4 * DPR, w - 8 * DPR, h * 0.45);
     ctx.restore();
   }
+  // destellos de variocolor
+  if (a.sparkle && now - a.sparkle.t < 1600) {
+    const c = a.sparkle.side === 'e' ? L.e : L.p, q = (now - a.sparkle.t) / 1600;
+    for (let i = 0; i < 9; i++) {
+      const ang = i / 9 * Math.PI * 2 + q * 2, rr = c.s * (0.25 + q * 0.55), r = c.s * 0.09 * Math.sin(Math.min(1, q * 3 + i * 0.05) * Math.PI);
+      const x = c.x + Math.cos(ang) * rr, y = c.y - c.s * 0.5 + Math.sin(ang) * rr * 0.7;
+      ctx.globalAlpha = 1 - q; ctx.fillStyle = i % 2 ? '#fff59d' : '#ffffff';
+      ctx.beginPath(); ctx.moveTo(x, y - r * 2); ctx.lineTo(x + r * 0.5, y - r * 0.5); ctx.lineTo(x + r * 2, y); ctx.lineTo(x + r * 0.5, y + r * 0.5); ctx.lineTo(x, y + r * 2); ctx.lineTo(x - r * 0.5, y + r * 0.5); ctx.lineTo(x - r * 2, y); ctx.lineTo(x - r * 0.5, y - r * 0.5); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   // partículas y números
   for (const f of B.fx) { f.x += f.vx; f.y += f.vy; f.vy += 0.35 * DPR; f.life -= 0.025; ctx.globalAlpha = Math.max(0, f.life); ctx.fillStyle = f.color; ctx.fillRect(f.x, f.y, f.size, f.size); }
   B.fx = B.fx.filter(f => f.life > 0);
@@ -629,7 +678,7 @@ function infoBox(m, side, L, mine) {
   ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2.5 * s; ctx.stroke();
   const sp = SPECIES[m.species], st = monStats(m);
   ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = `bold ${17 * s}px Trebuchet MS, sans-serif`;
-  ctx.fillText((m.legendary || sp.legendary ? '★ ' : '') + monName(m), x + 12 * s, y + 22 * s);
+  ctx.fillText((m.legendary || sp.legendary ? '★ ' : '') + (m.shiny ? '✨' : '') + monName(m), x + 12 * s, y + 22 * s);
   ctx.textAlign = 'right'; ctx.fillStyle = '#ffd54f'; ctx.fillText('Nv ' + m.level, x + w - 12 * s, y + 22 * s);
   // tipo y estado
   ctx.textAlign = 'left'; ctx.font = `bold ${11 * s}px Trebuchet MS, sans-serif`;

@@ -4,7 +4,7 @@
 // Un juego de acorik.
 // ============================================================
 
-const C2_VERSION = '2.0.2';
+const C2_VERSION = '2.1.0';
 const TS = 32;                         // tamaño de casilla en píxeles del mundo
 const SAVE_KEY = 'coremon2_save_v1';
 const C1_SAVE_KEY = 'corazonistasvitoria_save_v2';
@@ -91,12 +91,12 @@ function newGame() {
     v: 1, map: 'world', x: 0, y: 0, facing: 'down',
     team: [], box: [], bag: {}, money: 3000, badges: [], flags: {}, seen: {}, caught: {},
     beaten: {}, picked: {}, time: 8 * 60, playTime: 0, quest: 'intro', fromC1: false, name: 'Cora',
-    missions: {}, track: null, ride: null, gunOut: false
+    missions: {}, track: null, ride: null, gunOut: false, stats: {}, ach: {}
   };
 }
 
 // ---------------- AJUSTES (gráficos, FPS) ----------------
-const SETTINGS = Object.assign({ quality: 'auto', fps: false, fpsCap: 0 }, (() => { try { return JSON.parse(localStorage.getItem('coremon_settings') || '{}'); } catch (e) { return {}; } })());
+const SETTINGS = Object.assign({ quality: 'auto', fps: false, fpsCap: 0, bspeed: 'normal', autorun: false, autosave: true }, (() => { try { return JSON.parse(localStorage.getItem('coremon_settings') || '{}'); } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem('coremon_settings', JSON.stringify(SETTINGS)); } catch (e) {} }
 
 // ---------------- GUARDADO ----------------
@@ -180,7 +180,8 @@ function inputDir() {
   if (len > 1) { x /= len; y /= len; }
   return { x, y };
 }
-function inputRun() { return !!(keys['shift'] || joy.run || keys['virtualb']); }
+// con «correr siempre», mantener B (o Shift) hace andar
+function inputRun() { const held = !!(keys['shift'] || keys['virtualb']); return SETTINGS.autorun ? !held : held || joy.run; }
 
 // botones del mando (A = 0, B = 1, menú = 9)
 const gpPrev = {};

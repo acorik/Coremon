@@ -164,6 +164,30 @@ const TYPE_STATUS_MOVE = {
   agua: 'agilidad', fuego: 'fuegofatuo', electrico: 'ondaelectrica', hielo: 'muralla', roca: 'muralla', aire: 'agilidad', sombra: 'fuegofatuo', luz: 'curacion'
 };
 
+// ---------------- HABILIDADES ----------------
+// Cada especie tiene una habilidad pasiva fija. «furia» toma el nombre de su tipo.
+const FURIA_NAME = {
+  logica: 'Mente Fría', letras: 'Pluma Afilada', arte: 'Inspiración', idioma: 'Labia', naturaleza: 'Espesura', fisico: 'Último Esfuerzo',
+  agua: 'Torrente', fuego: 'Mar Llamas', electrico: 'Sobrecarga', hielo: 'Corazón Helado', roca: 'Corteza Viva', aire: 'Ráfaga Final', sombra: 'Rencor', luz: 'Último Brillo'
+};
+const ABILITIES = {
+  furia:    { name: 'Furia', desc: 'Con poca vida, sus ataques de su tipo pegan un 50 % más.' },
+  intimida: { name: 'Intimidación', desc: 'Al salir al combate, baja el ataque del rival.' },
+  robusto:  { name: 'Robustez', desc: 'Con todos los PS, aguanta con 1 PS un golpe que lo debilitaría.' },
+  regenera: { name: 'Regeneración', desc: 'Recupera un poco de vida al final de cada turno.' },
+  reactiva: { name: 'Piel Reactiva', desc: 'Quien le golpea puede acabar con un estado alterado.' },
+  veloz:    { name: 'Pies Ligeros', desc: 'Es un 25 % más rápido.' },
+  coraza:   { name: 'Coraza', desc: 'Recibe un 25 % menos de daño de los ataques muy eficaces.' },
+  suerte:   { name: 'Ojo Crítico', desc: 'Hace golpes críticos el doble de a menudo.' },
+  agallas:  { name: 'Agallas', desc: 'Con un estado alterado, su ataque sube un 50 % (y no le afecta la quemadura).' },
+  aura:     { name: 'Aura Legendaria', desc: 'Sus ataques pegan un 20 % más y nada le baja las estadísticas.' }
+};
+const TYPE_ABILITY = {
+  fuego: 'reactiva', electrico: 'reactiva', hielo: 'reactiva', naturaleza: 'regenera', agua: 'regenera', sombra: 'intimida', letras: 'intimida',
+  roca: 'robusto', aire: 'veloz', idioma: 'veloz', luz: 'coraza', fisico: 'agallas', logica: 'suerte', arte: 'suerte'
+};
+const REACTIVE_STATUS = { fuego: 'brn', electrico: 'par', hielo: 'frz', naturaleza: 'psn', sombra: 'psn' };
+
 // ---------------- OBJETOS ----------------
 // Los objetos del colegio siguen valiendo en el mundo.
 const ITEMS = {
@@ -181,6 +205,8 @@ const ITEMS = {
   cromoMaestro:{ name: 'Cromo maestro', desc: 'Captura cualquier Coremon sin fallar.', kind: 'capture', rate: 999, price: 0, icon: '👑' },
   caramelo:  { name: 'Caramelo raro', desc: 'Sube un nivel a un Coremon.', kind: 'level', price: 0, icon: '🍬' },
   repelente: { name: 'Repelente', desc: 'Evita Coremon salvajes durante un rato.', kind: 'repel', amount: 250, price: 500, icon: '🧴' },
+  cana:      { name: 'Caña de pescar', desc: 'Ponte delante del agua y pulsa A para pescar Coremon de agua.', kind: 'key', price: 1500, once: true, icon: '🎣' },
+  amuleto:   { name: 'Amuleto Iris', desc: 'Triplica la probabilidad de encontrar Coremon variocolor ✨.', kind: 'key', icon: '🔮' },
   // objetos clave
   bici:      { name: 'Bicicleta', desc: 'Ve mucho más rápido. Úsala desde la mochila.', kind: 'key', icon: '🚲' },
   mapa:      { name: 'Mapa de Iberión', desc: 'Muestra el mapa del mundo.', kind: 'key', icon: '🗺️' },
@@ -195,4 +221,4 @@ const SHOP_TIERS = [
   ['menu', 'banquete', 'zumo', 'elixir', 'antidoto', 'tirita', 'botiquin', 'cromoOro', 'cromoPlatino', 'repelente']
 ];
 // se venden en todas las tiendas
-SHOP_TIERS.forEach(t => t.push('moto', 'pistola'));
+SHOP_TIERS.forEach(t => t.push('cana', 'moto', 'pistola'));

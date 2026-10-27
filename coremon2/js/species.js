@@ -196,6 +196,15 @@ Object.keys(C1_SPECIES).forEach(id => {
   sp.learn[46] = (sp.learn[46] || []).concat([TYPE_MOVES[sp.type][3]]);
 });
 
+// habilidad pasiva de cada especie (siempre la misma)
+Object.values(SPECIES).forEach(sp => {
+  if (sp.legendary) { sp.ability = 'aura'; return; }
+  const opts = ['furia', TYPE_ABILITY[sp.type] || 'veloz', ['intimida', 'robusto', 'veloz', 'coraza', 'suerte', 'agallas'][strSeed('ab2:' + (sp.line || sp.id)) % 6]];
+  sp.ability = opts[strSeed('ab:' + (sp.line || sp.id)) % 3];
+});
+function abilityOf(m) { return SPECIES[m.species].ability || 'furia'; }
+function abilityName(m) { const a = abilityOf(m); return a === 'furia' ? FURIA_NAME[SPECIES[m.species].type] || 'Furia' : ABILITIES[a].name; }
+
 // número de Coredex: primero los del colegio, luego los del mundo
 const DEX_ORDER = Object.keys(SPECIES);
 const STARTERS2 = ['chispazo', 'gotin', 'brotin'];

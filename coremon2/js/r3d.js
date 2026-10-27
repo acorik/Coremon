@@ -679,8 +679,8 @@ function actorSource(a) {
   return personSheet(a.look || LOOKS2.player);
 }
 // ---- modelos 3D de los personajes (o recortable si hay textura propia en assets/personajes) ----
-function c3dParts(id) { const P = creatureParts(id); return P.parts.map(p => Object.assign({}, p, { color: roleColor(p.role, P.col) })); }
-function creatureModel(id, size) { creatureParts(id); return makeCreature3D(id, c3dParts(id), PARTS_CACHE[id].outline, size); }
+function c3dParts(id, shiny) { const P = creatureParts(id), col = shiny ? shinyCol(id, P.col) : P.col; return P.parts.map(p => Object.assign({}, p, { color: roleColor(p.role, col) })); }
+function creatureModel(id, size, shiny) { const P = creatureParts(id); return makeCreature3D(shiny ? id + ':shy' : id, c3dParts(id, shiny), shiny ? shade(shinyCol(id, P.col).body, -72) : P.outline, size); }
 function vehicleModel(kind) {
   const G = m3g(), mat = m3toon(), parts = [];
   const wheel = (z) => { parts.push(m3part(new THREE.TorusGeometry(0.2, 0.06, 6, 16), '#1d1a26', [0, 0.22, z], [1, 1, 1], [0, Math.PI / 2, 0])); parts.push(m3part(G.cyl, '#9e9e9e', [0, 0.22, z], [0.07, 0.06, 0.07], [0, 0, Math.PI / 2])); };
@@ -810,10 +810,11 @@ function updateActor(a, map, dt) {
 const FOLLOW = { trail: [], g: null, id: null };
 function updateFollower(map, dt) {
   const lead = G && G.team.find(m => m.hp > 0);
-  const want = lead && !(G.ride && map.outdoor) && STATE !== 'TITLE' ? lead.species : null;
+  const want = lead && !(G.ride && map.outdoor) && STATE !== 'TITLE' ? lead.species + (lead.shiny ? ':shy' : '') : null;
   if (want !== FOLLOW.id) {
     if (FOLLOW.g) R3.dyn.remove(FOLLOW.g);
-    FOLLOW.g = want ? creatureModel(want, SPECIES[want].legendary ? 1.2 : 0.95) : null;
+    const sp = want && lead.species;
+    FOLLOW.g = want ? creatureModel(sp, SPECIES[sp].legendary ? 1.2 : 0.95, lead.shiny) : null;
     if (FOLLOW.g) { R3.dyn.add(FOLLOW.g); FOLLOW.pos = { x: player.x - 22, y: player.y - 18 }; FOLLOW.trail = [{ x: FOLLOW.pos.x, y: FOLLOW.pos.y }]; FOLLOW.yaw = 0; }
     FOLLOW.id = want;
   }
@@ -834,7 +835,7 @@ function updateFollower(map, dt) {
   let dyaw = FOLLOW.yaw - an.inner.rotation.y; while (dyaw > Math.PI) dyaw -= Math.PI * 2; while (dyaw < -Math.PI) dyaw += Math.PI * 2;
   an.inner.rotation.y += dyaw * Math.min(1, dt / 100);
   const hop = moving ? Math.abs(Math.sin(now / 110)) * 0.12 : Math.sin(now / 500) * 0.02;
-  FOLLOW.g.position.set(p.x * U3, groundY(map, p.x, p.y) + hop + (PARTS_CACHE[FOLLOW.id].float ? 0.25 : 0), p.y * U3);
+  FOLLOW.g.position.set(p.x * U3, groundY(map, p.x, p.y) + hop + (PARTS_CACHE[FOLLOW.id.split(':')[0]].float ? 0.25 : 0), p.y * U3);
   FOLLOW.g.visible = true;
 }
 function updateActors(map, dt) {
@@ -1173,11 +1174,12 @@ function battleScene3D(name) {
   return (R3.bscenes[name] = bs);
 }
 // Coremon y entrenadores del combate en 3D
-function setCreature3D(bs, k, id) {
-  if (bs.srcs[k] === id && bs[k]) return bs[k];
+function setCreature3D(bs, k, id, shiny) {
+  const key = id + (shiny ? ':shy' : '');
+  if (bs.srcs[k] === key && bs[k]) return bs[k];
   if (bs[k]) bs.scene.remove(bs[k]);
-  bs[k] = creatureModel(id, 1); bs.scene.add(bs[k]);
-  bs.srcs[k] = id;
+  bs[k] = creatureModel(id, 1, shiny); bs.scene.add(bs[k]);
+  bs.srcs[k] = key;
   return bs[k];
 }
 function setPerson3D(bs, k, look, custom) {
@@ -1211,7 +1213,7 @@ function render3DBattle() {
   const SZ = 2.4;
   const place = (k, mon, show, off, faint, white, flash, lungeK) => {
     if (!mon) { if (bs[k]) bs[k].visible = false; return; }
-    const g = setCreature3D(bs, k, mon.species);
+    const g = setCreature3D(bs, k, mon.species, mon.shiny);
     g.visible = !!(show && faint < 1 && !(flash > 0 && Math.floor(flash) % 4 < 2));
     const base = BPOS[k], other = BPOS[k === 'p' ? 'e' : 'p'];
     const big = (SPECIES[mon.species].legendary ? 1.25 : 1) * (k === 'e' ? 1.25 : 1);
