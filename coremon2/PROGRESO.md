@@ -1,4 +1,4 @@
-# Coremon 2.0 — estado (un solo juego)
+# Coremon 2.0.2 — estado (un solo juego)
 
 - **El colegio es el tutorial.** Al vencer a Coindre aparece «TUTORIAL
   COMPLETADO» y se sale directo al mundo.
@@ -15,6 +15,22 @@
   - pistola de dardos (3000 💰): dispara con B o X, deja K.O. 40 s y la
     policía multa a los 5 K.O. en 90 s;
   - las dos se usan desde la mochila.
+
+- **Moto:** mientras vas en moto no salen Coremon salvajes ni te paran los
+  entrenadores.
+- **Niveles:** al salir al mundo el equipo ronda el nivel 15. El colegio
+  termina más bajo, al importar se ajusta la media y el mundo empieza 5
+  niveles por debajo de antes.
+- **Opciones:** calidad gráfica (Auto, Baja, Media, Alta, Ultra), contador de
+  FPS y límite de FPS (30, 60 o sin límite).
+- **Herramientas de desarrollador:** escribe el código `1000` en Opciones.
+  Tienen atravesar paredes, turbo, sin combates salvajes, dinero, objetos,
+  +5 niveles, medallas, hora del día, moto, legendario y teletransporte a
+  ciudades y pueblos.
+- **Más detalle:** personajes con ojos de anime, ropa y pelo por capas;
+  Coremon con iris y luz de borde. En el mapa hay farolas en los caminos,
+  carteles, molinos que giran, barcas, ruinas, muñecos de nieve, nenúfares,
+  flores 3D y pájaros.
 
 # Coremon 2 — estado y hoja de ruta
 
