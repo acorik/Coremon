@@ -1,30 +1,46 @@
-## 🎮 Coremon: Edición Corazonistas Vitoria — v1.0.1
+## 🎮 Coremon 2.0 — v2.0.0
 
 **Un juego de acorik.** Página oficial: **[acorik.itch.io/coremon](https://acorik.itch.io/coremon)**
 
-Un RPG de captura de criaturas con aspecto de Nintendo DS, ambientado en el Colegio Sagrado Corazón – Corazonistas de Vitoria-Gasteiz. Reta a los profes, consigue las 6 insignias, aprueba el examen del Taller sin que te pillen con el móvil y enfréntate al Padre Andrés Coindre.
+Coremon 2.0 junta dos juegos en uno, y los dos son ahora **en 3D**:
+
+1. **Coremon 1, el colegio.** Es el RPG de siempre en el Colegio Sagrado Corazón – Corazonistas de Vitoria-Gasteiz, ahora en 3D.
+2. **Coremon 2, el mundo.** Al vencer al Padre Andrés Coindre sales del colegio directamente y con todo tu progreso, al mundo abierto de Iberión.
 
 ### Descargas
 
 | Plataforma | Archivo |
 |---|---|
-| 🤖 Android | `Coremon-1.0.1.apk`: permite "instalar apps de origen desconocido". No pide permisos y funciona sin internet. |
-| 🪟 Windows | `Coremon-Setup-1.0.1.exe` (instalador) o `Coremon-1.0.1-portable.exe` (sin instalar) |
-| 🐧 Linux | `Coremon-1.0.1.AppImage`: `chmod +x` y doble clic |
-| 🍎 macOS | `Coremon-1.0.1-mac-arm64.dmg` (Apple Silicon) o `Coremon-1.0.1-mac-x64.dmg` (Intel). No está firmado: clic derecho → Abrir. |
-| 🌐 Web | `Coremon-1.0.1-web.zip`: descomprime y abre `index.html` |
+| 🤖 Android | `Coremon-2.0.0.apk`. Se instala encima de la 1.0.1 sin perder la partida. No pide permisos y funciona sin internet. |
+| 🪟 Windows | `Coremon-Setup-2.0.0.exe` (instalador) o `Coremon-2.0.0-portable.exe` (sin instalar) |
+| 🐧 Linux | `Coremon-2.0.0.AppImage`: `chmod +x` y doble clic |
+| 🍎 macOS | `Coremon-2.0.0-mac-arm64.dmg` (Apple Silicon) o `Coremon-2.0.0-mac-x64.dmg` (Intel). No está firmado: clic derecho → Abrir. |
+| 🌐 Web | `Coremon-2.0.0-web.zip`: descomprime y abre `index.html` |
 
-También se puede jugar en el navegador en [acorik.itch.io/coremon](https://acorik.itch.io/coremon).
+### Novedades de la 2.0
 
-### Novedades de la 1.0.1
+**Todo en 3D (estilo HD-2D):** escenarios 3D con luces y sombras, y personajes pixel-art de pie.
 
-- 🕹️ **Joystick** en lugar de la cruceta: arrástralo para moverte y llévalo hasta el borde para correr.
-- Botones A y B mucho más grandes, sobre todo en el móvil.
+- **El colegio:** cada sala es una maqueta 3D.
+  - Las paredes conservan sus carteles, ventanas y puertas.
+  - Los pupitres y bancos tienen volumen, y la hierba del patio se mueve.
+  - Los combates tienen fondo 3D con los sprites de siempre, como en la DS.
+- **El mundo:**
+  - Colinas, dunas y montañas, agua y lava animadas.
+  - Árboles, farolas y casas en 3D.
+  - Día y noche con farolas que iluminan, y lluvia, nieve, arena y ceniza.
 
-### Lo que trae el juego
+**Coremon 2, el mundo abierto de Iberión:**
 
-- La historia completa: 6 profes y sus gimnasios, el Director y el Padre Coindre.
-- Misión en primera persona en el Taller de Tecnología, con apagones.
-- Legendarios, zona salvaje, diario perdido de 1971 y contenido tras el final.
-- Música y efectos chiptune, objetivo siempre visible y guardado automático.
-- Se adapta a móvil (vertical y horizontal), tablet y PC.
+- Movimiento libre, bici y mapa.
+- 9 ciudades y 8 gimnasios con laberinto.
+- La **Liga Coremon**: Alto Mando y campeón.
+- **CoraCorp, la Empresa Corazonista**, que quiere controlar a Cimientor, el gigante que dormía bajo el colegio.
+- **190 Coremon** (los 31 del colegio y 159 nuevos), 14 tipos y 9 legendarios.
+- Tu rival Unai, entrenadores por las rutas, regalos, tiendas y Centros Coremon.
+- Tu equipo, tus cromos, tu dinero y tu Coredex del colegio vienen contigo.
+
+**Otros cambios:**
+
+- Si el dispositivo no tiene WebGL, el juego usa los gráficos 2D. También se pueden forzar con `?2d` en la versión web.
+- La calidad gráfica se ajusta sola en móviles menos potentes.

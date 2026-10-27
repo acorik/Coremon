@@ -4,7 +4,7 @@
 // Un juego de acorik.
 // ============================================================
 
-const C2_VERSION = '2.0.0-beta';
+const C2_VERSION = '2.0.0';
 const TS = 32;                         // tamaño de casilla en píxeles del mundo
 const SAVE_KEY = 'coremon2_save_v1';
 const C1_SAVE_KEY = 'corazonistasvitoria_save_v2';
